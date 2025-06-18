@@ -1,0 +1,804 @@
+# monitoring/prometheus/prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'csp-production'
+    replica: 'prometheus-1'
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'csp-core'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - csp-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+      - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+
+  - job_name: 'kubernetes-cadvisor'
+    kubernetes_sd_configs:
+      - role: node
+    scheme: https
+    metrics_path: /metrics/cadvisor
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+
+remote_write:
+  - url: "https://prometheus-remote-write.example.com/api/v1/write"
+    basic_auth:
+      username: "prometheus"
+      password: "password"
+
+---
+# monitoring/prometheus/alert_rules.yml
+groups:
+  - name: csp-system-alerts
+    rules:
+      # High CPU usage
+      - alert: CSPHighCPUUsage
+        expr: (rate(container_cpu_usage_seconds_total{container="csp-core"}[5m]) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+          service: csp-core
+        annotations:
+          summary: "CSP Core high CPU usage"
+          description: "CSP Core CPU usage is above 80% for more than 2 minutes"
+
+      # High memory usage
+      - alert: CSPHighMemoryUsage
+        expr: (container_memory_usage_bytes{container="csp-core"} / container_spec_memory_limit_bytes{container="csp-core"}) * 100 > 85
+        for: 2m
+        labels:
+          severity: warning
+          service: csp-core
+        annotations:
+          summary: "CSP Core high memory usage"
+          description: "CSP Core memory usage is above 85% for more than 2 minutes"
+
+      # Pod restart rate
+      - alert: CSPHighRestartRate
+        expr: rate(kube_pod_container_status_restarts_total{container="csp-core"}[15m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: csp-core
+        annotations:
+          summary: "CSP Core pod restarting"
+          description: "CSP Core pod {{ $labels.pod }} is restarting"
+
+      # Low replica count
+      - alert: CSPLowReplicaCount
+        expr: kube_deployment_status_replicas_available{deployment="csp-core"} < 2
+        for: 1m
+        labels:
+          severity: critical
+          service: csp-core
+        annotations:
+          summary: "CSP Core low replica count"
+          description: "CSP Core has less than 2 replicas available"
+
+      # High error rate
+      - alert: CSPHighErrorRate
+        expr: rate(csp_requests_total{status=~"5.."}[5m]) / rate(csp_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: csp-core
+        annotations:
+          summary: "CSP Core high error rate"
+          description: "CSP Core error rate is above 5% for more than 2 minutes"
+
+      # Slow response time
+      - alert: CSPSlowResponseTime
+        expr: histogram_quantile(0.95, rate(csp_response_time_seconds_bucket[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: csp-core
+        annotations:
+          summary: "CSP Core slow response time"
+          description: "CSP Core 95th percentile response time is above 2 seconds"
+
+      # AI agent collaboration failure
+      - alert: CSPAICollaborationFailure
+        expr: rate(csp_ai_collaboration_failures_total[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+          service: csp-ai
+        annotations:
+          summary: "CSP AI collaboration failures"
+          description: "CSP AI agents are experiencing collaboration failures"
+
+      # Emergent behavior anomaly
+      - alert: CSPEmergentBehaviorAnomaly
+        expr: csp_emergent_behavior_anomaly_score > 0.8
+        for: 30s
+        labels:
+          severity: warning
+          service: csp-ai
+        annotations:
+          summary: "CSP emergent behavior anomaly"
+          description: "Unusual emergent behavior detected in CSP network"
+
+---
+# monitoring/grafana/dashboards/csp_overview.json
+{
+  "dashboard": {
+    "id": null,
+    "title": "CSP System Overview",
+    "tags": ["csp", "overview"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"csp-core\"}",
+            "legendFormat": "Uptime"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(csp_requests_total[5m])",
+            "legendFormat": "Requests/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(csp_response_time_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(csp_response_time_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(csp_response_time_seconds_bucket[5m]))",
+            "legendFormat": "99th percentile"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "AI Agent Activity",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "csp_active_agents",
+            "legendFormat": "Active Agents"
+          },
+          {
+            "expr": "rate(csp_ai_messages_total[5m])",
+            "legendFormat": "Messages/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 5,
+        "title": "Emergent Behaviors",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "csp_emergent_behaviors_detected",
+            "legendFormat": "Behaviors Detected"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "refresh": "5s",
+    "schemaVersion": 30,
+    "version": 1,
+    "links": []
+  }
+}
+
+---
+# scripts/install.sh
+#!/bin/bash
+set -euo pipefail
+
+# CSP System Installation Script
+# =============================
+
+CSP_VERSION="1.0.0"
+CSP_HOME="${CSP_HOME:-$HOME/.csp}"
+CSP_BIN="${CSP_HOME}/bin"
+
+echo "🚀 Installing CSP System v${CSP_VERSION}"
+
+# Check system requirements
+check_requirements() {
+    echo "📋 Checking system requirements..."
+    
+    # Check Python version
+    if ! command -v python3 &> /dev/null; then
+        echo "❌ Python 3.8+ is required"
+        exit 1
+    fi
+    
+    python_version=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+    required_version="3.8"
+    
+    if [ "$(printf '%s\n' "$required_version" "$python_version" | sort -V | head -n1)" != "$required_version" ]; then
+        echo "❌ Python $required_version+ is required, found $python_version"
+        exit 1
+    fi
+    
+    # Check memory
+    total_memory=$(free -m | awk 'NR==2{printf "%.1f", $2/1024}')
+    if (( $(echo "$total_memory < 4" | bc -l) )); then
+        echo "⚠️  Warning: Less than 4GB RAM available"
+    fi
+    
+    echo "✅ System requirements met"
+}
+
+# Create directories
+create_directories() {
+    echo "📁 Creating directories..."
+    mkdir -p "$CSP_HOME"/{bin,config,data,logs}
+    echo "✅ Directories created"
+}
+
+# Install dependencies
+install_dependencies() {
+    echo "📦 Installing dependencies..."
+    
+    # Create virtual environment
+    python3 -m venv "$CSP_HOME/venv"
+    source "$CSP_HOME/venv/bin/activate"
+    
+    # Upgrade pip
+    pip install --upgrade pip setuptools wheel
+    
+    # Install CSP system
+    if [ -f "requirements.txt" ]; then
+        pip install -r requirements.txt
+        pip install -e .
+    else
+        pip install csp-system
+    fi
+    
+    echo "✅ Dependencies installed"
+}
+
+# Create configuration
+create_config() {
+    echo "⚙️  Creating configuration..."
+    
+    cat > "$CSP_HOME/config/system.yaml" << EOF
+installation:
+  installation_type: "local"
+  target_platform: "local"
+  enable_monitoring: true
+  enable_ai_extensions: true
+  enable_visual_tools: true
+  enable_debugging: true
+  data_directory: "$CSP_HOME/data"
+  config_directory: "$CSP_HOME/config"
+  log_directory: "$CSP_HOME/logs"
+
+runtime:
+  execution_model: "MULTI_THREADED"
+  scheduling_policy: "ADAPTIVE"
+  max_workers: 4
+  memory_limit_gb: 4.0
+
+networking:
+  default_port: 8080
+  enable_tls: false
+  channel_buffer_size: 1024
+
+ai_extensions:
+  enable_protocol_synthesis: true
+  enable_emergent_detection: true
+  enable_formal_verification: true
+
+monitoring:
+  enable_prometheus: false
+  enable_grafana: false
+  metrics_retention_days: 7
+EOF
+
+    echo "✅ Configuration created"
+}
+
+# Create CLI wrapper
+create_cli() {
+    echo "🔧 Creating CLI wrapper..."
+    
+    cat > "$CSP_BIN/csp" << EOF
+#!/bin/bash
+source "$CSP_HOME/venv/bin/activate"
+exec python -m cli.csp_implementation_guide "\$@"
+EOF
+    
+    chmod +x "$CSP_BIN/csp"
+    
+    # Add to PATH
+    if ! grep -q "$CSP_BIN" ~/.bashrc; then
+        echo "export PATH=\"$CSP_BIN:\$PATH\"" >> ~/.bashrc
+    fi
+    
+    echo "✅ CLI wrapper created"
+}
+
+# Run tests
+run_tests() {
+    echo "🧪 Running installation tests..."
+    
+    source "$CSP_HOME/venv/bin/activate"
+    
+    # Basic import test
+    python3 -c "
+import sys
+sys.path.insert(0, '.')
+try:
+    from core.advanced_csp_core import AdvancedCSPEngine
+    print('✅ Core engine import successful')
+except ImportError as e:
+    print('❌ Core engine import failed:', e)
+    sys.exit(1)
+"
+    
+    echo "✅ Installation tests passed"
+}
+
+# Main installation
+main() {
+    check_requirements
+    create_directories
+    install_dependencies
+    create_config
+    create_cli
+    run_tests
+    
+    echo ""
+    echo "🎉 CSP System installation completed successfully!"
+    echo ""
+    echo "Next steps:"
+    echo "1. Restart your shell or run: source ~/.bashrc"
+    echo "2. Test installation: csp --version"
+    echo "3. Start the system: csp start"
+    echo "4. Run showcase: csp showcase"
+    echo ""
+    echo "Documentation: $CSP_HOME/docs/"
+    echo "Configuration: $CSP_HOME/config/"
+    echo "Data directory: $CSP_HOME/data/"
+}
+
+main "$@"
+
+---
+# scripts/start.sh
+#!/bin/bash
+set -euo pipefail
+
+# CSP System Startup Script
+# =========================
+
+CSP_HOME="${CSP_HOME:-$HOME/.csp}"
+CSP_CONFIG="${CSP_CONFIG:-$CSP_HOME/config/system.yaml}"
+CSP_PID_FILE="${CSP_HOME}/csp.pid"
+
+echo "🚀 Starting CSP System..."
+
+# Check if already running
+if [ -f "$CSP_PID_FILE" ]; then
+    if kill -0 "$(cat "$CSP_PID_FILE")" 2>/dev/null; then
+        echo "❌ CSP System is already running (PID: $(cat "$CSP_PID_FILE"))"
+        exit 1
+    else
+        rm -f "$CSP_PID_FILE"
+    fi
+fi
+
+# Activate virtual environment
+if [ -f "$CSP_HOME/venv/bin/activate" ]; then
+    source "$CSP_HOME/venv/bin/activate"
+fi
+
+# Set environment variables
+export CSP_HOME
+export CSP_CONFIG_DIR="$CSP_HOME/config"
+export CSP_DATA_DIR="$CSP_HOME/data"
+export CSP_LOG_DIR="$CSP_HOME/logs"
+
+# Create log file
+mkdir -p "$CSP_LOG_DIR"
+LOG_FILE="$CSP_LOG_DIR/csp-$(date +%Y%m%d).log"
+
+# Start CSP system
+echo "📋 Configuration: $CSP_CONFIG"
+echo "📊 Logs: $LOG_FILE"
+echo "🔧 Data directory: $CSP_DATA_DIR"
+
+# Start in background
+nohup python -m cli.csp_implementation_guide start --config "$CSP_CONFIG" > "$LOG_FILE" 2>&1 &
+CSP_PID=$!
+
+# Save PID
+echo $CSP_PID > "$CSP_PID_FILE"
+
+# Wait a moment to check if it started successfully
+sleep 2
+
+if kill -0 $CSP_PID 2>/dev/null; then
+    echo "✅ CSP System started successfully (PID: $CSP_PID)"
+    echo "🌐 Dashboard: http://localhost:8080"
+    echo "📊 Metrics: http://localhost:9090"
+    echo ""
+    echo "To stop: ./scripts/stop.sh"
+    echo "To view logs: tail -f $LOG_FILE"
+else
+    echo "❌ Failed to start CSP System"
+    echo "Check logs: $LOG_FILE"
+    rm -f "$CSP_PID_FILE"
+    exit 1
+fi
+
+---
+# scripts/stop.sh
+#!/bin/bash
+set -euo pipefail
+
+# CSP System Stop Script
+# ======================
+
+CSP_HOME="${CSP_HOME:-$HOME/.csp}"
+CSP_PID_FILE="${CSP_HOME}/csp.pid"
+
+echo "🛑 Stopping CSP System..."
+
+if [ ! -f "$CSP_PID_FILE" ]; then
+    echo "❌ CSP System is not running (no PID file found)"
+    exit 1
+fi
+
+CSP_PID=$(cat "$CSP_PID_FILE")
+
+if ! kill -0 $CSP_PID 2>/dev/null; then
+    echo "❌ CSP System is not running (PID $CSP_PID not found)"
+    rm -f "$CSP_PID_FILE"
+    exit 1
+fi
+
+# Graceful shutdown
+echo "📡 Sending SIGTERM to PID $CSP_PID..."
+kill $CSP_PID
+
+# Wait for graceful shutdown
+for i in {1..30}; do
+    if ! kill -0 $CSP_PID 2>/dev/null; then
+        echo "✅ CSP System stopped gracefully"
+        rm -f "$CSP_PID_FILE"
+        exit 0
+    fi
+    sleep 1
+done
+
+# Force kill if still running
+echo "⚠️  Graceful shutdown failed, forcing termination..."
+kill -9 $CSP_PID 2>/dev/null || true
+rm -f "$CSP_PID_FILE"
+
+echo "✅ CSP System stopped (forced)"
+
+---
+# scripts/deploy.sh
+#!/bin/bash
+set -euo pipefail
+
+# CSP System Deployment Script
+# ============================
+
+DEPLOYMENT_CONFIG="${1:-config/templates/production.yaml}"
+DEPLOYMENT_TARGET="${2:-kubernetes}"
+
+echo "🚀 Deploying CSP System..."
+echo "📋 Config: $DEPLOYMENT_CONFIG"
+echo "🎯 Target: $DEPLOYMENT_TARGET"
+
+# Validate configuration
+if [ ! -f "$DEPLOYMENT_CONFIG" ]; then
+    echo "❌ Configuration file not found: $DEPLOYMENT_CONFIG"
+    exit 1
+fi
+
+# Deploy based on target
+case $DEPLOYMENT_TARGET in
+    "kubernetes")
+        echo "☸️  Deploying to Kubernetes..."
+        
+        # Apply Kubernetes manifests
+        kubectl apply -f deployment/kubernetes/namespace.yaml
+        kubectl apply -f deployment/kubernetes/configmap.yaml
+        kubectl apply -f deployment/kubernetes/secret.yaml
+        kubectl apply -f deployment/kubernetes/pvc.yaml
+        kubectl apply -f deployment/kubernetes/serviceaccount.yaml
+        kubectl apply -f deployment/kubernetes/rbac.yaml
+        kubectl apply -f deployment/kubernetes/deployment.yaml
+        kubectl apply -f deployment/kubernetes/service.yaml
+        kubectl apply -f deployment/kubernetes/hpa.yaml
+        kubectl apply -f deployment/kubernetes/ingress.yaml
+        kubectl apply -f deployment/kubernetes/poddisruptionbudget.yaml
+        kubectl apply -f deployment/kubernetes/networkpolicy.yaml
+        
+        # Wait for deployment
+        echo "⏳ Waiting for deployment to be ready..."
+        kubectl wait --for=condition=available --timeout=300s deployment/csp-core -n csp-system
+        
+        echo "✅ Kubernetes deployment completed"
+        kubectl get pods -n csp-system
+        ;;
+        
+    "docker")
+        echo "🐳 Deploying with Docker Compose..."
+        docker-compose -f docker-compose.yml up -d
+        echo "✅ Docker deployment completed"
+        docker-compose ps
+        ;;
+        
+    "helm")
+        echo "⎈ Deploying with Helm..."
+        helm upgrade --install csp-system deployment/helm/ \
+            --namespace csp-system \
+            --create-namespace \
+            --values "$DEPLOYMENT_CONFIG"
+        echo "✅ Helm deployment completed"
+        ;;
+        
+    *)
+        echo "❌ Unknown deployment target: $DEPLOYMENT_TARGET"
+        echo "Supported targets: kubernetes, docker, helm"
+        exit 1
+        ;;
+esac
+
+echo ""
+echo "🎉 Deployment completed successfully!"
+echo "🌐 Check status with: kubectl get pods -n csp-system"
+
+---
+# scripts/backup.sh
+#!/bin/bash
+set -euo pipefail
+
+# CSP System Backup Script
+# ========================
+
+CSP_HOME="${CSP_HOME:-$HOME/.csp}"
+BACKUP_DIR="${BACKUP_DIR:-$CSP_HOME/backups}"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_NAME="csp_backup_$TIMESTAMP"
+
+echo "💾 Creating CSP System backup..."
+
+# Create backup directory
+mkdir -p "$BACKUP_DIR"
+
+# Create backup archive
+tar -czf "$BACKUP_DIR/$BACKUP_NAME.tar.gz" \
+    -C "$CSP_HOME" \
+    --exclude="venv" \
+    --exclude="*.log" \
+    --exclude="__pycache__" \
+    config data
+
+# Database backup (if using PostgreSQL)
+if command -v pg_dump &> /dev/null; then
+    pg_dump csp_system > "$BACKUP_DIR/$BACKUP_NAME.sql" 2>/dev/null || true
+fi
+
+# Cleanup old backups (keep last 7 days)
+find "$BACKUP_DIR" -name "csp_backup_*.tar.gz" -mtime +7 -delete
+
+echo "✅ Backup created: $BACKUP_DIR/$BACKUP_NAME.tar.gz"
+echo "📊 Backup size: $(du -h "$BACKUP_DIR/$BACKUP_NAME.tar.gz" | cut -f1)"
+
+---
+# scripts/monitoring_setup.sh
+#!/bin/bash
+set -euo pipefail
+
+# CSP System Monitoring Setup
+# ===========================
+
+echo "📊 Setting up CSP System monitoring..."
+
+# Install monitoring stack
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+# Install Prometheus
+helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+    --namespace monitoring \
+    --create-namespace \
+    --values monitoring/prometheus/values.yaml
+
+# Install Grafana dashboards
+kubectl apply -f monitoring/grafana/dashboards/ -n monitoring
+
+# Install Jaeger
+kubectl apply -f monitoring/jaeger/jaeger-config.yaml -n monitoring
+
+echo "✅ Monitoring setup completed"
+echo "🌐 Grafana: http://localhost:3000 (admin/admin)"
+echo "📊 Prometheus: http://localhost:9090"
+echo "🔍 Jaeger: http://localhost:16686"

@@ -1,0 +1,667 @@
+# deployment/kubernetes/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: csp-system
+  labels:
+    name: csp-system
+    version: "1.0.0"
+
+---
+# deployment/kubernetes/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: csp-config
+  namespace: csp-system
+data:
+  system.yaml: |
+    installation:
+      installation_type: "production"
+      target_platform: "kubernetes"
+      enable_monitoring: true
+      enable_ai_extensions: true
+    runtime:
+      execution_model: "MULTI_THREADED"
+      scheduling_policy: "ADAPTIVE"
+      max_workers: 4
+      memory_limit_gb: 8.0
+    networking:
+      default_port: 8080
+      enable_tls: true
+      channel_buffer_size: 1024
+    ai_extensions:
+      enable_protocol_synthesis: true
+      enable_emergent_detection: true
+      enable_formal_verification: true
+    monitoring:
+      enable_prometheus: true
+      enable_grafana: true
+      metrics_retention_days: 30
+
+---
+# deployment/kubernetes/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: csp-secrets
+  namespace: csp-system
+type: Opaque
+stringData:
+  database-url: "postgresql://csp:csp_password@postgres:5432/csp_system"
+  redis-url: "redis://redis:6379/0"
+  openai-api-key: "your-openai-api-key"
+  anthropic-api-key: "your-anthropic-api-key"
+
+---
+# deployment/kubernetes/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: csp-core
+  namespace: csp-system
+  labels:
+    app: csp-core
+    version: "1.0.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: csp-core
+  template:
+    metadata:
+      labels:
+        app: csp-core
+        version: "1.0.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: csp-service-account
+      containers:
+      - name: csp-core
+        image: csp-system:1.0.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        env:
+        - name: CSP_ENV
+          value: "production"
+        - name: CSP_LOG_LEVEL
+          value: "INFO"
+        - name: CSP_CONFIG_DIR
+          value: "/app/config"
+        - name: CSP_DATA_DIR
+          value: "/app/data"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: csp-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: csp-secrets
+              key: redis-url
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: csp-secrets
+              key: openai-api-key
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+        - name: data-volume
+          mountPath: /app/data
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+      volumes:
+      - name: config-volume
+        configMap:
+          name: csp-config
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: csp-data-pvc
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+
+---
+# deployment/kubernetes/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: csp-core-service
+  namespace: csp-system
+  labels:
+    app: csp-core
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+spec:
+  selector:
+    app: csp-core
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  type: ClusterIP
+
+---
+# deployment/kubernetes/service-lb.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: csp-core-lb
+  namespace: csp-system
+  labels:
+    app: csp-core
+spec:
+  selector:
+    app: csp-core
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: LoadBalancer
+
+---
+# deployment/kubernetes/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: csp-ingress
+  namespace: csp-system
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/websocket-services: "csp-core-service"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  tls:
+  - hosts:
+    - csp-system.yourdomain.com
+    secretName: csp-tls
+  rules:
+  - host: csp-system.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: csp-core-service
+            port:
+              number: 8080
+
+---
+# deployment/kubernetes/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: csp-core-hpa
+  namespace: csp-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: csp-core
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+
+---
+# deployment/kubernetes/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: csp-data-pvc
+  namespace: csp-system
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: fast-ssd
+
+---
+# deployment/kubernetes/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: csp-service-account
+  namespace: csp-system
+
+---
+# deployment/kubernetes/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: csp-cluster-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: csp-cluster-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: csp-cluster-role
+subjects:
+- kind: ServiceAccount
+  name: csp-service-account
+  namespace: csp-system
+
+---
+# deployment/kubernetes/networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: csp-network-policy
+  namespace: csp-system
+spec:
+  podSelector:
+    matchLabels:
+      app: csp-core
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+
+---
+# deployment/kubernetes/poddisruptionbudget.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: csp-pdb
+  namespace: csp-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: csp-core
+
+---
+# deployment/helm/Chart.yaml
+apiVersion: v2
+name: csp-system
+description: A Helm chart for CSP System - Advanced AI Communication Platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - csp
+  - ai
+  - communication
+  - distributed-systems
+home: https://github.com/csp-system/csp-system
+sources:
+  - https://github.com/csp-system/csp-system
+maintainers:
+  - name: CSP Development Team
+    email: team@csp-system.org
+
+---
+# deployment/helm/values.yaml
+# Default values for csp-system
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+image:
+  registry: docker.io
+  repository: csp-system/csp-system
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: csp-system.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: csp-tls
+      hosts:
+        - csp-system.local
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - csp-system
+        topologyKey: kubernetes.io/hostname
+
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"
+  accessMode: ReadWriteOnce
+  size: 20Gi
+
+config:
+  system:
+    installation:
+      installation_type: "production"
+      target_platform: "kubernetes"
+      enable_monitoring: true
+      enable_ai_extensions: true
+    runtime:
+      execution_model: "MULTI_THREADED"
+      scheduling_policy: "ADAPTIVE"
+      max_workers: 4
+      memory_limit_gb: 8.0
+    networking:
+      default_port: 8080
+      enable_tls: true
+      channel_buffer_size: 1024
+
+secrets:
+  databaseUrl: ""
+  redisUrl: ""
+  openaiApiKey: ""
+  anthropicApiKey: ""
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "csp_password"
+    username: "csp"
+    password: "csp_password"
+    database: "csp_system"
+
+prometheus:
+  enabled: false
+
+grafana:
+  enabled: false
+
+---
+# deployment/helm/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "csp-system.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "csp-system.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "csp-system.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "csp-system.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "csp-system.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: /app/data
+            {{- end }}
+          env:
+            - name: CSP_ENV
+              value: "production"
+            - name: CSP_CONFIG_DIR
+              value: "/app/config"
+            {{- if .Values.secrets.databaseUrl }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "csp-system.fullname" . }}-secrets
+                  key: database-url
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "csp-system.fullname" . }}-config
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "csp-system.fullname" . }}-data
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

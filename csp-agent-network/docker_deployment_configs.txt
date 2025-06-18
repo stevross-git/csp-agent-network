@@ -1,0 +1,445 @@
+# Dockerfile
+"""
+Multi-stage Docker build for CSP System
+Production-ready container with optimizations
+"""
+
+# Build stage
+FROM python:3.11-slim as builder
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    g++ \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy requirements first for better layer caching
+COPY requirements.txt requirements-dev.txt ./
+
+# Install Python dependencies
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install -r requirements.txt
+
+# Copy source code
+COPY . .
+
+# Build the package
+RUN python setup.py bdist_wheel
+
+# Production stage
+FROM python:3.11-slim as production
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV CSP_ENV=production
+ENV CSP_LOG_LEVEL=INFO
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r csp && useradd -r -g csp csp
+
+# Create app directory
+WORKDIR /app
+
+# Copy built wheel from builder stage
+COPY --from=builder /app/dist/*.whl ./
+
+# Install CSP system
+RUN pip install --no-cache-dir *.whl && \
+    rm -f *.whl
+
+# Copy configuration and scripts
+COPY config/ ./config/
+COPY scripts/ ./scripts/
+RUN chmod +x scripts/*.sh
+
+# Create necessary directories
+RUN mkdir -p data logs config/local && \
+    chown -R csp:csp /app
+
+# Switch to non-root user
+USER csp
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Expose ports
+EXPOSE 8080 9090
+
+# Default command
+CMD ["csp", "start", "--config", "config/production.yaml"]
+
+# docker-compose.yml
+"""
+Docker Compose for CSP System development
+"""
+
+version: '3.8'
+
+services:
+  csp-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      - CSP_ENV=development
+      - CSP_LOG_LEVEL=DEBUG
+      - CSP_DATA_DIR=/app/data
+      - CSP_CONFIG_DIR=/app/config
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - postgres
+      - prometheus
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  csp-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["csp-dashboard"]
+    ports:
+      - "3000:3000"
+    environment:
+      - CSP_CORE_URL=http://csp-core:8080
+    depends_on:
+      - csp-core
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=csp_system
+      - POSTGRES_USER=csp
+      - POSTGRES_PASSWORD=csp_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "14268:14268"
+      - "16686:16686"
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+networks:
+  csp-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+# docker-compose.dev.yml
+"""
+Development environment with hot reloading
+"""
+
+version: '3.8'
+
+services:
+  csp-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+      - "5678:5678"  # Debug port
+    environment:
+      - CSP_ENV=development
+      - CSP_LOG_LEVEL=DEBUG
+      - CSP_ENABLE_DEBUG=true
+      - CSP_ENABLE_HOTRELOAD=true
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    depends_on:
+      - redis-dev
+    networks:
+      - csp-dev-network
+    restart: unless-stopped
+
+  redis-dev:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - csp-dev-network
+
+networks:
+  csp-dev-network:
+    driver: bridge
+
+# Dockerfile.dev
+"""
+Development Dockerfile with hot reloading
+"""
+
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV CSP_ENV=development
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements-dev.txt .
+RUN pip install --upgrade pip && \
+    pip install -r requirements-dev.txt
+
+# Install development tools
+RUN pip install watchdog[watchmedo] debugpy
+
+# Copy source code
+COPY . .
+
+# Install in development mode
+RUN pip install -e .
+
+# Expose ports
+EXPOSE 8080 9090 5678
+
+# Development command with hot reloading
+CMD ["watchmedo", "auto-restart", "--directory=.", "--pattern=*.py", "--recursive", "--", "python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "-m", "cli.csp_implementation_guide", "start", "--debug"]
+
+# nginx.conf
+"""
+Nginx configuration for load balancing CSP instances
+"""
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream csp_backend {
+        least_conn;
+        server csp-core-1:8080;
+        server csp-core-2:8080;
+        server csp-core-3:8080;
+    }
+
+    upstream csp_dashboard {
+        server csp-dashboard:3000;
+    }
+
+    server {
+        listen 80;
+        server_name csp-system.local;
+
+        # Main CSP API
+        location /api/ {
+            proxy_pass http://csp_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            # WebSocket support
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        # Dashboard
+        location / {
+            proxy_pass http://csp_dashboard;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Health check
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+
+        # Metrics endpoint
+        location /metrics {
+            proxy_pass http://csp_backend;
+            allow 10.0.0.0/8;
+            allow 172.16.0.0/12;
+            allow 192.168.0.0/16;
+            deny all;
+        }
+    }
+
+    server {
+        listen 443 ssl http2;
+        server_name csp-system.local;
+
+        ssl_certificate /etc/ssl/certs/csp-system.crt;
+        ssl_certificate_key /etc/ssl/private/csp-system.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
+        ssl_prefer_server_ciphers off;
+
+        # Same location blocks as HTTP server
+        location /api/ {
+            proxy_pass http://csp_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        location / {
+            proxy_pass http://csp_dashboard;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}
+
+# .dockerignore
+"""
+Docker ignore file
+"""
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Development
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Data and logs
+data/
+logs/
+*.log
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
