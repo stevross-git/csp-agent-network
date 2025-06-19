@@ -16,3 +16,15 @@ enhanced_csp/__pycache__/main.cpython-310.pyc
 enhanced_csp/database/__pycache__/__init__.cpython-310.pyc
 enhanced_csp/database/__pycache__/migrate.cpython-310.pyc
 enhanced_csp/data/csp_system.db
+enhanced_csp/**.db
+
+enhanced_csp/*.egg-info/*
+
+
+enhanced_csp/gauge_all_672165.db
+enhanced_csp/gauge_all_686386.db
+enhanced_csp/gauge_all_687587.db
+enhanced_csp/histogram_669760.db
+enhanced_csp/histogram_672165.db
+enhanced_csp/histogram_686386.db
+enhanced_csp/histogram_687587.db

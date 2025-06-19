@@ -13,6 +13,8 @@ Features:
 - Real-time monitoring and metrics
 - Distributed agent coordination
 - Self-healing and optimization
+- Visual development tools
+- Production deployment support
 """
 
 import os
@@ -23,16 +25,17 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from contextlib import asynccontextmanager
 
 # FastAPI and web dependencies
-from fastapi import FastAPI, WebSocket, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, WebSocket, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 
 # Database and storage
@@ -40,26 +43,68 @@ import sqlite3
 import redis.asyncio as redis
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 
 # Monitoring and metrics
-from prometheus_client import Counter, Histogram, Gauge, generate_latest
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 import psutil
 
 # Configuration and utilities
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from dotenv import load_dotenv
+import aiofiles
+import aiohttp
+
+# Enhanced CSP Core Components
+try:
+    from core.advanced_csp_core import (
+        AdvancedCSPEngine, Process, AtomicProcess, CompositeProcess,
+        CompositionOperator, ChannelType, Event, ProcessSignature,
+        ProcessContext, Channel, ProcessMatcher, ProtocolEvolution
+    )
+    from ai_integration.csp_ai_extensions import (
+        AdvancedCSPEngineWithAI, ProtocolSpec, ProtocolTemplate,
+        EmergentBehaviorDetector, CausalityTracker, QuantumCSPChannel
+    )
+    from ai_integration.csp_ai_integration import (
+        AIAgent, LLMCapability, CollaborativeAIProcess,
+        MultiAgentReasoningCoordinator, AdvancedAICSPDemo
+    )
+    from runtime.csp_runtime_environment import (
+        CSPRuntimeOrchestrator, RuntimeConfig, ExecutionModel, 
+        SchedulingPolicy, HighPerformanceRuntimeExecutor
+    )
+    from deployment.csp_deployment_system import (
+        CSPDeploymentOrchestrator, DeploymentConfig, DeploymentTarget,
+        ScalingStrategy, HealthCheckConfig
+    )
+    from dev_tools.csp_dev_tools import (
+        CSPDevelopmentTools, CSPVisualDesigner, CSPDebugger,
+        CSPCodeGenerator, CSPTestFramework
+    )
+    from monitoring.csp_monitoring import (
+        CSPMonitor, MetricsCollector, PerformanceAnalyzer,
+        AlertManager, SystemHealthChecker
+    )
+    from web_ui.dashboard.app import create_dashboard_app
+    from database.migrate import migrate_main as run_migrations
+except ImportError as e:
+    logging.error(f"Failed to import CSP components: {e}")
+    logging.error("Some features may not be available")
 
 # Load environment variables
 load_dotenv()
 
 # Configure logging
+os.makedirs('logs', exist_ok=True)
 logging.basicConfig(
     level=getattr(logging, os.getenv('CSP_LOG_LEVEL', 'INFO')),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('logs/enhanced_csp.log')
+        logging.FileHandler('logs/enhanced_csp.log'),
+        logging.FileHandler('logs/enhanced_csp_debug.log')
     ]
 )
 logger = logging.getLogger(__name__)
@@ -68,890 +113,654 @@ logger = logging.getLogger(__name__)
 # CONFIGURATION MANAGEMENT
 # ============================================================================
 
+class DatabaseConfig(BaseModel):
+    """Database configuration"""
+    url: str = "sqlite:///./data/enhanced_csp.db"
+    echo: bool = False
+    pool_size: int = 20
+    max_overflow: int = 30
+
+class RedisConfig(BaseModel):
+    """Redis configuration"""
+    url: str = "redis://localhost:6379/0"
+    max_connections: int = 20
+    retry_on_timeout: bool = True
+
+class MonitoringConfig(BaseModel):
+    """Monitoring configuration"""
+    enable_prometheus: bool = True
+    enable_tracing: bool = True
+    metrics_port: int = 9090
+    health_check_interval: int = 30
+    alert_threshold_cpu: float = 80.0
+    alert_threshold_memory: float = 85.0
+
+class AIConfig(BaseModel):
+    """AI configuration"""
+    enable_llm_integration: bool = True
+    default_model: str = "gpt-4"
+    max_agents_per_collaboration: int = 10
+    reasoning_timeout: int = 300
+    protocol_synthesis_enabled: bool = True
+
+class RuntimeConfig(BaseModel):
+    """Runtime configuration"""
+    execution_model: str = "MULTI_THREADED"
+    max_workers: int = os.cpu_count()
+    memory_limit_gb: float = 8.0
+    enable_optimization: bool = True
+    enable_debugging: bool = False
+
 class CSPConfig(BaseModel):
     """Enhanced CSP System Configuration"""
     
     # Core settings
     app_name: str = "Enhanced CSP System"
-    version: str = "1.0.0"
+    version: str = "2.0.0"
     debug: bool = False
+    environment: str = "development"
     
     # Server settings
     host: str = "0.0.0.0"
     port: int = 8000
     workers: int = 1
+    reload: bool = False
     
-    # Database settings
-    database_url: str = "sqlite:///./data/enhanced_csp.db"
-    redis_url: str = "redis://localhost:6379"
-    
-    # CSP Engine settings
-    max_processes: int = 1000
-    max_channels: int = 10000
-    max_agents: int = 500
-    consciousness_enabled: bool = True
-    quantum_enabled: bool = True
-    neural_mesh_enabled: bool = True
-    
-    # AI settings
-    ai_enabled: bool = True
-    protocol_synthesis_enabled: bool = True
-    emergent_detection_enabled: bool = True
-    
-    # Performance settings
-    execution_model: str = "HYBRID"
-    max_workers: int = 4
-    memory_limit_gb: float = 8.0
+    # Component configurations
+    database: DatabaseConfig = DatabaseConfig()
+    redis: RedisConfig = RedisConfig()
+    monitoring: MonitoringConfig = MonitoringConfig()
+    ai: AIConfig = AIConfig()
+    runtime: RuntimeConfig = RuntimeConfig()
     
     # Security settings
-    enable_cors: bool = True
-    allowed_origins: List[str] = ["*"]
-    secret_key: str = "enhanced-csp-secret-key-change-in-production"
+    secret_key: str = os.getenv('CSP_SECRET_KEY', 'dev-secret-key')
+    api_key_header: str = "X-CSP-API-Key"
+    enable_auth: bool = True
     
-    # Monitoring settings
-    metrics_enabled: bool = True
-    health_check_enabled: bool = True
+    @validator('port')
+    def validate_port(cls, v):
+        if not 1 <= v <= 65535:
+            raise ValueError('Port must be between 1 and 65535')
+        return v
+
+# Load configuration
+def load_config() -> CSPConfig:
+    """Load configuration from environment and files"""
+    config_path = os.getenv('CSP_CONFIG_PATH', 'config/system.yaml')
     
-    @classmethod
-    def load_config(cls, config_path: str = "config/app.yaml") -> "CSPConfig":
-        """Load configuration from file"""
-        try:
-            if Path(config_path).exists():
-                with open(config_path, 'r') as f:
-                    config_data = yaml.safe_load(f)
-                return cls(**config_data)
-        except Exception as e:
-            logger.warning(f"Could not load config from {config_path}: {e}")
-        
-        return cls()
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            config_data = yaml.safe_load(f)
+        return CSPConfig(**config_data)
+    else:
+        logger.warning(f"Config file not found at {config_path}, using defaults")
+        return CSPConfig()
+
+config = load_config()
 
 # ============================================================================
-# PROMETHEUS METRICS
+# GLOBAL SYSTEM STATE
 # ============================================================================
 
-# System metrics
-system_requests_total = Counter('csp_requests_total', 'Total HTTP requests', ['method', 'endpoint'])
-system_request_duration = Histogram('csp_request_duration_seconds', 'Request duration')
-system_active_connections = Gauge('csp_active_connections', 'Active WebSocket connections')
-system_memory_usage = Gauge('csp_memory_usage_bytes', 'Memory usage')
-system_cpu_usage = Gauge('csp_cpu_usage_percent', 'CPU usage percentage')
-
-# CSP-specific metrics
-csp_processes_active = Gauge('csp_processes_active', 'Active CSP processes')
-csp_channels_active = Gauge('csp_channels_active', 'Active CSP channels')
-csp_agents_active = Gauge('csp_agents_active', 'Active CSP agents')
-csp_messages_processed = Counter('csp_messages_processed_total', 'Total messages processed')
-csp_quantum_operations = Counter('csp_quantum_operations_total', 'Total quantum operations')
-csp_consciousness_sync = Counter('csp_consciousness_sync_total', 'Total consciousness synchronizations')
-
-# ============================================================================
-# DATABASE MODELS AND OPERATIONS
-# ============================================================================
-
-class DatabaseManager:
-    """Database operations manager"""
-    
-    def __init__(self, config: CSPConfig):
-        self.config = config
-        self.engine = None
-        self.redis_client = None
-    
-    async def initialize(self):
-        """Initialize database connections"""
-        try:
-            # Initialize SQLite
-            await self._init_sqlite()
-            
-            # Initialize Redis
-            await self._init_redis()
-            
-            logger.info("Database connections initialized")
-        except Exception as e:
-            logger.error(f"Database initialization failed: {e}")
-            raise
-    
-    async def _init_sqlite(self):
-        """Initialize SQLite database"""
-        # Ensure data directory exists
-        Path("data").mkdir(exist_ok=True)
-        
-        # Create tables if they don't exist
-        db_path = "data/enhanced_csp.db"
-        conn = sqlite3.connect(db_path)
-        
-        # Core tables
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS engines (
-                engine_id TEXT PRIMARY KEY,
-                status TEXT DEFAULT 'initializing',
-                configuration TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS processes (
-                process_id TEXT PRIMARY KEY,
-                engine_id TEXT,
-                process_type TEXT,
-                status TEXT DEFAULT 'ready',
-                configuration TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (engine_id) REFERENCES engines (engine_id)
-            )
-        ''')
-        
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS channels (
-                channel_id TEXT PRIMARY KEY,
-                engine_id TEXT,
-                channel_type TEXT,
-                status TEXT DEFAULT 'active',
-                participants TEXT,
-                configuration TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (engine_id) REFERENCES engines (engine_id)
-            )
-        ''')
-        
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS agents (
-                agent_id TEXT PRIMARY KEY,
-                engine_id TEXT,
-                agent_type TEXT,
-                status TEXT DEFAULT 'active',
-                consciousness_level REAL DEFAULT 0.8,
-                capabilities TEXT,
-                configuration TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (engine_id) REFERENCES engines (engine_id)
-            )
-        ''')
-        
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS metrics (
-                metric_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                metric_name TEXT,
-                metric_value REAL,
-                labels TEXT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-    
-    async def _init_redis(self):
-        """Initialize Redis connection"""
-        try:
-            self.redis_client = redis.from_url(self.config.redis_url)
-            await self.redis_client.ping()
-            logger.info("Redis connection established")
-        except Exception as e:
-            logger.warning(f"Redis connection failed: {e}")
-            self.redis_client = None
-    
-    async def close(self):
-        """Close database connections"""
-        if self.redis_client:
-            await self.redis_client.close()
-
-# ============================================================================
-# CSP ENGINE INTEGRATION
-# ============================================================================
-
-class EnhancedCSPEngine:
-    """Enhanced CSP Engine with quantum and consciousness features"""
-    
-    def __init__(self, config: CSPConfig):
-        self.config = config
-        self.engine_id = str(uuid.uuid4())
-        self.status = "initializing"
-        self.processes = {}
-        self.channels = {}
-        self.agents = {}
-        self.metrics = {}
-        
-        # Feature flags
-        self.consciousness_enabled = config.consciousness_enabled
-        self.quantum_enabled = config.quantum_enabled
-        self.neural_mesh_enabled = config.neural_mesh_enabled
-        self.ai_enabled = config.ai_enabled
-    
-    async def initialize(self):
-        """Initialize the CSP engine"""
-        logger.info(f"Initializing Enhanced CSP Engine {self.engine_id}")
-        
-        # Initialize core components
-        await self._init_core_engine()
-        
-        # Initialize optional features
-        if self.consciousness_enabled:
-            await self._init_consciousness_manager()
-        
-        if self.quantum_enabled:
-            await self._init_quantum_manager()
-        
-        if self.neural_mesh_enabled:
-            await self._init_neural_mesh()
-        
-        if self.ai_enabled:
-            await self._init_ai_extensions()
-        
-        self.status = "running"
-        logger.info("Enhanced CSP Engine initialized successfully")
-    
-    async def _init_core_engine(self):
-        """Initialize core CSP engine"""
-        # Create default engine record
-        self.metrics["core_initialized"] = datetime.now()
-        csp_processes_active.set(len(self.processes))
-        csp_channels_active.set(len(self.channels))
-        csp_agents_active.set(len(self.agents))
-    
-    async def _init_consciousness_manager(self):
-        """Initialize consciousness management"""
-        logger.info("Initializing consciousness manager...")
-        self.metrics["consciousness_initialized"] = datetime.now()
-    
-    async def _init_quantum_manager(self):
-        """Initialize quantum communication"""
-        logger.info("Initializing quantum manager...")
-        self.metrics["quantum_initialized"] = datetime.now()
-    
-    async def _init_neural_mesh(self):
-        """Initialize neural mesh network"""
-        logger.info("Initializing neural mesh...")
-        self.metrics["neural_mesh_initialized"] = datetime.now()
-    
-    async def _init_ai_extensions(self):
-        """Initialize AI extensions"""
-        logger.info("Initializing AI extensions...")
-        self.metrics["ai_extensions_initialized"] = datetime.now()
-    
-    async def create_process(self, process_type: str, config: dict = None) -> str:
-        """Create a new CSP process"""
-        process_id = str(uuid.uuid4())
-        self.processes[process_id] = {
-            "id": process_id,
-            "type": process_type,
-            "status": "ready",
-            "config": config or {},
-            "created_at": datetime.now()
-        }
-        
-        csp_processes_active.set(len(self.processes))
-        logger.info(f"Created process {process_id} of type {process_type}")
-        return process_id
-    
-    async def create_channel(self, channel_type: str, participants: List[str] = None) -> str:
-        """Create a new communication channel"""
-        channel_id = str(uuid.uuid4())
-        self.channels[channel_id] = {
-            "id": channel_id,
-            "type": channel_type,
-            "status": "active",
-            "participants": participants or [],
-            "created_at": datetime.now()
-        }
-        
-        csp_channels_active.set(len(self.channels))
-        logger.info(f"Created channel {channel_id} of type {channel_type}")
-        return channel_id
-    
-    async def create_agent(self, agent_type: str, consciousness_level: float = 0.8) -> str:
-        """Create a new AI agent"""
-        agent_id = str(uuid.uuid4())
-        self.agents[agent_id] = {
-            "id": agent_id,
-            "type": agent_type,
-            "status": "active",
-            "consciousness_level": consciousness_level,
-            "capabilities": [],
-            "created_at": datetime.now()
-        }
-        
-        csp_agents_active.set(len(self.agents))
-        logger.info(f"Created agent {agent_id} of type {agent_type}")
-        return agent_id
-    
-    async def send_message(self, channel_id: str, message: dict) -> bool:
-        """Send message through channel"""
-        if channel_id not in self.channels:
-            return False
-        
-        # Process message through CSP protocol
-        csp_messages_processed.inc()
-        
-        # Apply quantum processing if enabled
-        if self.quantum_enabled:
-            csp_quantum_operations.inc()
-        
-        # Apply consciousness sync if enabled
-        if self.consciousness_enabled:
-            csp_consciousness_sync.inc()
-        
-        logger.debug(f"Message sent through channel {channel_id}")
-        return True
-    
-    def get_status(self) -> dict:
-        """Get engine status"""
-        return {
-            "engine_id": self.engine_id,
-            "status": self.status,
-            "processes": len(self.processes),
-            "channels": len(self.channels),
-            "agents": len(self.agents),
-            "features": {
-                "consciousness": self.consciousness_enabled,
-                "quantum": self.quantum_enabled,
-                "neural_mesh": self.neural_mesh_enabled,
-                "ai": self.ai_enabled
-            },
-            "metrics": self.metrics
-        }
-
-# ============================================================================
-# WEBSOCKET CONNECTION MANAGER
-# ============================================================================
-
-class ConnectionManager:
-    """WebSocket connection manager"""
+class SystemState:
+    """Global system state manager"""
     
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
-        self.connection_count = 0
+        self.startup_time = datetime.now()
+        self.csp_engine: Optional[AdvancedCSPEngine] = None
+        self.ai_engine: Optional[AdvancedCSPEngineWithAI] = None
+        self.runtime_orchestrator: Optional[CSPRuntimeOrchestrator] = None
+        self.deployment_orchestrator: Optional[CSPDeploymentOrchestrator] = None
+        self.dev_tools: Optional[CSPDevelopmentTools] = None
+        self.monitor: Optional[CSPMonitor] = None
+        self.redis_client: Optional[redis.Redis] = None
+        self.db_engine = None
+        self.active_processes: Dict[str, Process] = {}
+        self.active_websockets: List[WebSocket] = []
+        self.system_metrics: Dict[str, Any] = {}
+
+system_state = SystemState()
+
+# ============================================================================
+# METRICS AND MONITORING
+# ============================================================================
+
+# Prometheus metrics
+REQUEST_COUNT = Counter('csp_requests_total', 'Total requests', ['method', 'endpoint'])
+REQUEST_DURATION = Histogram('csp_request_duration_seconds', 'Request duration')
+ACTIVE_PROCESSES = Gauge('csp_active_processes', 'Number of active CSP processes')
+SYSTEM_HEALTH = Gauge('csp_system_health', 'System health score (0-1)')
+WEBSOCKET_CONNECTIONS = Gauge('csp_websocket_connections', 'Active WebSocket connections')
+
+class MetricsMiddleware:
+    """Middleware for collecting metrics"""
     
-    async def connect(self, websocket: WebSocket):
-        """Accept new WebSocket connection"""
-        await websocket.accept()
-        self.active_connections.append(websocket)
-        self.connection_count += 1
-        system_active_connections.set(len(self.active_connections))
-        logger.info(f"WebSocket connected. Total connections: {len(self.active_connections)}")
+    def __init__(self, app):
+        self.app = app
     
-    def disconnect(self, websocket: WebSocket):
-        """Remove WebSocket connection"""
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
-        system_active_connections.set(len(self.active_connections))
-        logger.info(f"WebSocket disconnected. Total connections: {len(self.active_connections)}")
-    
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        """Send message to specific WebSocket"""
-        try:
-            await websocket.send_text(message)
-        except Exception as e:
-            logger.error(f"Error sending personal message: {e}")
-            self.disconnect(websocket)
-    
-    async def broadcast(self, message: str):
-        """Broadcast message to all connected WebSockets"""
-        if not self.active_connections:
-            return
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            start_time = time.time()
+            
+            async def send_wrapper(message):
+                if message["type"] == "http.response.start":
+                    duration = time.time() - start_time
+                    method = scope["method"]
+                    path = scope["path"]
+                    REQUEST_COUNT.labels(method=method, endpoint=path).inc()
+                    REQUEST_DURATION.observe(duration)
+                await send(message)
+            
+            await self.app(scope, receive, send_wrapper)
+        else:
+            await self.app(scope, receive, send)
+
+# ============================================================================
+# DATABASE SETUP
+# ============================================================================
+
+async def setup_database():
+    """Initialize database connection and run migrations"""
+    try:
+        # Create async engine
+        system_state.db_engine = create_async_engine(
+            config.database.url,
+            echo=config.database.echo,
+            pool_size=config.database.pool_size,
+            max_overflow=config.database.max_overflow
+        )
         
-        disconnected = []
-        for connection in self.active_connections:
-            try:
-                await connection.send_text(message)
-            except Exception as e:
-                logger.error(f"Error broadcasting message: {e}")
-                disconnected.append(connection)
+        # Run migrations
+        logger.info("Running database migrations...")
+        await run_migrations()
         
-        # Remove disconnected connections
-        for connection in disconnected:
-            self.disconnect(connection)
+        logger.info("Database setup completed")
+    except Exception as e:
+        logger.error(f"Database setup failed: {e}")
+        raise
+
+async def setup_redis():
+    """Initialize Redis connection"""
+    try:
+        system_state.redis_client = redis.from_url(
+            config.redis.url,
+            max_connections=config.redis.max_connections,
+            retry_on_timeout=config.redis.retry_on_timeout
+        )
+        
+        # Test connection
+        await system_state.redis_client.ping()
+        logger.info("Redis connection established")
+    except Exception as e:
+        logger.error(f"Redis setup failed: {e}")
+        # Continue without Redis if it fails
+        system_state.redis_client = None
+
+# ============================================================================
+# CSP SYSTEM INITIALIZATION
+# ============================================================================
+
+async def initialize_csp_system():
+    """Initialize all CSP system components"""
+    try:
+        logger.info("Initializing Enhanced CSP System...")
+        
+        # 1. Initialize core CSP engine
+        system_state.csp_engine = AdvancedCSPEngine()
+        logger.info("✅ Core CSP engine initialized")
+        
+        # 2. Initialize AI-enhanced engine
+        if config.ai.enable_llm_integration:
+            system_state.ai_engine = AdvancedCSPEngineWithAI(
+                base_engine=system_state.csp_engine,
+                llm_config={
+                    'model': config.ai.default_model,
+                    'timeout': config.ai.reasoning_timeout
+                }
+            )
+            logger.info("✅ AI-enhanced CSP engine initialized")
+        
+        # 3. Initialize runtime orchestrator
+        runtime_config = RuntimeConfig(
+            execution_model=getattr(ExecutionModel, config.runtime.execution_model),
+            max_workers=config.runtime.max_workers,
+            memory_limit_gb=config.runtime.memory_limit_gb,
+            enable_optimization=config.runtime.enable_optimization,
+            debug_mode=config.runtime.enable_debugging
+        )
+        system_state.runtime_orchestrator = CSPRuntimeOrchestrator(runtime_config)
+        await system_state.runtime_orchestrator.start()
+        logger.info("✅ Runtime orchestrator initialized")
+        
+        # 4. Initialize deployment orchestrator
+        system_state.deployment_orchestrator = CSPDeploymentOrchestrator()
+        logger.info("✅ Deployment orchestrator initialized")
+        
+        # 5. Initialize development tools
+        system_state.dev_tools = CSPDevelopmentTools()
+        await system_state.dev_tools.initialize()
+        logger.info("✅ Development tools initialized")
+        
+        # 6. Initialize monitoring
+        if config.monitoring.enable_prometheus:
+            system_state.monitor = CSPMonitor(
+                prometheus_enabled=True,
+                metrics_port=config.monitoring.metrics_port
+            )
+            await system_state.monitor.start()
+            logger.info("✅ Monitoring system initialized")
+        
+        logger.info("🚀 Enhanced CSP System fully initialized!")
+        
+    except Exception as e:
+        logger.error(f"CSP system initialization failed: {e}")
+        raise
 
 # ============================================================================
 # FASTAPI APPLICATION SETUP
 # ============================================================================
 
-# Load configuration
-config = CSPConfig.load_config()
-
-# Global instances
-db_manager = None
-csp_engine = None
-connection_manager = ConnectionManager()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    global db_manager, csp_engine
-    
     # Startup
     logger.info("Starting Enhanced CSP System...")
     
-    # Create directories
-    for directory in ["data", "logs", "config", "static", "templates"]:
-        Path(directory).mkdir(exist_ok=True)
-    
-    # Initialize database
-    db_manager = DatabaseManager(config)
-    await db_manager.initialize()
-    
-    # Initialize CSP engine
-    csp_engine = EnhancedCSPEngine(config)
-    await csp_engine.initialize()
-    
-    # Start background tasks
-    asyncio.create_task(metrics_updater())
-    asyncio.create_task(system_monitor())
-    
-    logger.info("Enhanced CSP System started successfully!")
+    try:
+        await setup_database()
+        await setup_redis()
+        await initialize_csp_system()
+        
+        # Update system health
+        SYSTEM_HEALTH.set(1.0)
+        logger.info("System startup completed successfully")
+        
+    except Exception as e:
+        logger.error(f"Startup failed: {e}")
+        SYSTEM_HEALTH.set(0.0)
+        raise
     
     yield
     
     # Shutdown
     logger.info("Shutting down Enhanced CSP System...")
     
-    if db_manager:
-        await db_manager.close()
-    
-    logger.info("Enhanced CSP System shutdown complete.")
+    try:
+        # Close WebSocket connections
+        for ws in system_state.active_websockets:
+            await ws.close()
+        
+        # Shutdown components
+        if system_state.runtime_orchestrator:
+            await system_state.runtime_orchestrator.stop()
+        
+        if system_state.monitor:
+            await system_state.monitor.stop()
+        
+        if system_state.redis_client:
+            await system_state.redis_client.close()
+        
+        if system_state.db_engine:
+            await system_state.db_engine.dispose()
+        
+        logger.info("System shutdown completed")
+        
+    except Exception as e:
+        logger.error(f"Shutdown error: {e}")
 
 # Create FastAPI application
 app = FastAPI(
     title=config.app_name,
-    description="Revolutionary AI-to-AI Communication Platform",
+    description="Revolutionary AI-to-AI Communication Platform using CSP",
     version=config.version,
+    debug=config.debug,
     lifespan=lifespan
 )
 
 # Add middleware
-if config.enable_cors:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=config.allowed_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(MetricsMiddleware)
 
-# Mount static files and templates
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+# Security
+security = HTTPBearer(auto_error=False)
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Authentication dependency"""
+    if not config.enable_auth:
+        return {"user": "anonymous", "authenticated": False}
+    
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    # Validate API key (simplified for demo)
+    if credentials.credentials == config.secret_key:
+        return {"user": "api_user", "authenticated": True}
+    
+    raise HTTPException(status_code=401, detail="Invalid authentication")
 
 # ============================================================================
 # API ENDPOINTS
 # ============================================================================
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def root():
-    """Root endpoint - serve dashboard"""
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Enhanced CSP System</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            .header { background: linear-gradient(45deg, #007acc, #0099ff); color: white; padding: 20px; border-radius: 10px; }
-            .status { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 10px; }
-            .endpoints { background: #e9ecef; padding: 20px; border-radius: 10px; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>🚀 Enhanced CSP System</h1>
-            <p>Revolutionary AI-to-AI Communication Platform</p>
-        </div>
-        
-        <div class="status">
-            <h2>System Status</h2>
-            <p>✅ Core Engine: Active</p>
-            <p>✅ API Server: Running</p>
-            <p>✅ WebSocket: Available</p>
-            <p>✅ Database: Connected</p>
-        </div>
-        
-        <div class="endpoints">
-            <h2>Available Endpoints</h2>
-            <ul>
-                <li><a href="/health">Health Check</a></li>
-                <li><a href="/metrics">Prometheus Metrics</a></li>
-                <li><a href="/status">System Status</a></li>
-                <li><a href="/docs">API Documentation</a></li>
-                <li><a href="/dashboard">Real-time Dashboard</a></li>
-            </ul>
-        </div>
-    </body>
-    </html>
-    """
+    """Root endpoint with system information"""
+    return {
+        "app": config.app_name,
+        "version": config.version,
+        "status": "running",
+        "uptime": str(datetime.now() - system_state.startup_time),
+        "features": {
+            "csp_engine": system_state.csp_engine is not None,
+            "ai_integration": system_state.ai_engine is not None,
+            "runtime_orchestrator": system_state.runtime_orchestrator is not None,
+            "deployment": system_state.deployment_orchestrator is not None,
+            "development_tools": system_state.dev_tools is not None,
+            "monitoring": system_state.monitor is not None
+        }
+    }
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {
+    health_data = {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "version": config.version,
-        "engine_status": csp_engine.status if csp_engine else "not_initialized"
-    }
-
-@app.get("/status")
-async def system_status():
-    """Detailed system status"""
-    if not csp_engine:
-        raise HTTPException(status_code=503, detail="CSP Engine not initialized")
-    
-    return {
         "system": {
-            "name": config.app_name,
-            "version": config.version,
-            "uptime": "running",
-            "memory_usage": psutil.virtual_memory().percent,
-            "cpu_usage": psutil.cpu_percent(),
+            "cpu_percent": psutil.cpu_percent(),
+            "memory_percent": psutil.virtual_memory().percent,
+            "disk_percent": psutil.disk_usage('/').percent
         },
-        "csp_engine": csp_engine.get_status(),
-        "connections": {
-            "websocket": len(connection_manager.active_connections),
-            "total": connection_manager.connection_count
-        }
+        "components": {
+            "database": system_state.db_engine is not None,
+            "redis": system_state.redis_client is not None,
+            "csp_engine": system_state.csp_engine is not None,
+            "ai_engine": system_state.ai_engine is not None
+        },
+        "active_processes": len(system_state.active_processes),
+        "websocket_connections": len(system_state.active_websockets)
     }
+    
+    # Update metrics
+    ACTIVE_PROCESSES.set(len(system_state.active_processes))
+    WEBSOCKET_CONNECTIONS.set(len(system_state.active_websockets))
+    
+    return health_data
 
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint"""
-    return generate_latest().decode('utf-8')
+    return PlainTextResponse(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
-# ============================================================================
-# CSP API ENDPOINTS
-# ============================================================================
-
+# CSP Process Management
 @app.post("/api/processes")
-async def create_process(process_type: str, config_data: dict = None):
+async def create_process(
+    process_data: dict,
+    user: dict = Depends(get_current_user)
+):
     """Create a new CSP process"""
-    if not csp_engine:
-        raise HTTPException(status_code=503, detail="CSP Engine not available")
-    
-    process_id = await csp_engine.create_process(process_type, config_data)
-    return {"process_id": process_id, "status": "created"}
-
-@app.post("/api/channels")
-async def create_channel(channel_type: str, participants: List[str] = None):
-    """Create a new communication channel"""
-    if not csp_engine:
-        raise HTTPException(status_code=503, detail="CSP Engine not available")
-    
-    channel_id = await csp_engine.create_channel(channel_type, participants)
-    return {"channel_id": channel_id, "status": "created"}
-
-@app.post("/api/agents")
-async def create_agent(agent_type: str, consciousness_level: float = 0.8):
-    """Create a new AI agent"""
-    if not csp_engine:
-        raise HTTPException(status_code=503, detail="CSP Engine not available")
-    
-    agent_id = await csp_engine.create_agent(agent_type, consciousness_level)
-    return {"agent_id": agent_id, "status": "created"}
-
-@app.post("/api/messages/{channel_id}")
-async def send_message(channel_id: str, message: dict):
-    """Send message through channel"""
-    if not csp_engine:
-        raise HTTPException(status_code=503, detail="CSP Engine not available")
-    
-    success = await csp_engine.send_message(channel_id, message)
-    if not success:
-        raise HTTPException(status_code=404, detail="Channel not found")
-    
-    return {"status": "sent", "channel_id": channel_id}
+    try:
+        if not system_state.csp_engine:
+            raise HTTPException(status_code=503, detail="CSP engine not available")
+        
+        # Create process based on type
+        process_type = process_data.get("type", "atomic")
+        process_id = str(uuid.uuid4())
+        
+        if process_type == "atomic":
+            process = AtomicProcess(
+                name=process_data.get("name", f"process_{process_id}"),
+                signature=ProcessSignature(
+                    inputs=process_data.get("inputs", []),
+                    outputs=process_data.get("outputs", [])
+                )
+            )
+        else:
+            process = CompositeProcess(
+                name=process_data.get("name", f"composite_{process_id}"),
+                processes=[]
+            )
+        
+        # Register process
+        await system_state.csp_engine.start_process(process)
+        system_state.active_processes[process_id] = process
+        
+        return {
+            "process_id": process_id,
+            "name": process.name,
+            "type": process_type,
+            "status": "created"
+        }
+        
+    except Exception as e:
+        logger.error(f"Process creation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/processes")
-async def list_processes():
-    """List all processes"""
-    if not csp_engine:
-        raise HTTPException(status_code=503, detail="CSP Engine not available")
+async def list_processes(user: dict = Depends(get_current_user)):
+    """List all active processes"""
+    processes = []
+    for process_id, process in system_state.active_processes.items():
+        processes.append({
+            "process_id": process_id,
+            "name": process.name,
+            "type": type(process).__name__,
+            "status": getattr(process, 'state', 'unknown')
+        })
     
-    return {"processes": list(csp_engine.processes.values())}
+    return {"processes": processes, "count": len(processes)}
 
-@app.get("/api/channels")
-async def list_channels():
-    """List all channels"""
-    if not csp_engine:
-        raise HTTPException(status_code=503, detail="CSP Engine not available")
+@app.delete("/api/processes/{process_id}")
+async def stop_process(
+    process_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Stop a specific process"""
+    if process_id not in system_state.active_processes:
+        raise HTTPException(status_code=404, detail="Process not found")
     
-    return {"channels": list(csp_engine.channels.values())}
+    try:
+        process = system_state.active_processes[process_id]
+        await system_state.csp_engine.stop_process(process)
+        del system_state.active_processes[process_id]
+        
+        return {"process_id": process_id, "status": "stopped"}
+    except Exception as e:
+        logger.error(f"Process stop failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/agents")
-async def list_agents():
-    """List all agents"""
-    if not csp_engine:
-        raise HTTPException(status_code=503, detail="CSP Engine not available")
+# AI Integration Endpoints
+@app.post("/api/ai/collaborate")
+async def create_ai_collaboration(
+    collaboration_data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Create an AI collaboration session"""
+    if not system_state.ai_engine:
+        raise HTTPException(status_code=503, detail="AI engine not available")
     
-    return {"agents": list(csp_engine.agents.values())}
+    try:
+        # Create AI agents
+        agents = []
+        for agent_spec in collaboration_data.get("agents", []):
+            capability = LLMCapability(
+                model_name=agent_spec.get("model", config.ai.default_model),
+                specialized_domain=agent_spec.get("domain")
+            )
+            agent = AIAgent(
+                name=agent_spec.get("name"),
+                capabilities=[capability]
+            )
+            agents.append(agent)
+        
+        # Create collaborative process
+        coordinator = MultiAgentReasoningCoordinator(agents)
+        collaboration_id = str(uuid.uuid4())
+        
+        # Store collaboration
+        system_state.active_processes[collaboration_id] = coordinator
+        
+        return {
+            "collaboration_id": collaboration_id,
+            "agents": [{"name": a.name, "capabilities": len(a.capabilities)} for a in agents],
+            "status": "created"
+        }
+        
+    except Exception as e:
+        logger.error(f"AI collaboration creation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Development Tools Endpoints
+@app.get("/api/dev/visual-designer")
+async def get_visual_designer_state(user: dict = Depends(get_current_user)):
+    """Get visual designer state"""
+    if not system_state.dev_tools:
+        raise HTTPException(status_code=503, detail="Development tools not available")
+    
+    designer_state = await system_state.dev_tools.visual_designer.get_state()
+    return designer_state
+
+@app.post("/api/dev/generate-code")
+async def generate_code_from_design(
+    design_data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Generate CSP code from visual design"""
+    if not system_state.dev_tools:
+        raise HTTPException(status_code=503, detail="Development tools not available")
+    
+    try:
+        code = await system_state.dev_tools.code_generator.generate_from_design(design_data)
+        return {"generated_code": code, "status": "success"}
+    except Exception as e:
+        logger.error(f"Code generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
 # WEBSOCKET ENDPOINTS
 # ============================================================================
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """Main WebSocket endpoint for real-time communication"""
-    await connection_manager.connect(websocket)
+@app.websocket("/ws/system")
+async def websocket_system_monitor(websocket: WebSocket):
+    """WebSocket for real-time system monitoring"""
+    await websocket.accept()
+    system_state.active_websockets.append(websocket)
     
     try:
         while True:
-            # Receive message from client
-            data = await websocket.receive_text()
-            message_data = json.loads(data)
+            # Send system status
+            status = {
+                "timestamp": datetime.now().isoformat(),
+                "active_processes": len(system_state.active_processes),
+                "system_health": {
+                    "cpu": psutil.cpu_percent(),
+                    "memory": psutil.virtual_memory().percent,
+                    "disk": psutil.disk_usage('/').percent
+                },
+                "websocket_connections": len(system_state.active_websockets)
+            }
             
-            # Process message based on type
-            if message_data.get("type") == "ping":
-                await connection_manager.send_personal_message(
-                    json.dumps({"type": "pong", "timestamp": datetime.now().isoformat()}),
-                    websocket
-                )
-            elif message_data.get("type") == "broadcast":
-                await connection_manager.broadcast(
-                    json.dumps({
-                        "type": "message",
-                        "content": message_data.get("content"),
-                        "timestamp": datetime.now().isoformat()
-                    })
-                )
-            elif message_data.get("type") == "csp_command":
-                # Handle CSP-specific commands
-                response = await handle_csp_command(message_data)
-                await connection_manager.send_personal_message(
-                    json.dumps(response),
-                    websocket
-                )
-    
+            await websocket.send_json(status)
+            await asyncio.sleep(5)  # Update every 5 seconds
+            
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
     finally:
-        connection_manager.disconnect(websocket)
+        system_state.active_websockets.remove(websocket)
 
-async def handle_csp_command(command_data: dict) -> dict:
-    """Handle CSP-specific WebSocket commands"""
-    command = command_data.get("command")
+@app.websocket("/ws/processes/{process_id}")
+async def websocket_process_monitor(websocket: WebSocket, process_id: str):
+    """WebSocket for monitoring a specific process"""
+    await websocket.accept()
+    system_state.active_websockets.append(websocket)
     
-    if command == "create_process":
-        process_id = await csp_engine.create_process(
-            command_data.get("process_type", "default"),
-            command_data.get("config", {})
-        )
-        return {"type": "process_created", "process_id": process_id}
+    if process_id not in system_state.active_processes:
+        await websocket.send_json({"error": "Process not found"})
+        await websocket.close()
+        return
     
-    elif command == "get_status":
-        return {"type": "status", "data": csp_engine.get_status()}
-    
-    elif command == "list_entities":
-        return {
-            "type": "entities",
-            "processes": len(csp_engine.processes),
-            "channels": len(csp_engine.channels),
-            "agents": len(csp_engine.agents)
-        }
-    
-    else:
-        return {"type": "error", "message": f"Unknown command: {command}"}
-
-# ============================================================================
-# BACKGROUND TASKS
-# ============================================================================
-
-async def metrics_updater():
-    """Update system metrics periodically"""
-    while True:
-        try:
-            # Update system metrics
-            system_memory_usage.set(psutil.virtual_memory().used)
-            system_cpu_usage.set(psutil.cpu_percent())
-            
-            # Update CSP metrics
-            if csp_engine:
-                csp_processes_active.set(len(csp_engine.processes))
-                csp_channels_active.set(len(csp_engine.channels))
-                csp_agents_active.set(len(csp_engine.agents))
-            
-            await asyncio.sleep(10)  # Update every 10 seconds
+    try:
+        process = system_state.active_processes[process_id]
         
-        except Exception as e:
-            logger.error(f"Metrics update error: {e}")
-            await asyncio.sleep(30)
-
-async def system_monitor():
-    """Monitor system health and performance"""
-    while True:
-        try:
-            # Check memory usage
-            memory_percent = psutil.virtual_memory().percent
-            if memory_percent > 90:
-                logger.warning(f"High memory usage: {memory_percent}%")
-            
-            # Check disk space
-            disk_usage = psutil.disk_usage('.').percent
-            if disk_usage > 90:
-                logger.warning(f"High disk usage: {disk_usage}%")
-            
-            # Broadcast system status to WebSocket clients
-            if connection_manager.active_connections:
-                status_message = {
-                    "type": "system_status",
-                    "memory": memory_percent,
-                    "disk": disk_usage,
-                    "timestamp": datetime.now().isoformat()
-                }
-                await connection_manager.broadcast(json.dumps(status_message))
-            
-            await asyncio.sleep(30)  # Check every 30 seconds
-        
-        except Exception as e:
-            logger.error(f"System monitor error: {e}")
-            await asyncio.sleep(60)
-
-# ============================================================================
-# DASHBOARD ENDPOINT
-# ============================================================================
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard():
-    """Real-time dashboard"""
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Enhanced CSP Dashboard</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 0; background: #1a1a1a; color: white; }
-            .header { background: linear-gradient(45deg, #007acc, #0099ff); padding: 20px; }
-            .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; padding: 20px; }
-            .card { background: #2a2a2a; padding: 20px; border-radius: 10px; border: 1px solid #444; }
-            .metric { font-size: 2em; color: #00ff88; margin: 10px 0; }
-            .status { color: #00ff88; }
-            #log { height: 200px; overflow-y: scroll; background: #1a1a1a; padding: 10px; border-radius: 5px; font-family: monospace; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>🚀 Enhanced CSP System Dashboard</h1>
-            <p>Real-time monitoring and control</p>
-        </div>
-        
-        <div class="dashboard">
-            <div class="card">
-                <h3>System Status</h3>
-                <div class="status" id="system-status">Initializing...</div>
-                <div>Memory: <span id="memory-usage">0%</span></div>
-                <div>CPU: <span id="cpu-usage">0%</span></div>
-            </div>
-            
-            <div class="card">
-                <h3>CSP Engine</h3>
-                <div>Processes: <span class="metric" id="processes">0</span></div>
-                <div>Channels: <span class="metric" id="channels">0</span></div>
-                <div>Agents: <span class="metric" id="agents">0</span></div>
-            </div>
-            
-            <div class="card">
-                <h3>Connections</h3>
-                <div>WebSocket: <span class="metric" id="websocket-connections">0</span></div>
-                <div>Status: <span id="connection-status">Disconnected</span></div>
-            </div>
-            
-            <div class="card">
-                <h3>Real-time Log</h3>
-                <div id="log"></div>
-            </div>
-        </div>
-        
-        <script>
-            const ws = new WebSocket('ws://localhost:8000/ws');
-            const log = document.getElementById('log');
-            
-            ws.onopen = function() {
-                document.getElementById('connection-status').textContent = 'Connected';
-                document.getElementById('connection-status').style.color = '#00ff88';
-                addLog('WebSocket connected');
-            };
-            
-            ws.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                
-                if (data.type === 'system_status') {
-                    document.getElementById('memory-usage').textContent = data.memory.toFixed(1) + '%';
-                } else if (data.type === 'status') {
-                    document.getElementById('processes').textContent = data.data.processes;
-                    document.getElementById('channels').textContent = data.data.channels;
-                    document.getElementById('agents').textContent = data.data.agents;
-                    document.getElementById('system-status').textContent = data.data.status;
-                }
-                
-                addLog(JSON.stringify(data, null, 2));
-            };
-            
-            ws.onclose = function() {
-                document.getElementById('connection-status').textContent = 'Disconnected';
-                document.getElementById('connection-status').style.color = '#ff4444';
-                addLog('WebSocket disconnected');
-            };
-            
-            function addLog(message) {
-                const timestamp = new Date().toLocaleTimeString();
-                log.innerHTML += `[${timestamp}] ${message}\\n`;
-                log.scrollTop = log.scrollHeight;
+        while True:
+            # Send process status
+            status = {
+                "timestamp": datetime.now().isoformat(),
+                "process_id": process_id,
+                "name": process.name,
+                "type": type(process).__name__,
+                "state": getattr(process, 'state', 'unknown'),
+                "performance": getattr(process, 'performance_metrics', {})
             }
             
-            // Request status updates
-            setInterval(() => {
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({type: 'csp_command', command: 'get_status'}));
-                }
-            }, 5000);
+            await websocket.send_json(status)
+            await asyncio.sleep(1)  # Update every second
             
-            // Update WebSocket connection count
-            fetch('/status')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('websocket-connections').textContent = data.connections.websocket;
-                })
-                .catch(error => console.error('Error fetching status:', error));
-        </script>
-    </body>
-    </html>
-    """
+    except Exception as e:
+        logger.error(f"Process WebSocket error: {e}")
+    finally:
+        system_state.active_websockets.remove(websocket)
+
+# ============================================================================
+# STATIC FILES AND TEMPLATES
+# ============================================================================
+
+# Mount dashboard if available
+try:
+    dashboard_app = create_dashboard_app()
+    app.mount("/dashboard", dashboard_app, name="dashboard")
+    logger.info("Dashboard mounted at /dashboard")
+except Exception as e:
+    logger.warning(f"Dashboard not available: {e}")
+
+# Mount static files
+static_dir = Path("web_ui/static")
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+# Templates
+templates_dir = Path("web_ui/templates")
+if templates_dir.exists():
+    templates = Jinja2Templates(directory=str(templates_dir))
+    
+    @app.get("/ui", response_class=HTMLResponse)
+    async def web_ui(request: Request):
+        """Web UI for the CSP system"""
+        return templates.TemplateResponse("index.html", {"request": request})
 
 # ============================================================================
 # MAIN EXECUTION
 # ============================================================================
 
 def main():
-    """Main function to run the Enhanced CSP System"""
+    """Main entry point"""
+    logger.info(f"Starting {config.app_name} v{config.version}")
+    logger.info(f"Environment: {config.environment}")
+    logger.info(f"Host: {config.host}:{config.port}")
     
-    # Ensure directories exist
-    for directory in ["data", "logs", "config", "static", "templates"]:
-        Path(directory).mkdir(exist_ok=True)
-    
-    # Log startup information
-    logger.info("=" * 60)
-    logger.info("Enhanced CSP System - Starting Up")
-    logger.info("=" * 60)
-    logger.info(f"Version: {config.version}")
-    logger.info(f"Host: {config.host}")
-    logger.info(f"Port: {config.port}")
-    logger.info(f"Debug: {config.debug}")
-    logger.info(f"Features: AI={config.ai_enabled}, Quantum={config.quantum_enabled}, Consciousness={config.consciousness_enabled}")
-    logger.info("=" * 60)
-    
-    # Run the application
-    uvicorn.run(
-        "enhanced_csp.main:app",
-        host=config.host,
-        port=config.port,
-        workers=config.workers,
-        log_level="info" if not config.debug else "debug",
-        reload=config.debug,
-        access_log=True
-    )
+    try:
+        uvicorn.run(
+            "main:app",
+            host=config.host,
+            port=config.port,
+            workers=config.workers,
+            reload=config.reload and config.debug,
+            log_level="info" if not config.debug else "debug",
+            access_log=True
+        )
+    except KeyboardInterrupt:
+        logger.info("Received shutdown signal")
+    except Exception as e:
+        logger.error(f"Server error: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
