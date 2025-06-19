@@ -29,3 +29,7 @@ enhanced_csp/histogram_672165.db
 enhanced_csp/histogram_686386.db
 enhanced_csp/histogram_687587.db
 enhanced_csp/core/__pycache__/advanced_csp_core.cpython-310.pyc
+enhanced_csp/ai_extensions/__pycache__/__init__.cpython-310.pyc
+enhanced_csp/ai_extensions/__pycache__/csp_ai_extensions.cpython-310.pyc
+enhanced_csp/ai_integration/__pycache__/csp_ai_integration.cpython-310.pyc
+enhanced_csp/runtime/__pycache__/csp_runtime_environment.cpython-310.pyc
