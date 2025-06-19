@@ -125,11 +125,26 @@ class CSPRuntimeExecutor:
         # Setup event loop optimization
         if config.execution_model in [ExecutionModel.MULTI_THREADED, ExecutionModel.HYBRID]:
             try:
-                uvloop.install()  # Use high-performance event loop
-            except ImportError:
-                logging.warning("uvloop not available, using default event loop")
+                # Setup event loop optimization
+                # Setup event loop optimization
+                if self.config.execution_model in [ExecutionModel.MULTI_THREADED, ExecutionModel.HYBRID]:
+                    if uvloop is not None:
+                        try:
+                            uvloop.install()
+                            logging.info("Using uvloop for high performance")
+                        except Exception:
+                            logging.warning("Failed to install uvloop")
+                    else:
+                        logging.warning("uvloop not available")
+                    try:
+                        uvloop.install()
+                        logging.info("Using uvloop for high performance")
+                    except Exception as e:
+                        logging.warning(f"Failed to install uvloop: {e}")
+                else:
+                    logging.warning("uvloop not available, using default event loop")
     
-    async def start(self):
+async def start(self):
         """Start the CSP runtime executor"""
         if self.is_running:
             return

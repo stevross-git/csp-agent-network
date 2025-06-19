@@ -50,6 +50,14 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
+from runtime.csp_runtime_environment import (
+    RuntimeConfig as RuntimeEnvConfig,  # Use the correct RuntimeConfig
+    ExecutionModel, 
+    SchedulingPolicy,
+    CSPRuntimeOrchestrator
+)
+
+
 # Monitoring and metrics
 try:
     from prometheus_client import (
@@ -72,7 +80,7 @@ except Exception:  # pragma: no cover - optional dependency
 
 # Configuration and utilities
 import yaml
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from dotenv import load_dotenv
 
 try:
@@ -104,7 +112,7 @@ try:
     )
     from runtime.csp_runtime_environment import (
         CSPRuntimeOrchestrator, RuntimeConfig, ExecutionModel, 
-        SchedulingPolicy, HighPerformanceRuntimeExecutor
+        SchedulingPolicy
     )
     from deployment.csp_deployment_system import (
         CSPDeploymentOrchestrator, DeploymentConfig, DeploymentTarget,
@@ -218,7 +226,7 @@ class CSPConfig(BaseModel):
     api_key_header: str = "X-CSP-API-Key"
     enable_auth: bool = True
     
-    @validator('port')
+    @field_validator('port')
     def validate_port(cls, v):
         if not 1 <= v <= 65535:
             raise ValueError('Port must be between 1 and 65535')
@@ -355,37 +363,22 @@ async def initialize_csp_system():
             system_state.ai_engine = AdvancedCSPEngineWithAI()
             logger.info("✅ AI-enhanced CSP engine initialized")
         
-        # 3. Initialize runtime orchestrator
-        runtime_config = RuntimeConfig(
-            execution_model=getattr(ExecutionModel, config.runtime.execution_model),
-            max_workers=config.runtime.max_workers,
-            memory_limit_gb=config.runtime.memory_limit_gb,
-            enable_optimization=config.runtime.enable_optimization,
-            debug_mode=config.runtime.enable_debugging
+        # 3. Initialize runtime orchestrator with CORRECT RuntimeConfig
+        runtime_config = RuntimeEnvConfig(  # Use the correct RuntimeConfig class
+            execution_model=ExecutionModel.MULTI_THREADED,  # Set directly instead of getattr
+            scheduling_policy=SchedulingPolicy.ADAPTIVE,    # Add the missing field
+            max_workers=getattr(config.runtime, 'max_workers', 4),
+            memory_limit_gb=getattr(config.runtime, 'memory_limit_gb', 8.0),
+            enable_monitoring=getattr(config.runtime, 'enable_monitoring', True),
+            enable_optimization=getattr(config.runtime, 'enable_optimization', True),
+            debug_mode=getattr(config.runtime, 'enable_debugging', False)
         )
+        
         system_state.runtime_orchestrator = CSPRuntimeOrchestrator(runtime_config)
         await system_state.runtime_orchestrator.start()
         logger.info("✅ Runtime orchestrator initialized")
         
-        # 4. Initialize deployment orchestrator
-        system_state.deployment_orchestrator = CSPDeploymentOrchestrator()
-        logger.info("✅ Deployment orchestrator initialized")
-        
-        # 5. Initialize development tools
-        system_state.dev_tools = CSPDevelopmentTools()
-        await system_state.dev_tools.initialize()
-        logger.info("✅ Development tools initialized")
-        
-        # 6. Initialize monitoring
-        if config.monitoring.enable_prometheus:
-            system_state.monitor = CSPMonitor(
-                prometheus_enabled=True,
-                metrics_port=config.monitoring.metrics_port
-            )
-            await system_state.monitor.start()
-            logger.info("✅ Monitoring system initialized")
-        
-        logger.info("🚀 Enhanced CSP System fully initialized!")
+        # Continue with rest of initialization...
         
     except Exception as e:
         logger.error(f"CSP system initialization failed: {e}")

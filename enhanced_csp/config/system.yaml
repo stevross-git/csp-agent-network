@@ -1,0 +1,38 @@
+app_name: "Enhanced CSP System"
+version: "2.0.0"
+debug: false
+environment: "development"
+host: "0.0.0.0"
+port: 8000
+workers: 1
+reload: false
+
+database:
+  url: "sqlite+aiosqlite:///./data/csp_system.db"
+  echo: false
+  pool_size: 10
+  max_overflow: 20
+
+redis:
+  url: null
+  max_connections: 10
+  retry_on_timeout: true
+
+runtime:
+  execution_model: "MULTI_THREADED"
+  max_workers: 4
+  memory_limit_gb: 8.0
+  enable_monitoring: false
+  enable_optimization: false
+  enable_debugging: false
+
+ai:
+  enable_llm_integration: false
+
+monitoring:
+  enable_prometheus: false
+  metrics_port: 9090
+
+secret_key: "dev-secret-key-change-in-production"
+api_key_header: "X-CSP-API-Key"
+enable_auth: false
