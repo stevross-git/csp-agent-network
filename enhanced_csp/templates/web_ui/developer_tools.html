@@ -251,6 +251,24 @@
             color: #ff00ff;
         }
 
+        /* Neural Mesh Visualization */
+        .neural-mesh-viz {
+            height: 300px;
+            position: relative;
+        }
+
+        .neural-link {
+            stroke: rgba(0, 204, 255, 0.5);
+            stroke-width: 1px;
+        }
+
+        .neural-node {
+            fill: #00ccff;
+            stroke: #00ff88;
+            stroke-width: 1px;
+            cursor: pointer;
+        }
+
         /* Control Panel */
         .control-panel {
             display: grid;
@@ -574,6 +592,23 @@
                     </div>
                 </div>
 
+                <!-- Neural Mesh Panel -->
+                <div class="panel" id="neuralMeshPanel" style="display: none;">
+                    <h3>🕸️ Neural Mesh Network</h3>
+                    <div class="neural-mesh-viz" id="neuralMeshViz"></div>
+
+                    <div style="margin-top: 1rem;">
+                        <h4>Mesh Operations</h4>
+                        <div class="control-panel">
+                            <div class="control-group">
+                                <h4>Topology Control</h4>
+                                <button class="btn btn-neural" onclick="establishMesh()">Establish Mesh</button>
+                                <button class="btn btn-neural" onclick="optimizeMesh()">Optimize Topology</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Real-time Activity Log -->
                 <div class="panel">
                     <h3>📜 Real-time Activity Log</h3>
@@ -641,12 +676,14 @@
         let systemRunning = true;
         let consciousnessNodes = [];
         let quantumStates = [];
+        let neuralNodes = [];
         let logEntries = [];
 
         // Initialize the system
         function initializeSystem() {
             createConsciousnessNodes();
             createQuantumStates();
+            createNeuralMesh();
             startActivityLog();
             initializeCharts();
         }
@@ -670,8 +707,14 @@
             setActiveNav(2);
         }
 
+        function showNeuralMesh() {
+            hideAllPanels();
+            document.getElementById('neuralMeshPanel').style.display = 'block';
+            setActiveNav(3);
+        }
+
         function hideAllPanels() {
-            const panels = ['dashboardPanel', 'consciousnessPanel', 'quantumPanel'];
+            const panels = ['dashboardPanel', 'consciousnessPanel', 'quantumPanel', 'neuralMeshPanel'];
             panels.forEach(panel => {
                 const element = document.getElementById(panel);
                 if (element) element.style.display = 'none';
@@ -765,6 +808,74 @@
                 container.appendChild(state);
                 return { element: state, pair, amplitude1, amplitude2 };
             });
+        }
+
+        // Neural mesh visualization using D3 force layout
+        function createNeuralMesh() {
+            const container = d3.select('#neuralMeshViz');
+            const width = container.node().clientWidth;
+            const height = container.node().clientHeight;
+
+            const svg = container.append('svg')
+                .attr('width', '100%')
+                .attr('height', '100%');
+
+            const nodes = d3.range(10).map(i => ({ id: i }));
+            const links = d3.range(15).map(() => ({
+                source: Math.floor(Math.random() * 10),
+                target: Math.floor(Math.random() * 10)
+            })).filter(l => l.source !== l.target);
+
+            neuralNodes = nodes;
+
+            const simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).distance(50).strength(0.5))
+                .force('charge', d3.forceManyBody().strength(-100))
+                .force('center', d3.forceCenter(width / 2, height / 2));
+
+            const link = svg.selectAll('line')
+                .data(links)
+                .enter().append('line')
+                .attr('class', 'neural-link');
+
+            const node = svg.selectAll('circle')
+                .data(nodes)
+                .enter().append('circle')
+                .attr('class', 'neural-node')
+                .attr('r', 6)
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+            });
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
         }
 
         // Activity logging
