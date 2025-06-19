@@ -1,0 +1,1114 @@
+# ==============================================================================
+# DOCKER CONFIGURATIONS
+# ==============================================================================
+
+# Dockerfile for Enhanced CSP Core
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enhanced-csp-dockerfiles
+data:
+  Dockerfile.core: |
+    FROM python:3.11-slim
+
+    # Install system dependencies
+    RUN apt-get update && apt-get install -y \
+        gcc g++ make \
+        libffi-dev libssl-dev \
+        libquantum-dev \
+        libnuma-dev \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Set working directory
+    WORKDIR /app
+
+    # Copy requirements
+    COPY requirements.txt .
+    RUN pip install --no-cache-dir -r requirements.txt
+
+    # Copy application code
+    COPY . .
+
+    # Create non-root user
+    RUN useradd -m -u 1000 cspuser && chown -R cspuser:cspuser /app
+    USER cspuser
+
+    # Health check
+    HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+        CMD python -c "import requests; requests.get('http://localhost:8000/health')"
+
+    EXPOSE 8000
+    CMD ["python", "-m", "uvicorn", "enhanced_csp.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  Dockerfile.consciousness: |
+    FROM python:3.11-slim
+
+    # Install AI/ML dependencies
+    RUN apt-get update && apt-get install -y \
+        gcc g++ make \
+        libffi-dev libssl-dev \
+        libblas-dev liblapack-dev \
+        && rm -rf /var/lib/apt/lists/*
+
+    WORKDIR /app
+
+    # Install consciousness-specific dependencies
+    COPY requirements-consciousness.txt .
+    RUN pip install --no-cache-dir -r requirements-consciousness.txt
+
+    COPY consciousness/ ./consciousness/
+    COPY shared/ ./shared/
+
+    USER 1000:1000
+    EXPOSE 8001
+    CMD ["python", "-m", "consciousness.main"]
+
+  Dockerfile.quantum: |
+    FROM python:3.11-slim
+
+    # Install quantum computing dependencies
+    RUN apt-get update && apt-get install -y \
+        gcc g++ make \
+        libffi-dev libssl-dev \
+        libquantum-dev \
+        qiskit-dev-tools \
+        && rm -rf /var/lib/apt/lists/*
+
+    WORKDIR /app
+
+    COPY requirements-quantum.txt .
+    RUN pip install --no-cache-dir -r requirements-quantum.txt
+
+    COPY quantum/ ./quantum/
+    COPY shared/ ./shared/
+
+    USER 1000:1000
+    EXPOSE 8002
+    CMD ["python", "-m", "quantum.main"]
+
+  Dockerfile.neural-mesh: |
+    FROM python:3.11-slim
+
+    # Install neural network dependencies
+    RUN apt-get update && apt-get install -y \
+        gcc g++ make \
+        libffi-dev libssl-dev \
+        libtorch-dev \
+        && rm -rf /var/lib/apt/lists/*
+
+    WORKDIR /app
+
+    COPY requirements-neural.txt .
+    RUN pip install --no-cache-dir -r requirements-neural.txt
+
+    COPY neural_mesh/ ./neural_mesh/
+    COPY shared/ ./shared/
+
+    USER 1000:1000
+    EXPOSE 8003
+    CMD ["python", "-m", "neural_mesh.main"]
+
+---
+# ==============================================================================
+# KUBERNETES MANIFESTS
+# ==============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: enhanced-csp
+  labels:
+    name: enhanced-csp
+    version: "1.0.0"
+
+---
+# Enhanced CSP Core Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enhanced-csp-core
+  namespace: enhanced-csp
+  labels:
+    app: enhanced-csp-core
+    component: core
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: enhanced-csp-core
+  template:
+    metadata:
+      labels:
+        app: enhanced-csp-core
+        component: core
+    spec:
+      containers:
+      - name: csp-core
+        image: enhanced-csp/core:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+        env:
+        - name: CSP_MODE
+          value: "production"
+        - name: CONSCIOUSNESS_ENABLED
+          value: "true"
+        - name: QUANTUM_ENABLED
+          value: "true"
+        - name: NEURAL_MESH_ENABLED
+          value: "true"
+        - name: REDIS_URL
+          value: "redis://redis-service:6379"
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: postgres-url
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: config
+        configMap:
+          name: enhanced-csp-config
+      - name: logs
+        emptyDir: {}
+
+---
+# Consciousness Manager Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consciousness-manager
+  namespace: enhanced-csp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: consciousness-manager
+  template:
+    metadata:
+      labels:
+        app: consciousness-manager
+    spec:
+      containers:
+      - name: consciousness
+        image: enhanced-csp/consciousness:latest
+        ports:
+        - containerPort: 8001
+        resources:
+          requests:
+            memory: "6Gi"
+            cpu: "3"
+          limits:
+            memory: "12Gi"
+            cpu: "6"
+        env:
+        - name: CONSCIOUSNESS_LEVEL
+          value: "0.9"
+        - name: SYNC_INTERVAL
+          value: "100ms"
+        - name: MEMORY_CRYSTAL_ENABLED
+          value: "true"
+
+---
+# Quantum Manager Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-manager
+  namespace: enhanced-csp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: quantum-manager
+  template:
+    metadata:
+      labels:
+        app: quantum-manager
+    spec:
+      containers:
+      - name: quantum
+        image: enhanced-csp/quantum:latest
+        ports:
+        - containerPort: 8002
+        resources:
+          requests:
+            memory: "8Gi"
+            cpu: "4"
+          limits:
+            memory: "16Gi"
+            cpu: "8"
+        env:
+        - name: QUANTUM_BACKEND
+          value: "qiskit"
+        - name: ENTANGLEMENT_PAIRS_LIMIT
+          value: "10000"
+        - name: COHERENCE_TIME
+          value: "1000ms"
+
+---
+# Neural Mesh Manager Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neural-mesh-manager
+  namespace: enhanced-csp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: neural-mesh-manager
+  template:
+    metadata:
+      labels:
+        app: neural-mesh-manager
+    spec:
+      containers:
+      - name: neural-mesh
+        image: enhanced-csp/neural-mesh:latest
+        ports:
+        - containerPort: 8003
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+        env:
+        - name: MESH_OPTIMIZATION_INTERVAL
+          value: "5s"
+        - name: MAX_AGENTS_PER_MESH
+          value: "1000"
+
+---
+# Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: enhanced-csp-core-service
+  namespace: enhanced-csp
+spec:
+  selector:
+    app: enhanced-csp-core
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consciousness-service
+  namespace: enhanced-csp
+spec:
+  selector:
+    app: consciousness-manager
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8001
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantum-service
+  namespace: enhanced-csp
+spec:
+  selector:
+    app: quantum-manager
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8002
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neural-mesh-service
+  namespace: enhanced-csp
+spec:
+  selector:
+    app: neural-mesh-manager
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8003
+
+---
+# Load Balancer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: enhanced-csp-loadbalancer
+  namespace: enhanced-csp
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: enhanced-csp-core
+  ports:
+  - port: 443
+    targetPort: 8000
+    protocol: TCP
+    name: https
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+
+---
+# Horizontal Pod Autoscalers
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: enhanced-csp-core-hpa
+  namespace: enhanced-csp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: enhanced-csp-core
+  minReplicas: 3
+  maxReplicas: 50
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# ConfigMap for Enhanced CSP Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enhanced-csp-config
+  namespace: enhanced-csp
+data:
+  app.yaml: |
+    # Enhanced CSP System Configuration
+    system:
+      name: "Enhanced CSP Production"
+      version: "1.0.0"
+      log_level: "INFO"
+      debug: false
+      
+    consciousness:
+      enabled: true
+      sync_interval: "100ms"
+      awareness_threshold: 0.8
+      memory_crystal_ttl: "24h"
+      metacognition_enabled: true
+      
+    quantum:
+      enabled: true
+      backend: "qiskit"
+      max_entanglements: 10000
+      coherence_time: "1000ms"
+      error_correction: true
+      fidelity_threshold: 0.85
+      
+    neural_mesh:
+      enabled: true
+      optimization_interval: "5s"
+      max_agents_per_mesh: 1000
+      topology_adaptation: true
+      learning_rate: 0.01
+      
+    security:
+      encryption: true
+      authentication_required: true
+      authorization_enabled: true
+      audit_logging: true
+      quantum_cryptography: true
+      
+    performance:
+      max_concurrent_processes: 10000
+      event_queue_size: 100000
+      worker_threads: 32
+      connection_pool_size: 100
+      cache_enabled: true
+      cache_ttl: "5m"
+      
+    monitoring:
+      metrics_enabled: true
+      tracing_enabled: true
+      health_check_interval: "30s"
+      prometheus_enabled: true
+      
+    database:
+      connection_pool_size: 20
+      connection_timeout: "30s"
+      query_timeout: "10s"
+      migrations_enabled: true
+
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: 'enhanced-csp-core'
+        static_configs:
+          - targets: ['enhanced-csp-core-service:80']
+        metrics_path: /metrics
+        scrape_interval: 5s
+        
+      - job_name: 'consciousness-manager'
+        static_configs:
+          - targets: ['consciousness-service:80']
+        metrics_path: /metrics
+        
+      - job_name: 'quantum-manager'
+        static_configs:
+          - targets: ['quantum-service:80']
+        metrics_path: /metrics
+        
+      - job_name: 'neural-mesh-manager'
+        static_configs:
+          - targets: ['neural-mesh-service:80']
+        metrics_path: /metrics
+
+---
+# Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-secret
+  namespace: enhanced-csp
+type: Opaque
+data:
+  postgres-url: cG9zdGdyZXNxbDovL3VzZXI6cGFzc3dvcmRAcG9zdGdyZXM6NTQzMi9lbmhhbmNlZF9jc3A=
+  redis-url: cmVkaXM6Ly9yZWRpczpyZWRpcGFzc0ByZWRpczozNjM3OS8w
+  api-key: YWRtaW5fa2V5XzEyMzQ1Njc4OTA=
+
+---
+# Network Policies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: enhanced-csp-network-policy
+  namespace: enhanced-csp
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: enhanced-csp
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: enhanced-csp
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 443
+
+---
+# ==============================================================================
+# HELM CHART VALUES
+# ==============================================================================
+
+# Default values for enhanced-csp
+global:
+  imageRegistry: "registry.enhanced-csp.com"
+  imageTag: "1.0.0"
+  pullPolicy: "IfNotPresent"
+  
+  # Environment
+  environment: "production"
+  logLevel: "INFO"
+  
+  # Security
+  security:
+    enabled: true
+    tls:
+      enabled: true
+      secretName: "enhanced-csp-tls"
+    
+core:
+  image:
+    repository: "enhanced-csp/core"
+    tag: "1.0.0"
+  
+  replicaCount: 3
+  
+  resources:
+    requests:
+      memory: "4Gi"
+      cpu: "2"
+    limits:
+      memory: "8Gi"
+      cpu: "4"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 50
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  
+  service:
+    type: "ClusterIP"
+    port: 80
+    targetPort: 8000
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/rate-limit: "1000"
+    hosts:
+      - host: "api.enhanced-csp.com"
+        paths:
+          - path: "/"
+            pathType: "Prefix"
+    tls:
+      - secretName: "enhanced-csp-tls"
+        hosts:
+          - "api.enhanced-csp.com"
+
+consciousness:
+  image:
+    repository: "enhanced-csp/consciousness"
+    tag: "1.0.0"
+  
+  replicaCount: 2
+  
+  resources:
+    requests:
+      memory: "6Gi"
+      cpu: "3"
+    limits:
+      memory: "12Gi"
+      cpu: "6"
+  
+  config:
+    syncInterval: "100ms"
+    awarenessThreshold: 0.8
+    memoryCrystalTTL: "24h"
+
+quantum:
+  image:
+    repository: "enhanced-csp/quantum"
+    tag: "1.0.0"
+  
+  replicaCount: 2
+  
+  resources:
+    requests:
+      memory: "8Gi"
+      cpu: "4"
+    limits:
+      memory: "16Gi"
+      cpu: "8"
+  
+  config:
+    backend: "qiskit"
+    maxEntanglements: 10000
+    coherenceTime: "1000ms"
+    fidelityThreshold: 0.85
+
+neuralMesh:
+  image:
+    repository: "enhanced-csp/neural-mesh"
+    tag: "1.0.0"
+  
+  replicaCount: 2
+  
+  resources:
+    requests:
+      memory: "4Gi"
+      cpu: "2"
+    limits:
+      memory: "8Gi"
+      cpu: "4"
+  
+  config:
+    optimizationInterval: "5s"
+    maxAgentsPerMesh: 1000
+    learningRate: 0.01
+
+# External Dependencies
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "redispass"
+  master:
+    persistence:
+      enabled: true
+      size: "8Gi"
+
+postgresql:
+  enabled: true
+  auth:
+    username: "csp_user"
+    password: "csp_password"
+    database: "enhanced_csp"
+  primary:
+    persistence:
+      enabled: true
+      size: "50Gi"
+
+# Monitoring
+monitoring:
+  prometheus:
+    enabled: true
+    retention: "30d"
+    scrapeInterval: "15s"
+  
+  grafana:
+    enabled: true
+    adminPassword: "admin123"
+    dashboards:
+      enabled: true
+  
+  jaeger:
+    enabled: true
+    strategy: "production"
+
+# Backup and Recovery
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
+  
+---
+# ==============================================================================
+# TERRAFORM CONFIGURATIONS
+# ==============================================================================
+
+# AWS EKS Cluster Configuration
+terraform {
+  required_version = ">= 1.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+# VPC Configuration
+module "vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+  
+  name = "${var.cluster_name}-vpc"
+  cidr = "10.0.0.0/16"
+  
+  azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+  
+  enable_nat_gateway = true
+  enable_vpn_gateway = true
+  enable_dns_hostnames = true
+  enable_dns_support = true
+  
+  tags = {
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+    "Environment" = var.environment
+    "Project" = "enhanced-csp"
+  }
+}
+
+# EKS Cluster
+module "eks" {
+  source = "terraform-aws-modules/eks/aws"
+  
+  cluster_name    = var.cluster_name
+  cluster_version = "1.27"
+  
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+  
+  cluster_endpoint_private_access = true
+  cluster_endpoint_public_access  = true
+  
+  cluster_addons = {
+    coredns = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+    vpc-cni = {
+      most_recent = true
+    }
+    aws-ebs-csi-driver = {
+      most_recent = true
+    }
+  }
+  
+  # EKS Managed Node Groups
+  eks_managed_node_groups = {
+    enhanced_csp_nodes = {
+      min_size     = 3
+      max_size     = 20
+      desired_size = 5
+      
+      instance_types = ["m5.2xlarge"]
+      capacity_type  = "ON_DEMAND"
+      
+      ami_type = "AL2_x86_64"
+      platform = "linux"
+      
+      block_device_mappings = {
+        xvda = {
+          device_name = "/dev/xvda"
+          ebs = {
+            volume_size           = 100
+            volume_type           = "gp3"
+            iops                  = 3000
+            throughput            = 150
+            encrypted             = true
+            delete_on_termination = true
+          }
+        }
+      }
+      
+      labels = {
+        Environment = var.environment
+        Application = "enhanced-csp"
+      }
+      
+      taints = {
+        dedicated = {
+          key    = "enhanced-csp"
+          value  = "true"
+          effect = "NO_SCHEDULE"
+        }
+      }
+    }
+    
+    quantum_nodes = {
+      min_size     = 2
+      max_size     = 10
+      desired_size = 3
+      
+      instance_types = ["c5.4xlarge"]  # High CPU for quantum computations
+      capacity_type  = "ON_DEMAND"
+      
+      labels = {
+        nodeType = "quantum"
+        Application = "enhanced-csp"
+      }
+    }
+  }
+  
+  tags = {
+    Environment = var.environment
+    Project = "enhanced-csp"
+  }
+}
+
+# Variables
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-west-2"
+}
+
+variable "cluster_name" {
+  description = "EKS cluster name"
+  type        = string
+  default     = "enhanced-csp-production"
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+  default     = "production"
+}
+
+# Outputs
+output "cluster_endpoint" {
+  description = "Endpoint for EKS control plane"
+  value       = module.eks.cluster_endpoint
+}
+
+output "cluster_security_group_id" {
+  description = "Security group ids attached to the cluster control plane"
+  value       = module.eks.cluster_security_group_id
+}
+
+output "cluster_iam_role_name" {
+  description = "IAM role name associated with EKS cluster"
+  value       = module.eks.cluster_iam_role_name
+}
+
+output "cluster_certificate_authority_data" {
+  description = "Base64 encoded certificate data required to communicate with the cluster"
+  value       = module.eks.cluster_certificate_authority_data
+}
+
+---
+# ==============================================================================
+# MONITORING CONFIGURATIONS
+# ==============================================================================
+
+# Prometheus Configuration
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'enhanced-csp-production'
+    environment: 'production'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+rule_files:
+  - "enhanced_csp_rules.yml"
+
+scrape_configs:
+  - job_name: 'enhanced-csp-core'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - enhanced-csp
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: enhanced-csp-core
+    scrape_interval: 5s
+    metrics_path: /metrics
+    
+  - job_name: 'consciousness-manager'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - enhanced-csp
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: consciousness-manager
+    scrape_interval: 10s
+    
+  - job_name: 'quantum-manager'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - enhanced-csp
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: quantum-manager
+    scrape_interval: 10s
+    
+  - job_name: 'neural-mesh-manager'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - enhanced-csp
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: neural-mesh-manager
+    scrape_interval: 10s
+
+# Alert Rules
+groups:
+  - name: enhanced_csp_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 5 minutes"
+          
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85% for more than 5 minutes"
+          
+      - alert: ConsciousnessCoherenceLow
+        expr: csp_consciousness_coherence < 0.7
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Consciousness coherence below threshold"
+          description: "Consciousness coherence is below 0.7"
+          
+      - alert: QuantumFidelityLow
+        expr: csp_quantum_fidelity < 0.8
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Quantum fidelity below threshold"
+          description: "Quantum communication fidelity is below 0.8"
+          
+      - alert: NeuralMeshConnectivityLow
+        expr: csp_neural_mesh_connectivity < 0.8
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Neural mesh connectivity degraded"
+          description: "Neural mesh connectivity is below 0.8"
+
+# Grafana Dashboard Configuration
+{
+  "dashboard": {
+    "id": null,
+    "title": "Enhanced CSP System Overview",
+    "tags": ["enhanced-csp", "production"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=~\"enhanced-csp.*\"}",
+            "legendFormat": "{{job}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Consciousness Coherence",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "csp_consciousness_coherence",
+            "legendFormat": "Coherence"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 0.7},
+                {"color": "green", "value": 0.9}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Quantum Fidelity",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "csp_quantum_fidelity",
+            "legendFormat": "Fidelity"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Event Processing Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(csp_events_total[5m])",
+            "legendFormat": "Events/sec"
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}

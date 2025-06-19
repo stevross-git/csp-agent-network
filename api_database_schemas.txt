@@ -1,0 +1,1694 @@
+# ==============================================================================
+# OPENAPI SPECIFICATION - Enhanced CSP API
+# ==============================================================================
+
+openapi: 3.0.3
+info:
+  title: Enhanced CSP System API
+  description: |
+    Revolutionary AI Communication Platform API
+    
+    The Enhanced CSP System provides consciousness-aware, quantum-enhanced 
+    communication for AI agents with advanced features including:
+    
+    - Consciousness stream synchronization
+    - Quantum entanglement and teleportation
+    - Neural mesh networks
+    - Dynamic protocol synthesis
+    - Real-world application integration
+    
+  version: 1.0.0
+  contact:
+    name: Enhanced CSP Team
+    url: https://enhanced-csp.com
+    email: api@enhanced-csp.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.enhanced-csp.com/v1
+    description: Production server
+  - url: https://staging-api.enhanced-csp.com/v1
+    description: Staging server
+  - url: http://localhost:8000/v1
+    description: Development server
+
+security:
+  - bearerAuth: []
+  - apiKey: []
+
+paths:
+  # ==============================================================================
+  # CORE ENGINE ENDPOINTS
+  # ==============================================================================
+  
+  /engines:
+    post:
+      summary: Create Enhanced CSP Engine
+      description: Initialize a new Enhanced CSP Engine instance
+      tags: [Core Engine]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EngineConfig'
+            example:
+              engine_id: "healthcare_ai_system"
+              consciousness_enabled: true
+              quantum_enabled: true
+              neural_mesh_enabled: true
+              performance_tier: "enterprise"
+      responses:
+        '201':
+          description: Engine created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Engine'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    get:
+      summary: List Engines
+      description: Get list of all engines
+      tags: [Core Engine]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of engines
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  engines:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Engine'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /engines/{engine_id}:
+    get:
+      summary: Get Engine Details
+      description: Get detailed information about a specific engine
+      tags: [Core Engine]
+      parameters:
+        - $ref: '#/components/parameters/EngineId'
+      responses:
+        '200':
+          description: Engine details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngineDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      summary: Delete Engine
+      description: Delete an engine and all associated resources
+      tags: [Core Engine]
+      parameters:
+        - $ref: '#/components/parameters/EngineId'
+      responses:
+        '204':
+          description: Engine deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /engines/{engine_id}/channels:
+    post:
+      summary: Create Communication Channel
+      description: Create a new communication channel with enhanced capabilities
+      tags: [Communication]
+      parameters:
+        - $ref: '#/components/parameters/EngineId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelConfig'
+            example:
+              channel_id: "medical_diagnosis_stream"
+              channel_type: "CONSCIOUSNESS_STREAM"
+              participants: ["diagnostic_ai", "treatment_ai", "monitoring_ai"]
+              security_level: "HIPAA_COMPLIANT"
+      responses:
+        '201':
+          description: Channel created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+
+  # ==============================================================================
+  # CONSCIOUSNESS ENDPOINTS
+  # ==============================================================================
+  
+  /consciousness/agents:
+    post:
+      summary: Register Conscious Agent
+      description: Register an AI agent with consciousness capabilities
+      tags: [Consciousness]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsciousAgentConfig'
+            example:
+              agent_id: "medical_ai_alpha"
+              consciousness_level: 0.95
+              awareness_capabilities:
+                - "self_monitoring"
+                - "attention_focus"
+                - "metacognition"
+                - "intention_awareness"
+              metacognitive_enabled: true
+              emotional_intelligence: true
+      responses:
+        '201':
+          description: Agent registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsciousAgent'
+
+  /consciousness/synchronize:
+    post:
+      summary: Synchronize Consciousness Streams
+      description: Synchronize consciousness between multiple AI agents
+      tags: [Consciousness]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsciousnessSyncRequest'
+            example:
+              agent_ids: ["medical_ai_alpha", "medical_ai_beta", "medical_ai_gamma"]
+              synchronization_type: "full_sync"
+              sync_duration: 5000
+              priority_level: "high"
+      responses:
+        '200':
+          description: Consciousness synchronized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsciousnessSyncResult'
+
+  /consciousness/crystals:
+    get:
+      summary: Get Memory Crystals
+      description: Retrieve crystallized shared memories
+      tags: [Consciousness]
+      parameters:
+        - name: agent_id
+          in: query
+          schema:
+            type: string
+        - name: start_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Memory crystals retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crystals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MemoryCrystal'
+
+  # ==============================================================================
+  # QUANTUM ENDPOINTS
+  # ==============================================================================
+  
+  /quantum/entanglement:
+    post:
+      summary: Create Quantum Entanglement
+      description: Create quantum entanglement between AI agents
+      tags: [Quantum]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntanglementRequest'
+            example:
+              agent_a: "quantum_trader_alpha"
+              agent_b: "quantum_trader_beta"
+              entanglement_type: "bell_state"
+              coherence_time: 1000
+              error_correction: true
+      responses:
+        '201':
+          description: Entanglement created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuantumEntanglement'
+
+  /quantum/teleportation:
+    post:
+      summary: Quantum Teleportation
+      description: Perform quantum teleportation of information between agents
+      tags: [Quantum]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuantumTeleportationRequest'
+      responses:
+        '200':
+          description: Teleportation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuantumTeleportationResult'
+
+  /quantum/consensus:
+    post:
+      summary: Quantum Consensus
+      description: Run quantum consensus algorithm among AI agents
+      tags: [Quantum]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuantumConsensusRequest'
+      responses:
+        '200':
+          description: Consensus reached successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuantumConsensusResult'
+
+  # ==============================================================================
+  # NEURAL MESH ENDPOINTS
+  # ==============================================================================
+  
+  /neural-mesh:
+    post:
+      summary: Create Neural Mesh Network
+      description: Create adaptive neural mesh network between AI agents
+      tags: [Neural Mesh]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NeuralMeshConfig'
+      responses:
+        '201':
+          description: Neural mesh created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NeuralMesh'
+
+  /neural-mesh/{mesh_id}/optimize:
+    post:
+      summary: Optimize Mesh Topology
+      description: Optimize neural mesh topology for better performance
+      tags: [Neural Mesh]
+      parameters:
+        - name: mesh_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Mesh optimized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptimizationResult'
+
+  # ==============================================================================
+  # APPLICATIONS ENDPOINTS
+  # ==============================================================================
+  
+  /applications:
+    post:
+      summary: Create Application
+      description: Create real-world application using Enhanced CSP
+      tags: [Applications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationConfig'
+            example:
+              app_type: "HEALTHCARE"
+              app_name: "Advanced Diagnostic System"
+              agent_count: 5
+              consciousness_level: 0.9
+              quantum_enabled: true
+              neural_mesh_enabled: true
+              security_level: "HIPAA_COMPLIANT"
+      responses:
+        '201':
+          description: Application created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+
+  /applications/{app_id}/tasks:
+    post:
+      summary: Execute Application Task
+      description: Execute a task on the application
+      tags: [Applications]
+      parameters:
+        - name: app_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+      responses:
+        '200':
+          description: Task executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResult'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  parameters:
+    EngineId:
+      name: engine_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Unique identifier for the engine
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    # ==============================================================================
+    # CORE SCHEMAS
+    # ==============================================================================
+    
+    EngineConfig:
+      type: object
+      required:
+        - engine_id
+      properties:
+        engine_id:
+          type: string
+          description: Unique identifier for the engine
+        consciousness_enabled:
+          type: boolean
+          default: true
+          description: Enable consciousness features
+        quantum_enabled:
+          type: boolean
+          default: true
+          description: Enable quantum communication
+        neural_mesh_enabled:
+          type: boolean
+          default: true
+          description: Enable neural mesh networking
+        performance_tier:
+          type: string
+          enum: [basic, standard, enterprise]
+          default: standard
+          description: Performance tier
+        security_level:
+          type: string
+          enum: [standard, high, military]
+          default: standard
+          description: Security level
+
+    Engine:
+      type: object
+      properties:
+        engine_id:
+          type: string
+        status:
+          type: string
+          enum: [initializing, running, stopped, error]
+        capabilities:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        performance_metrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+
+    EngineDetails:
+      allOf:
+        - $ref: '#/components/schemas/Engine'
+        - type: object
+          properties:
+            channels:
+              type: array
+              items:
+                $ref: '#/components/schemas/Channel'
+            processes:
+              type: array
+              items:
+                $ref: '#/components/schemas/Process'
+            agents:
+              type: array
+              items:
+                $ref: '#/components/schemas/Agent'
+
+    ChannelConfig:
+      type: object
+      required:
+        - channel_id
+        - channel_type
+      properties:
+        channel_id:
+          type: string
+        channel_type:
+          type: string
+          enum: 
+            - SYNCHRONOUS
+            - ASYNCHRONOUS
+            - STREAMING
+            - CONSCIOUSNESS_STREAM
+            - KNOWLEDGE_OSMOSIS
+            - WISDOM_CONVERGENCE
+            - QUANTUM_ENTANGLED
+            - QUANTUM_TELEPORTATION
+            - NEURAL_MESH
+        participants:
+          type: array
+          items:
+            type: string
+        security_level:
+          type: string
+          enum: [standard, high, HIPAA_COMPLIANT, SOX_COMPLIANT]
+        encryption_enabled:
+          type: boolean
+          default: true
+
+    Channel:
+      type: object
+      properties:
+        channel_id:
+          type: string
+        channel_type:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, error]
+        participants:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        metrics:
+          $ref: '#/components/schemas/ChannelMetrics'
+
+    # ==============================================================================
+    # CONSCIOUSNESS SCHEMAS
+    # ==============================================================================
+    
+    ConsciousAgentConfig:
+      type: object
+      required:
+        - agent_id
+      properties:
+        agent_id:
+          type: string
+        consciousness_level:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Level of consciousness (0-1)
+        awareness_capabilities:
+          type: array
+          items:
+            type: string
+            enum: 
+              - self_monitoring
+              - attention_focus
+              - metacognition
+              - intention_awareness
+              - emotional_intelligence
+        metacognitive_enabled:
+          type: boolean
+          default: true
+        emotional_intelligence:
+          type: boolean
+          default: false
+
+    ConsciousAgent:
+      type: object
+      properties:
+        agent_id:
+          type: string
+        consciousness_level:
+          type: number
+        awareness_capabilities:
+          type: array
+          items:
+            type: string
+        consciousness_state:
+          $ref: '#/components/schemas/ConsciousnessState'
+        registered_at:
+          type: string
+          format: date-time
+
+    ConsciousnessState:
+      type: object
+      properties:
+        awareness_level:
+          type: number
+          minimum: 0
+          maximum: 1
+        attention_focus:
+          type: array
+          items:
+            type: string
+        working_memory:
+          type: object
+          additionalProperties: true
+        emotional_state:
+          type: object
+          additionalProperties:
+            type: number
+        metacognitive_active:
+          type: boolean
+
+    ConsciousnessSyncRequest:
+      type: object
+      required:
+        - agent_ids
+      properties:
+        agent_ids:
+          type: array
+          items:
+            type: string
+          minItems: 2
+        synchronization_type:
+          type: string
+          enum: [full_sync, partial_sync, attention_only]
+          default: full_sync
+        sync_duration:
+          type: integer
+          description: Synchronization duration in milliseconds
+          minimum: 100
+          maximum: 60000
+        priority_level:
+          type: string
+          enum: [low, medium, high, critical]
+          default: medium
+
+    ConsciousnessSyncResult:
+      type: object
+      properties:
+        sync_id:
+          type: string
+        participants:
+          type: array
+          items:
+            type: string
+        coherence_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        crystal_id:
+          type: string
+        sync_duration:
+          type: integer
+        completed_at:
+          type: string
+          format: date-time
+
+    MemoryCrystal:
+      type: object
+      properties:
+        crystal_id:
+          type: string
+        participants:
+          type: array
+          items:
+            type: string
+        knowledge_transfer:
+          type: array
+          items:
+            type: object
+        emotional_resonance:
+          type: object
+        crystallization_strength:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+
+    # ==============================================================================
+    # QUANTUM SCHEMAS
+    # ==============================================================================
+    
+    EntanglementRequest:
+      type: object
+      required:
+        - agent_a
+        - agent_b
+      properties:
+        agent_a:
+          type: string
+        agent_b:
+          type: string
+        entanglement_type:
+          type: string
+          enum: [bell_state, ghz_state, custom]
+          default: bell_state
+        coherence_time:
+          type: integer
+          description: Coherence time in milliseconds
+          minimum: 100
+          maximum: 10000
+        error_correction:
+          type: boolean
+          default: true
+
+    QuantumEntanglement:
+      type: object
+      properties:
+        entanglement_id:
+          type: string
+        participants:
+          type: array
+          items:
+            type: string
+        entanglement_type:
+          type: string
+        fidelity:
+          type: number
+          minimum: 0
+          maximum: 1
+        coherence_time:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, degraded, collapsed]
+
+    QuantumTeleportationRequest:
+      type: object
+      required:
+        - sender
+        - receiver
+        - quantum_data
+      properties:
+        sender:
+          type: string
+        receiver:
+          type: string
+        quantum_data:
+          type: object
+          description: Quantum state data to teleport
+        priority:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+
+    QuantumTeleportationResult:
+      type: object
+      properties:
+        teleportation_id:
+          type: string
+        sender:
+          type: string
+        receiver:
+          type: string
+        fidelity:
+          type: number
+          minimum: 0
+          maximum: 1
+        classical_bits:
+          type: array
+          items:
+            type: integer
+        completed_at:
+          type: string
+          format: date-time
+
+    QuantumConsensusRequest:
+      type: object
+      required:
+        - participants
+        - proposals
+      properties:
+        participants:
+          type: array
+          items:
+            type: string
+          minItems: 2
+        proposals:
+          type: array
+          items:
+            type: object
+        algorithm:
+          type: string
+          enum: [grover, amplitude_amplification, custom]
+          default: grover
+
+    QuantumConsensusResult:
+      type: object
+      properties:
+        consensus_id:
+          type: string
+        participants:
+          type: array
+          items:
+            type: string
+        selected_proposal:
+          type: object
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        quantum_advantage:
+          type: number
+        completed_at:
+          type: string
+          format: date-time
+
+    # ==============================================================================
+    # NEURAL MESH SCHEMAS
+    # ==============================================================================
+    
+    NeuralMeshConfig:
+      type: object
+      required:
+        - mesh_id
+        - participants
+      properties:
+        mesh_id:
+          type: string
+        participants:
+          type: array
+          items:
+            type: string
+          minItems: 3
+        topology_type:
+          type: string
+          enum: [small_world, scale_free, hierarchical, adaptive]
+          default: adaptive
+        optimization_enabled:
+          type: boolean
+          default: true
+        learning_rate:
+          type: number
+          minimum: 0.001
+          maximum: 1.0
+          default: 0.01
+
+    NeuralMesh:
+      type: object
+      properties:
+        mesh_id:
+          type: string
+        participants:
+          type: array
+          items:
+            type: string
+        topology:
+          type: object
+          description: Network topology representation
+        connectivity_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        optimization_history:
+          type: array
+          items:
+            type: object
+        created_at:
+          type: string
+          format: date-time
+
+    OptimizationResult:
+      type: object
+      properties:
+        optimization_id:
+          type: string
+        mesh_id:
+          type: string
+        performance_improvement:
+          type: number
+        new_topology:
+          type: object
+        optimization_time:
+          type: integer
+        completed_at:
+          type: string
+          format: date-time
+
+    # ==============================================================================
+    # APPLICATION SCHEMAS
+    # ==============================================================================
+    
+    ApplicationConfig:
+      type: object
+      required:
+        - app_type
+        - app_name
+      properties:
+        app_type:
+          type: string
+          enum: 
+            - HEALTHCARE
+            - FINANCE
+            - SMART_CITY
+            - RESEARCH
+            - MANUFACTURING
+            - EDUCATION
+            - CREATIVE
+            - SECURITY
+        app_name:
+          type: string
+        agent_count:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 5
+        consciousness_level:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.8
+        quantum_enabled:
+          type: boolean
+          default: true
+        neural_mesh_enabled:
+          type: boolean
+          default: true
+        security_level:
+          type: string
+          enum: [standard, high, HIPAA_COMPLIANT, SOX_COMPLIANT, military]
+          default: standard
+        performance_requirements:
+          type: object
+          properties:
+            latency_requirement:
+              type: string
+              enum: [low, medium, high]
+            throughput_requirement:
+              type: string
+              enum: [low, medium, high]
+            reliability_requirement:
+              type: string
+              enum: [standard, high, ultra_high]
+
+    Application:
+      type: object
+      properties:
+        app_id:
+          type: string
+        app_type:
+          type: string
+        app_name:
+          type: string
+        status:
+          type: string
+          enum: [initializing, running, stopped, error]
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Agent'
+        performance_metrics:
+          $ref: '#/components/schemas/ApplicationMetrics'
+        created_at:
+          type: string
+          format: date-time
+
+    TaskRequest:
+      type: object
+      required:
+        - task_type
+      properties:
+        task_id:
+          type: string
+        task_type:
+          type: string
+        task_data:
+          type: object
+          additionalProperties: true
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          default: medium
+        timeout:
+          type: integer
+          description: Task timeout in milliseconds
+
+    TaskResult:
+      type: object
+      properties:
+        task_id:
+          type: string
+        status:
+          type: string
+          enum: [completed, failed, timeout]
+        result:
+          type: object
+          additionalProperties: true
+        processing_time:
+          type: integer
+        completed_at:
+          type: string
+          format: date-time
+        metrics:
+          type: object
+
+    # ==============================================================================
+    # UTILITY SCHEMAS
+    # ==============================================================================
+    
+    Agent:
+      type: object
+      properties:
+        agent_id:
+          type: string
+        agent_type:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [active, inactive, error]
+        consciousness_level:
+          type: number
+        quantum_enabled:
+          type: boolean
+
+    Process:
+      type: object
+      properties:
+        process_id:
+          type: string
+        process_type:
+          type: string
+        status:
+          type: string
+          enum: [running, blocked, completed, error]
+        created_at:
+          type: string
+          format: date-time
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        cpu_usage:
+          type: number
+        memory_usage:
+          type: number
+        network_latency:
+          type: number
+        throughput:
+          type: number
+        error_rate:
+          type: number
+
+    ChannelMetrics:
+      type: object
+      properties:
+        message_count:
+          type: integer
+        average_latency:
+          type: number
+        throughput:
+          type: number
+        error_rate:
+          type: number
+
+    ApplicationMetrics:
+      type: object
+      properties:
+        tasks_completed:
+          type: integer
+        average_response_time:
+          type: number
+        success_rate:
+          type: number
+        consciousness_coherence:
+          type: number
+        quantum_fidelity:
+          type: number
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+
+# ==============================================================================
+# DATABASE SCHEMA - PostgreSQL
+# ==============================================================================
+
+---
+# Database Schema Definition
+# File: database/schema.sql
+
+-- Enhanced CSP System Database Schema
+-- Version: 1.0.0
+
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "btree_gist";
+
+-- Create schemas
+CREATE SCHEMA IF NOT EXISTS enhanced_csp;
+CREATE SCHEMA IF NOT EXISTS consciousness;
+CREATE SCHEMA IF NOT EXISTS quantum;
+CREATE SCHEMA IF NOT EXISTS neural_mesh;
+CREATE SCHEMA IF NOT EXISTS applications;
+CREATE SCHEMA IF NOT EXISTS monitoring;
+
+SET search_path TO enhanced_csp, public;
+
+-- ==============================================================================
+-- CORE TABLES
+-- ==============================================================================
+
+-- Engines table
+CREATE TABLE engines (
+    engine_id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'initializing',
+    consciousness_enabled BOOLEAN DEFAULT true,
+    quantum_enabled BOOLEAN DEFAULT true,
+    neural_mesh_enabled BOOLEAN DEFAULT true,
+    performance_tier VARCHAR(50) DEFAULT 'standard',
+    security_level VARCHAR(50) DEFAULT 'standard',
+    configuration JSONB,
+    performance_metrics JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT engines_status_check CHECK (status IN ('initializing', 'running', 'stopped', 'error')),
+    CONSTRAINT engines_performance_tier_check CHECK (performance_tier IN ('basic', 'standard', 'enterprise')),
+    CONSTRAINT engines_security_level_check CHECK (security_level IN ('standard', 'high', 'military'))
+);
+
+-- Channels table
+CREATE TABLE channels (
+    channel_id VARCHAR(255) PRIMARY KEY,
+    engine_id VARCHAR(255) NOT NULL REFERENCES engines(engine_id) ON DELETE CASCADE,
+    channel_type VARCHAR(100) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    participants TEXT[],
+    security_level VARCHAR(50) DEFAULT 'standard',
+    encryption_enabled BOOLEAN DEFAULT true,
+    configuration JSONB,
+    metrics JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT channels_status_check CHECK (status IN ('active', 'inactive', 'error')),
+    CONSTRAINT channels_type_check CHECK (channel_type IN (
+        'SYNCHRONOUS', 'ASYNCHRONOUS', 'STREAMING',
+        'CONSCIOUSNESS_STREAM', 'KNOWLEDGE_OSMOSIS', 'WISDOM_CONVERGENCE',
+        'QUANTUM_ENTANGLED', 'QUANTUM_TELEPORTATION', 'NEURAL_MESH'
+    ))
+);
+
+-- Processes table
+CREATE TABLE processes (
+    process_id VARCHAR(255) PRIMARY KEY,
+    engine_id VARCHAR(255) NOT NULL REFERENCES engines(engine_id) ON DELETE CASCADE,
+    process_type VARCHAR(100) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'ready',
+    configuration JSONB,
+    execution_trace JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT processes_status_check CHECK (status IN ('ready', 'running', 'blocked', 'completed', 'error'))
+);
+
+-- Agents table
+CREATE TABLE agents (
+    agent_id VARCHAR(255) PRIMARY KEY,
+    engine_id VARCHAR(255) NOT NULL REFERENCES engines(engine_id) ON DELETE CASCADE,
+    agent_type VARCHAR(100) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    capabilities TEXT[],
+    consciousness_level DECIMAL(3,2) DEFAULT 0.8,
+    quantum_enabled BOOLEAN DEFAULT true,
+    configuration JSONB,
+    performance_metrics JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT agents_status_check CHECK (status IN ('active', 'inactive', 'error')),
+    CONSTRAINT agents_consciousness_level_check CHECK (consciousness_level >= 0 AND consciousness_level <= 1)
+);
+
+-- ==============================================================================
+-- CONSCIOUSNESS SCHEMA TABLES
+-- ==============================================================================
+
+-- Conscious agents
+CREATE TABLE consciousness.conscious_agents (
+    agent_id VARCHAR(255) PRIMARY KEY REFERENCES agents(agent_id) ON DELETE CASCADE,
+    consciousness_level DECIMAL(3,2) NOT NULL,
+    awareness_capabilities TEXT[],
+    metacognitive_enabled BOOLEAN DEFAULT true,
+    emotional_intelligence BOOLEAN DEFAULT false,
+    consciousness_state JSONB,
+    attention_focus TEXT[],
+    working_memory JSONB,
+    emotional_state JSONB,
+    intention_vector DECIMAL[],
+    registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_sync_at TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT consciousness_level_check CHECK (consciousness_level >= 0 AND consciousness_level <= 1)
+);
+
+-- Consciousness synchronizations
+CREATE TABLE consciousness.synchronizations (
+    sync_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    participants TEXT[] NOT NULL,
+    synchronization_type VARCHAR(50) NOT NULL,
+    sync_duration INTEGER,
+    priority_level VARCHAR(50) DEFAULT 'medium',
+    coherence_score DECIMAL(3,2),
+    crystal_id UUID,
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    completed_at TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT sync_type_check CHECK (synchronization_type IN ('full_sync', 'partial_sync', 'attention_only')),
+    CONSTRAINT priority_check CHECK (priority_level IN ('low', 'medium', 'high', 'critical')),
+    CONSTRAINT coherence_score_check CHECK (coherence_score >= 0 AND coherence_score <= 1)
+);
+
+-- Memory crystals
+CREATE TABLE consciousness.memory_crystals (
+    crystal_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    participants TEXT[] NOT NULL,
+    knowledge_transfer JSONB,
+    emotional_resonance JSONB,
+    causal_relationships JSONB,
+    emergence_indicators JSONB,
+    crystallization_strength DECIMAL(3,2),
+    temporal_signature TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT crystallization_strength_check CHECK (crystallization_strength >= 0 AND crystallization_strength <= 1)
+);
+
+-- ==============================================================================
+-- QUANTUM SCHEMA TABLES
+-- ==============================================================================
+
+-- Quantum entanglements
+CREATE TABLE quantum.entanglements (
+    entanglement_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agent_a VARCHAR(255) NOT NULL REFERENCES agents(agent_id) ON DELETE CASCADE,
+    agent_b VARCHAR(255) NOT NULL REFERENCES agents(agent_id) ON DELETE CASCADE,
+    entanglement_type VARCHAR(50) NOT NULL DEFAULT 'bell_state',
+    fidelity DECIMAL(4,3),
+    coherence_time INTEGER,
+    error_correction BOOLEAN DEFAULT true,
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    quantum_state JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    expires_at TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT entanglement_type_check CHECK (entanglement_type IN ('bell_state', 'ghz_state', 'custom')),
+    CONSTRAINT entanglement_status_check CHECK (status IN ('active', 'degraded', 'collapsed')),
+    CONSTRAINT fidelity_check CHECK (fidelity >= 0 AND fidelity <= 1),
+    CONSTRAINT different_agents_check CHECK (agent_a != agent_b)
+);
+
+-- Quantum teleportations
+CREATE TABLE quantum.teleportations (
+    teleportation_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    sender VARCHAR(255) NOT NULL REFERENCES agents(agent_id) ON DELETE CASCADE,
+    receiver VARCHAR(255) NOT NULL REFERENCES agents(agent_id) ON DELETE CASCADE,
+    entanglement_id UUID REFERENCES quantum.entanglements(entanglement_id),
+    quantum_data JSONB,
+    classical_bits INTEGER[],
+    fidelity DECIMAL(4,3),
+    priority VARCHAR(50) DEFAULT 'medium',
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    completed_at TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT teleportation_priority_check CHECK (priority IN ('low', 'medium', 'high')),
+    CONSTRAINT teleportation_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed')),
+    CONSTRAINT teleportation_fidelity_check CHECK (fidelity >= 0 AND fidelity <= 1)
+);
+
+-- Quantum consensus sessions
+CREATE TABLE quantum.consensus_sessions (
+    consensus_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    participants TEXT[] NOT NULL,
+    proposals JSONB NOT NULL,
+    algorithm VARCHAR(50) DEFAULT 'grover',
+    selected_proposal JSONB,
+    confidence DECIMAL(3,2),
+    quantum_advantage DECIMAL(5,2),
+    iterations INTEGER,
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    completed_at TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT consensus_algorithm_check CHECK (algorithm IN ('grover', 'amplitude_amplification', 'custom')),
+    CONSTRAINT confidence_check CHECK (confidence >= 0 AND confidence <= 1)
+);
+
+-- ==============================================================================
+-- NEURAL MESH SCHEMA TABLES
+-- ==============================================================================
+
+-- Neural meshes
+CREATE TABLE neural_mesh.meshes (
+    mesh_id VARCHAR(255) PRIMARY KEY,
+    participants TEXT[] NOT NULL,
+    topology_type VARCHAR(50) DEFAULT 'adaptive',
+    optimization_enabled BOOLEAN DEFAULT true,
+    learning_rate DECIMAL(5,4) DEFAULT 0.01,
+    connectivity_score DECIMAL(3,2),
+    topology_data JSONB,
+    optimization_history JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_optimized_at TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT topology_type_check CHECK (topology_type IN ('small_world', 'scale_free', 'hierarchical', 'adaptive')),
+    CONSTRAINT connectivity_score_check CHECK (connectivity_score >= 0 AND connectivity_score <= 1),
+    CONSTRAINT learning_rate_check CHECK (learning_rate > 0 AND learning_rate <= 1)
+);
+
+-- Mesh optimizations
+CREATE TABLE neural_mesh.optimizations (
+    optimization_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    mesh_id VARCHAR(255) NOT NULL REFERENCES neural_mesh.meshes(mesh_id) ON DELETE CASCADE,
+    optimization_type VARCHAR(50) NOT NULL,
+    performance_improvement DECIMAL(5,2),
+    old_topology JSONB,
+    new_topology JSONB,
+    optimization_time INTEGER,
+    algorithm_used VARCHAR(100),
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    completed_at TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT optimization_type_check CHECK (optimization_type IN ('automatic', 'manual', 'scheduled'))
+);
+
+-- ==============================================================================
+-- APPLICATIONS SCHEMA TABLES
+-- ==============================================================================
+
+-- Applications
+CREATE TABLE applications.applications (
+    app_id VARCHAR(255) PRIMARY KEY,
+    engine_id VARCHAR(255) NOT NULL REFERENCES engines(engine_id) ON DELETE CASCADE,
+    app_type VARCHAR(50) NOT NULL,
+    app_name VARCHAR(255) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'initializing',
+    agent_count INTEGER DEFAULT 5,
+    consciousness_level DECIMAL(3,2) DEFAULT 0.8,
+    quantum_enabled BOOLEAN DEFAULT true,
+    neural_mesh_enabled BOOLEAN DEFAULT true,
+    security_level VARCHAR(50) DEFAULT 'standard',
+    performance_requirements JSONB,
+    configuration JSONB,
+    performance_metrics JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT app_type_check CHECK (app_type IN (
+        'HEALTHCARE', 'FINANCE', 'SMART_CITY', 'RESEARCH', 
+        'MANUFACTURING', 'EDUCATION', 'CREATIVE', 'SECURITY'
+    )),
+    CONSTRAINT app_status_check CHECK (status IN ('initializing', 'running', 'stopped', 'error')),
+    CONSTRAINT app_consciousness_level_check CHECK (consciousness_level >= 0 AND consciousness_level <= 1)
+);
+
+-- Application tasks
+CREATE TABLE applications.tasks (
+    task_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    app_id VARCHAR(255) NOT NULL REFERENCES applications.applications(app_id) ON DELETE CASCADE,
+    task_type VARCHAR(100) NOT NULL,
+    task_data JSONB,
+    priority VARCHAR(50) DEFAULT 'medium',
+    timeout_ms INTEGER,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    result JSONB,
+    processing_time INTEGER,
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT task_priority_check CHECK (priority IN ('low', 'medium', 'high', 'critical')),
+    CONSTRAINT task_status_check CHECK (status IN ('pending', 'running', 'completed', 'failed', 'timeout'))
+);
+
+-- ==============================================================================
+-- MONITORING SCHEMA TABLES
+-- ==============================================================================
+
+-- System metrics
+CREATE TABLE monitoring.system_metrics (
+    metric_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    engine_id VARCHAR(255) REFERENCES engines(engine_id) ON DELETE CASCADE,
+    metric_type VARCHAR(100) NOT NULL,
+    metric_name VARCHAR(255) NOT NULL,
+    metric_value DECIMAL(10,4),
+    metric_unit VARCHAR(50),
+    labels JSONB,
+    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT metric_type_check CHECK (metric_type IN (
+        'performance', 'consciousness', 'quantum', 'neural_mesh', 'application'
+    ))
+);
+
+-- Events log
+CREATE TABLE monitoring.events (
+    event_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    engine_id VARCHAR(255) REFERENCES engines(engine_id) ON DELETE CASCADE,
+    event_type VARCHAR(100) NOT NULL,
+    event_name VARCHAR(255) NOT NULL,
+    severity VARCHAR(50) DEFAULT 'info',
+    message TEXT,
+    event_data JSONB,
+    source_component VARCHAR(100),
+    occurred_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT severity_check CHECK (severity IN ('debug', 'info', 'warning', 'error', 'critical'))
+);
+
+-- Performance benchmarks
+CREATE TABLE monitoring.benchmarks (
+    benchmark_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    engine_id VARCHAR(255) REFERENCES engines(engine_id) ON DELETE CASCADE,
+    benchmark_type VARCHAR(100) NOT NULL,
+    benchmark_name VARCHAR(255) NOT NULL,
+    baseline_value DECIMAL(10,4),
+    current_value DECIMAL(10,4),
+    improvement_percentage DECIMAL(5,2),
+    benchmark_data JSONB,
+    executed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT benchmark_type_check CHECK (benchmark_type IN (
+        'latency', 'throughput', 'consciousness_coherence', 'quantum_fidelity', 'mesh_connectivity'
+    ))
+);
+
+-- ==============================================================================
+-- INDEXES FOR PERFORMANCE
+-- ==============================================================================
+
+-- Core table indexes
+CREATE INDEX idx_engines_status ON engines(status);
+CREATE INDEX idx_engines_created_at ON engines(created_at);
+CREATE INDEX idx_channels_engine_id ON channels(engine_id);
+CREATE INDEX idx_channels_type ON channels(channel_type);
+CREATE INDEX idx_processes_engine_id ON processes(engine_id);
+CREATE INDEX idx_processes_status ON processes(status);
+CREATE INDEX idx_agents_engine_id ON agents(engine_id);
+CREATE INDEX idx_agents_status ON agents(status);
+
+-- Consciousness indexes
+CREATE INDEX idx_conscious_agents_consciousness_level ON consciousness.conscious_agents(consciousness_level);
+CREATE INDEX idx_synchronizations_participants ON consciousness.synchronizations USING GIN(participants);
+CREATE INDEX idx_synchronizations_completed_at ON consciousness.synchronizations(completed_at);
+CREATE INDEX idx_memory_crystals_participants ON consciousness.memory_crystals USING GIN(participants);
+CREATE INDEX idx_memory_crystals_created_at ON consciousness.memory_crystals(created_at);
+
+-- Quantum indexes
+CREATE INDEX idx_entanglements_agents ON quantum.entanglements(agent_a, agent_b);
+CREATE INDEX idx_entanglements_status ON quantum.entanglements(status);
+CREATE INDEX idx_entanglements_created_at ON quantum.entanglements(created_at);
+CREATE INDEX idx_teleportations_sender_receiver ON quantum.teleportations(sender, receiver);
+CREATE INDEX idx_teleportations_status ON quantum.teleportations(status);
+CREATE INDEX idx_consensus_participants ON quantum.consensus_sessions USING GIN(participants);
+
+-- Neural mesh indexes
+CREATE INDEX idx_meshes_participants ON neural_mesh.meshes USING GIN(participants);
+CREATE INDEX idx_meshes_last_optimized ON neural_mesh.meshes(last_optimized_at);
+CREATE INDEX idx_optimizations_mesh_id ON neural_mesh.optimizations(mesh_id);
+CREATE INDEX idx_optimizations_completed_at ON neural_mesh.optimizations(completed_at);
+
+-- Application indexes
+CREATE INDEX idx_applications_type ON applications.applications(app_type);
+CREATE INDEX idx_applications_status ON applications.applications(status);
+CREATE INDEX idx_tasks_app_id ON applications.tasks(app_id);
+CREATE INDEX idx_tasks_status ON applications.tasks(status);
+CREATE INDEX idx_tasks_priority ON applications.tasks(priority);
+CREATE INDEX idx_tasks_created_at ON applications.tasks(created_at);
+
+-- Monitoring indexes
+CREATE INDEX idx_system_metrics_engine_id ON monitoring.system_metrics(engine_id);
+CREATE INDEX idx_system_metrics_type ON monitoring.system_metrics(metric_type);
+CREATE INDEX idx_system_metrics_recorded_at ON monitoring.system_metrics(recorded_at);
+CREATE INDEX idx_events_engine_id ON monitoring.events(engine_id);
+CREATE INDEX idx_events_severity ON monitoring.events(severity);
+CREATE INDEX idx_events_occurred_at ON monitoring.events(occurred_at);
+CREATE INDEX idx_benchmarks_engine_id ON monitoring.benchmarks(engine_id);
+CREATE INDEX idx_benchmarks_executed_at ON monitoring.benchmarks(executed_at);
+
+-- ==============================================================================
+-- FUNCTIONS AND TRIGGERS
+-- ==============================================================================
+
+-- Update timestamp function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Apply update triggers
+CREATE TRIGGER update_engines_updated_at BEFORE UPDATE ON engines
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_channels_updated_at BEFORE UPDATE ON channels
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_processes_updated_at BEFORE UPDATE ON processes
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_agents_updated_at BEFORE UPDATE ON agents
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_applications_updated_at BEFORE UPDATE ON applications.applications
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ==============================================================================
+-- VIEWS FOR COMMON QUERIES
+-- ==============================================================================
+
+-- Engine overview
+CREATE VIEW engine_overview AS
+SELECT 
+    e.engine_id,
+    e.name,
+    e.status,
+    e.consciousness_enabled,
+    e.quantum_enabled,
+    e.neural_mesh_enabled,
+    COUNT(DISTINCT c.channel_id) AS channel_count,
+    COUNT(DISTINCT a.agent_id) AS agent_count,
+    COUNT(DISTINCT p.process_id) AS process_count,
+    e.created_at
+FROM engines e
+LEFT JOIN channels c ON e.engine_id = c.engine_id
+LEFT JOIN agents a ON e.engine_id = a.engine_id
+LEFT JOIN processes p ON e.engine_id = p.engine_id
+GROUP BY e.engine_id, e.name, e.status, e.consciousness_enabled, 
+         e.quantum_enabled, e.neural_mesh_enabled, e.created_at;
+
+-- Application dashboard
+CREATE VIEW application_dashboard AS
+SELECT 
+    app.app_id,
+    app.app_name,
+    app.app_type,
+    app.status,
+    app.agent_count,
+    COUNT(DISTINCT t.task_id) AS total_tasks,
+    COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.task_id END) AS completed_tasks,
+    COUNT(DISTINCT CASE WHEN t.status = 'failed' THEN t.task_id END) AS failed_tasks,
+    AVG(CASE WHEN t.status = 'completed' THEN t.processing_time END) AS avg_processing_time,
+    app.created_at
+FROM applications.applications app
+LEFT JOIN applications.tasks t ON app.app_id = t.app_id
+GROUP BY app.app_id, app.app_name, app.app_type, app.status, 
+         app.agent_count, app.created_at;
+
+-- System health view
+CREATE VIEW system_health AS
+SELECT 
+    e.engine_id,
+    e.name,
+    e.status AS engine_status,
+    COALESCE(active_channels.count, 0) AS active_channels,
+    COALESCE(active_agents.count, 0) AS active_agents,
+    COALESCE(recent_errors.count, 0) AS recent_errors,
+    CASE 
+        WHEN e.status = 'running' AND COALESCE(recent_errors.count, 0) = 0 THEN 'healthy'
+        WHEN e.status = 'running' AND COALESCE(recent_errors.count, 0) < 5 THEN 'warning'
+        ELSE 'unhealthy'
+    END AS health_status
+FROM engines e
+LEFT JOIN (
+    SELECT engine_id, COUNT(*) as count 
+    FROM channels 
+    WHERE status = 'active' 
+    GROUP BY engine_id
+) active_channels ON e.engine_id = active_channels.engine_id
+LEFT JOIN (
+    SELECT engine_id, COUNT(*) as count 
+    FROM agents 
+    WHERE status = 'active' 
+    GROUP BY engine_id
+) active_agents ON e.engine_id = active_agents.engine_id
+LEFT JOIN (
+    SELECT engine_id, COUNT(*) as count 
+    FROM monitoring.events 
+    WHERE severity IN ('error', 'critical') 
+    AND occurred_at > NOW() - INTERVAL '1 hour'
+    GROUP BY engine_id
+) recent_errors ON e.engine_id = recent_errors.engine_id;
+
+-- ==============================================================================
+-- SAMPLE DATA FOR TESTING
+-- ==============================================================================
+
+-- Insert sample engine
+INSERT INTO engines (engine_id, name, status, consciousness_enabled, quantum_enabled, neural_mesh_enabled)
+VALUES ('demo_engine', 'Demo Enhanced CSP Engine', 'running', true, true, true);
+
+-- Insert sample agents
+INSERT INTO agents (agent_id, engine_id, agent_type, status, capabilities, consciousness_level)
+VALUES 
+    ('demo_agent_1', 'demo_engine', 'healthcare_ai', 'active', ARRAY['diagnosis', 'analysis'], 0.9),
+    ('demo_agent_2', 'demo_engine', 'healthcare_ai', 'active', ARRAY['treatment', 'planning'], 0.85),
+    ('demo_agent_3', 'demo_engine', 'healthcare_ai', 'active', ARRAY['monitoring', 'tracking'], 0.8);
+
+-- Insert sample conscious agents
+INSERT INTO consciousness.conscious_agents (agent_id, consciousness_level, awareness_capabilities, metacognitive_enabled)
+VALUES 
+    ('demo_agent_1', 0.9, ARRAY['self_monitoring', 'attention_focus', 'metacognition'], true),
+    ('demo_agent_2', 0.85, ARRAY['self_monitoring', 'intention_awareness'], true),
+    ('demo_agent_3', 0.8, ARRAY['attention_focus', 'emotional_intelligence'], false);
+
+-- Insert sample application
+INSERT INTO applications.applications (app_id, engine_id, app_type, app_name, status, agent_count)
+VALUES ('demo_healthcare_app', 'demo_engine', 'HEALTHCARE', 'Demo Healthcare System', 'running', 3);
+
+-- Grant permissions
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA enhanced_csp TO csp_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA consciousness TO csp_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA quantum TO csp_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA neural_mesh TO csp_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA applications TO csp_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA monitoring TO csp_user;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA enhanced_csp TO csp_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA consciousness TO csp_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA quantum TO csp_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA neural_mesh TO csp_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA applications TO csp_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA monitoring TO csp_user;
