@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced CSP Visual Designer - AI-to-AI Communication Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 2px solid #00ff88;
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            height: calc(100vh - 60px);
+        }
+
+        /* Left Sidebar - Tools & Components */
+        .left-sidebar {
+            background: rgba(0, 0, 0, 0.7);
+            border-right: 1px solid rgba(0, 255, 136, 0.3);
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .sidebar-section h3 {
+            color: #00ff88;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .component-palette {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .component-item {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: grab;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .component-item:hover {
+            background: rgba(0, 255, 136, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .component-item:active {
+            cursor: grabbing;
+        }
+
+        .component-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .component-name {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Central Canvas */
+        .canvas-container {
+            position: relative;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(0, 255, 136, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 204, 255, 0.1) 0%, transparent 50%),
+                linear-gradient(180deg, #0a0a15 0%, #0f1419 100%);
+            overflow: hidden;
+        }
+
+        .canvas {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            cursor: crosshair;
+        }
+
+        .grid-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 136, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 136, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        /* Canvas Nodes */
+        .canvas-node {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            padding: 1rem;
+            min-width: 120px;
+            min-height: 80px;
+            cursor: move;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .canvas-node:hover {
+            border-color: #00ccff;
+            box-shadow: 0 8px 30px rgba(0, 204, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .canvas-node.selected {
+            border-color: #ffaa00;
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.5);
+        }
+
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .node-type {
+            font-size: 1.2rem;
+        }
+
+        .node-title {
+            font-weight: bold;
+            color: #00ff88;
+            font-size: 0.9rem;
+        }
+
+        .node-content {
+            font-size: 0.8rem;
+            color: #cccccc;
+        }
+
+        /* Connection Lines */
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, #00ff88, #00ccff);
+            transform-origin: left center;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+            z-index: 1;
+        }
+
+        .connection-line::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: -3px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid #00ccff;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+
+        /* Right Sidebar - Properties */
+        .right-sidebar {
+            background: rgba(0, 0, 0, 0.7);
+            border-left: 1px solid rgba(0, 255, 136, 0.3);
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+
+        .properties-panel {
+            padding: 1rem;
+        }
+
+        .properties-panel h3 {
+            color: #00ff88;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .property-group {
+            margin-bottom: 1.5rem;
+            background: rgba(0, 255, 136, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .property-group h4 {
+            color: #00ccff;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .property-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .property-label {
+            font-size: 0.8rem;
+            color: #cccccc;
+        }
+
+        .property-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ff88;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            color: #ffffff;
+            font-size: 0.8rem;
+            width: 120px;
+        }
+
+        .property-input:focus {
+            outline: none;
+            border-color: #00ccff;
+            box-shadow: 0 0 5px rgba(0, 204, 255, 0.3);
+        }
+
+        /* Code Generation Panel */
+        .code-panel {
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .code-preview {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 0.75rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            color: #00ff88;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 1px solid rgba(0, 255, 136, 0.3);
+            padding: 0.5rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .btn {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: rgba(0, 255, 136, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: rgba(0, 204, 255, 0.2);
+            border-color: #00ccff;
+        }
+
+        .btn-primary:hover {
+            background: rgba(0, 204, 255, 0.3);
+        }
+
+        .btn-danger {
+            background: rgba(255, 68, 68, 0.2);
+            border-color: #ff4444;
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 68, 68, 0.3);
+        }
+
+        /* Connection Ports */
+        .connection-port {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #00ff88;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            cursor: crosshair;
+            transition: all 0.3s ease;
+        }
+
+        .connection-port:hover {
+            transform: scale(1.5);
+            background: #00ccff;
+            box-shadow: 0 0 10px rgba(0, 204, 255, 0.7);
+        }
+
+        .port-input {
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .port-output {
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* Minimap */
+        .minimap {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .minimap-viewport {
+            position: absolute;
+            border: 2px solid #00ccff;
+            background: rgba(0, 204, 255, 0.1);
+            cursor: move;
+        }
+
+        /* Animation for new nodes */
+        @keyframes nodeAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.5) rotate(180deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        .canvas-node.new {
+            animation: nodeAppear 0.5s ease-out;
+        }
+
+        /* Loading indicator */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ff88;
+            font-size: 1.2rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00ff88;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 250px 1fr 300px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .main-container {
+                grid-template-columns: 200px 1fr 250px;
+            }
+            
+            .component-palette {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🚀 Advanced CSP Visual Designer</h1>
+        <div class="header-controls">
+            <span class="status-indicator"></span>
+            <span>AI Engine Active</span>
+            <button class="btn btn-primary" onclick="saveDesign()">💾 Save</button>
+            <button class="btn" onclick="exportCode()">📄 Export</button>
+            <button class="btn" onclick="runSimulation()">▶️ Run</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Sidebar - Tools & Components -->
+        <div class="left-sidebar">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <button class="btn" onclick="selectTool('select')" id="select-tool">🖱️</button>
+                <button class="btn" onclick="selectTool('connect')" id="connect-tool">🔗</button>
+                <button class="btn" onclick="clearCanvas()">🗑️</button>
+            </div>
+
+            <!-- Component Palette -->
+            <div class="sidebar-section">
+                <h3>🧩 Process Components</h3>
+                <div class="component-palette">
+                    <div class="component-item" draggable="true" data-type="atomic">
+                        <div class="component-icon">⚛️</div>
+                        <div class="component-name">Atomic Process</div>
+                    </div>
+                    <div class="component-item" draggable="true" data-type="composite">
+                        <div class="component-icon">🔧</div>
+                        <div class="component-name">Composite</div>
+                    </div>
+                    <div class="component-item" draggable="true" data-type="channel">
+                        <div class="component-icon">📡</div>
+                        <div class="component-name">Channel</div>
+                    </div>
+                    <div class="component-item" draggable="true" data-type="guard">
+                        <div class="component-icon">🛡️</div>
+                        <div class="component-name">Guard</div>
+                    </div>
+                    <div class="component-item" draggable="true" data-type="parallel">
+                        <div class="component-icon">⚡</div>
+                        <div class="component-name">Parallel</div>
+                    </div>
+                    <div class="component-item" draggable="true" data-type="sequential">
+                        <div class="component-icon">📐</div>
+                        <div class="component-name">Sequential</div>
+                    </div>
+                    <div class="component-item" draggable="true" data-type="choice">
+                        <div class="component-icon">🔀</div>
+                        <div class="component-name">Choice</div>
+                    </div>
+                    <div class="component-item" draggable="true" data-type="loop">
+                        <div class="component-icon">🔄</div>
+                        <div class="component-name">Loop</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Components -->
+            <div class="sidebar-section">
+                <h3>🤖 AI Extensions</h3>
+                <div class="component-palette">
+                    <div class="component-item" draggable="true" data-type="llm-agent">
+                        <div class="component-icon">🧠</div>
+                        <div class="component-name">LLM Agent</div>
+                    </div>
+                    <div class="component-item" draggable="true" data-type="reasoning">
+                        <div class="component-icon">💭</div>
+                        <div class="component-name">Reasoning</div>
+                    </div>
+                    <div class="component-item" draggable="true" data-type="behavior">
+                        <div class="component-icon">🎭</div>
+                        <div class="component-name">Behavior</div>
+                    </div>
+                    <div class="component-item" draggable="true" data-type="protocol">
+                        <div class="component-icon">📋</div>
+                        <div class="component-name">Protocol</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layer Control -->
+            <div class="sidebar-section">
+                <h3>📚 Layers</h3>
+                <div class="property-row">
+                    <label class="property-label">Process Layer</label>
+                    <input type="checkbox" checked>
+                </div>
+                <div class="property-row">
+                    <label class="property-label">AI Layer</label>
+                    <input type="checkbox" checked>
+                </div>
+                <div class="property-row">
+                    <label class="property-label">Debug Layer</label>
+                    <input type="checkbox">
+                </div>
+            </div>
+        </div>
+
+        <!-- Central Canvas -->
+        <div class="canvas-container">
+            <div class="canvas" id="main-canvas">
+                <div class="grid-background"></div>
+                <!-- Nodes will be dynamically added here -->
+            </div>
+            
+            <!-- Minimap -->
+            <div class="minimap">
+                <div class="minimap-viewport"></div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar - Properties -->
+        <div class="right-sidebar">
+            <div class="properties-panel">
+                <h3>⚙️ Properties</h3>
+                
+                <div class="property-group" id="node-properties">
+                    <h4>Node Properties</h4>
+                    <div class="property-row">
+                        <span class="property-label">Name:</span>
+                        <input type="text" class="property-input" id="node-name" placeholder="Node name">
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Type:</span>
+                        <select class="property-input" id="node-type">
+                            <option value="atomic">Atomic</option>
+                            <option value="composite">Composite</option>
+                            <option value="channel">Channel</option>
+                        </select>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Priority:</span>
+                        <input type="number" class="property-input" id="node-priority" value="1" min="1" max="10">
+                    </div>
+                </div>
+
+                <div class="property-group">
+                    <h4>AI Configuration</h4>
+                    <div class="property-row">
+                        <span class="property-label">Model:</span>
+                        <select class="property-input" id="ai-model">
+                            <option value="gpt-4">GPT-4</option>
+                            <option value="claude-3">Claude-3</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Domain:</span>
+                        <input type="text" class="property-input" id="ai-domain" placeholder="Specialized domain">
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Temperature:</span>
+                        <input type="range" class="property-input" id="ai-temp" min="0" max="1" step="0.1" value="0.7">
+                    </div>
+                </div>
+
+                <div class="property-group">
+                    <h4>Performance</h4>
+                    <div class="property-row">
+                        <span class="property-label">Timeout:</span>
+                        <input type="number" class="property-input" id="timeout" value="5000" step="100">
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Retries:</span>
+                        <input type="number" class="property-input" id="retries" value="3" min="0" max="10">
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Buffer Size:</span>
+                        <input type="number" class="property-input" id="buffer-size" value="100">
+                    </div>
+                </div>
+
+                <!-- Code Generation -->
+                <div class="code-panel">
+                    <h4>🔧 Generated Code</h4>
+                    <button class="btn btn-primary" onclick="generateCode()" style="width: 100%; margin-bottom: 0.5rem;">Generate CSP Code</button>
+                    <pre class="code-preview" id="code-output">// Generated CSP code will appear here
+// Select nodes and click "Generate CSP Code"</pre>
+                </div>
+
+                <!-- Real-time Metrics -->
+                <div class="property-group">
+                    <h4>📊 Real-time Metrics</h4>
+                    <div class="property-row">
+                        <span class="property-label">Nodes:</span>
+                        <span id="node-count">0</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Connections:</span>
+                        <span id="connection-count">0</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Complexity:</span>
+                        <span id="complexity-score">Low</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentTool = 'select';
+        let selectedNodes = new Set();
+        let connections = [];
+        let nodeCounter = 0;
+        let isConnecting = false;
+        let connectionStart = null;
+
+        // Initialize the designer
+        function initDesigner() {
+            setupEventListeners();
+            updateMetrics();
+            console.log('🚀 Advanced CSP Visual Designer initialized');
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            const canvas = document.getElementById('main-canvas');
+            
+            // Canvas events
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('dragover', handleDragOver);
+            canvas.addEventListener('drop', handleDrop);
+            
+            // Component palette drag events
+            document.querySelectorAll('.component-item').forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+            });
+
+            // Property input events
+            document.querySelectorAll('.property-input').forEach(input => {
+                input.addEventListener('change', updateSelectedNode);
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyDown);
+        }
+
+        // Tool selection
+        function selectTool(tool) {
+            currentTool = tool;
+            
+            // Update tool buttons
+            document.querySelectorAll('.toolbar .btn').forEach(btn => {
+                btn.style.background = 'rgba(0, 255, 136, 0.2)';
+            });
+            
+            document.getElementById(tool + '-tool').style.background = 'rgba(0, 204, 255, 0.3)';
+            
+            // Update cursor
+            const canvas = document.getElementById('main-canvas');
+            canvas.style.cursor = tool === 'connect' ? 'crosshair' : 'default';
+        }
+
+        // Handle drag start
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.type);
+            e.dataTransfer.effectAllowed = 'copy';
+        }
+
+        // Handle drag over
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+
+        // Handle drop
+        function handleDrop(e) {
+            e.preventDefault();
+            const nodeType = e.dataTransfer.getData('text/plain');
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            createNode(nodeType, x, y);
+        }
+
+        // Create new node
+        function createNode(type, x, y) {
+            const nodeId = `node_${++nodeCounter}`;
+            const node = document.createElement('div');
+            node.className = 'canvas-node new';
+            node.id = nodeId;
+            node.style.left = (x - 60) + 'px';
+            node.style.top = (y - 40) + 'px';
+            
+            // Node content based on type
+            const icons = {
+                'atomic': '⚛️',
+                'composite': '🔧',
+                'channel': '📡',
+                'guard': '🛡️',
+                'parallel': '⚡',
+                'sequential': '📐',
+                'choice': '🔀',
+                'loop': '🔄',
+                'llm-agent': '🧠',
+                'reasoning': '💭',
+                'behavior': '🎭',
+                'protocol': '📋'
+            };
+            
+            node.innerHTML = `
+                <div class="node-header">
+                    <span class="node-type">${icons[type] || '⚪'}</span>
+                    <span class="node-title">${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                </div>
+                <div class="node-content">
+                    <div>ID: ${nodeId}</div>
+                    <div>Status: Ready</div>
+                </div>
+                <div class="connection-port port-input"></div>
+                <div class="connection-port port-output"></div>
+            `;
+            
+            // Make node draggable and selectable
+            node.addEventListener('mousedown', handleNodeMouseDown);
+            node.addEventListener('click', handleNodeClick);
+            
+            // Add connection port events
+            const inputPort = node.querySelector('.port-input');
+            const outputPort = node.querySelector('.port-output');
+            
+            inputPort.addEventListener('click', (e) => handlePortClick(e, nodeId, 'input'));
+            outputPort.addEventListener('click', (e) => handlePortClick(e, nodeId, 'output'));
+            
+            document.getElementById('main-canvas').appendChild(node);
+            
+            // Remove new animation class after animation
+            setTimeout(() => node.classList.remove('new'), 500);
+            
+            updateMetrics();
+        }
+
+        // Handle node mouse down for dragging
+        function handleNodeMouseDown(e) {
+            if (e.target.closest('.connection-port')) return;
+            
+            const node = e.currentTarget;
+            let isDragging = false;
+            let startX = e.clientX - node.offsetLeft;
+            let startY = e.clientY - node.offsetTop;
+            
+            function handleMouseMove(e) {
+                if (!isDragging) {
+                    isDragging = true;
+                    node.style.zIndex = '1000';
+                }
+                
+                node.style.left = (e.clientX - startX) + 'px';
+                node.style.top = (e.clientY - startY) + 'px';
+                
+                updateConnections();
+            }
+            
+            function handleMouseUp() {
+                if (isDragging) {
+                    node.style.zIndex = '';
+                }
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            }
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            
+            e.preventDefault();
+        }
+
+        // Handle node click
+        function handleNodeClick(e) {
+            e.stopPropagation();
+            
+            const node = e.currentTarget;
+            const nodeId = node.id;
+            
+            if (e.ctrlKey || e.metaKey) {
+                // Multi-select
+                if (selectedNodes.has(nodeId)) {
+                    selectedNodes.delete(nodeId);
+                    node.classList.remove('selected');
+                } else {
+                    selectedNodes.add(nodeId);
+                    node.classList.add('selected');
+                }
+            } else {
+                // Single select
+                clearSelection();
+                selectedNodes.add(nodeId);
+                node.classList.add('selected');
+            }
+            
+            updatePropertiesPanel();
+        }
+
+        // Handle port click for connections
+        function handlePortClick(e, nodeId, portType) {
+            e.stopPropagation();
+            
+            if (currentTool !== 'connect') return;
+            
+            if (!isConnecting) {
+                // Start connection
+                isConnecting = true;
+                connectionStart = { nodeId, portType };
+                e.target.style.background = '#ffaa00';
+            } else {
+                // Complete connection
+                if (connectionStart.nodeId !== nodeId) {
+                    createConnection(connectionStart, { nodeId, portType });
+                }
+                
+                // Reset connection state
+                isConnecting = false;
+                document.querySelectorAll('.connection-port').forEach(port => {
+                    port.style.background = '#00ff88';
+                });
+                connectionStart = null;
+            }
+        }
+
+        // Create connection between nodes
+        function createConnection(start, end) {
+            if (start.portType === 'input' && end.portType === 'output') {
+                // Swap to ensure output -> input flow
+                [start, end] = [end, start];
+            }
+            
+            if (start.portType === 'output' && end.portType === 'input') {
+                const connection = {
+                    id: `conn_${connections.length}`,
+                    from: start.nodeId,
+                    to: end.nodeId,
+                    type: 'data_flow'
+                };
+                
+                connections.push(connection);
+                drawConnection(connection);
+                updateMetrics();
+            }
+        }
+
+        // Draw connection line
+        function drawConnection(connection) {
+            const fromNode = document.getElementById(connection.from);
+            const toNode = document.getElementById(connection.to);
+            
+            if (!fromNode || !toNode) return;
+            
+            const fromRect = fromNode.getBoundingClientRect();
+            const toRect = toNode.getBoundingClientRect();
+            const canvasRect = document.getElementById('main-canvas').getBoundingClientRect();
+            
+            const fromX = fromRect.right - canvasRect.left;
+            const fromY = fromRect.top + fromRect.height / 2 - canvasRect.top;
+            const toX = toRect.left - canvasRect.left;
+            const toY = toRect.top + toRect.height / 2 - canvasRect.top;
+            
+            const line = document.createElement('div');
+            line.className = 'connection-line';
+            line.id = connection.id;
+            
+            const length = Math.sqrt((toX - fromX) ** 2 + (toY - fromY) ** 2);
+            const angle = Math.atan2(toY - fromY, toX - fromX) * 180 / Math.PI;
+            
+            line.style.left = fromX + 'px';
+            line.style.top = fromY + 'px';
+            line.style.width = length + 'px';
+            line.style.transform = `rotate(${angle}deg)`;
+            line.style.zIndex = '1';
+            
+            document.getElementById('main-canvas').appendChild(line);
+        }
+
+        // Update all connections
+        function updateConnections() {
+            connections.forEach(connection => {
+                const existingLine = document.getElementById(connection.id);
+                if (existingLine) {
+                    existingLine.remove();
+                }
+                drawConnection(connection);
+            });
+        }
+
+        // Handle canvas click
+        function handleCanvasClick(e) {
+            if (e.target === e.currentTarget) {
+                clearSelection();
+                updatePropertiesPanel();
+            }
+        }
+
+        // Clear selection
+        function clearSelection() {
+            selectedNodes.clear();
+            document.querySelectorAll('.canvas-node').forEach(node => {
+                node.classList.remove('selected');
+            });
+        }
+
+        // Update properties panel
+        function updatePropertiesPanel() {
+            if (selectedNodes.size === 1) {
+                const nodeId = Array.from(selectedNodes)[0];
+                const node = document.getElementById(nodeId);
+                
+                document.getElementById('node-name').value = nodeId;
+                document.getElementById('node-type').value = node.dataset.type || 'atomic';
+            } else {
+                document.getElementById('node-name').value = '';
+                document.getElementById('node-type').value = 'atomic';
+            }
+        }
+
+        // Update selected node properties
+        function updateSelectedNode() {
+            if (selectedNodes.size === 1) {
+                const nodeId = Array.from(selectedNodes)[0];
+                const node = document.getElementById(nodeId);
+                const name = document.getElementById('node-name').value;
+                
+                if (name) {
+                    const titleElement = node.querySelector('.node-title');
+                    if (titleElement) {
+                        titleElement.textContent = name;
+                    }
+                }
+            }
+        }
+
+        // Generate CSP code
+        function generateCode() {
+            const codeOutput = document.getElementById('code-output');
+            
+            if (document.querySelectorAll('.canvas-node').length === 0) {
+                codeOutput.textContent = '// No nodes to generate code from';
+                return;
+            }
+            
+            let code = `// Generated CSP Code
+// Enhanced CSP System - AI-to-AI Communication Platform
+
+from core.advanced_csp_core import *
+from ai_extensions.csp_ai_extensions import *
+
+async def generated_csp_process():
+    """Auto-generated CSP process from visual design"""
+    
+    # Initialize CSP Engine
+    engine = AdvancedCSPEngineWithAI()
+    
+`;
+            
+            // Generate code for each node
+            document.querySelectorAll('.canvas-node').forEach(node => {
+                const nodeId = node.id;
+                const nodeType = node.querySelector('.node-title').textContent;
+                
+                code += `    # ${nodeType} Process: ${nodeId}
+    ${nodeId} = Process("${nodeId}")
+    await engine.register_process(${nodeId})
+    
+`;
+            });
+            
+            // Generate connections
+            if (connections.length > 0) {
+                code += `    # Connections
+`;
+                connections.forEach(conn => {
+                    code += `    channel_${conn.id} = Channel("${conn.id}")
+    engine.connect(${conn.from}, ${conn.to}, channel_${conn.id})
+    
+`;
+                });
+            }
+            
+            code += `    # Start execution
+    await engine.start()
+    
+    return engine
+
+# Run the generated process
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(generated_csp_process())`;
+            
+            codeOutput.textContent = code;
+        }
+
+        // Update metrics
+        function updateMetrics() {
+            const nodeCount = document.querySelectorAll('.canvas-node').length;
+            const connectionCount = connections.length;
+            
+            document.getElementById('node-count').textContent = nodeCount;
+            document.getElementById('connection-count').textContent = connectionCount;
+            
+            // Calculate complexity
+            let complexity = 'Low';
+            if (nodeCount > 10 || connectionCount > 15) complexity = 'High';
+            else if (nodeCount > 5 || connectionCount > 8) complexity = 'Medium';
+            
+            document.getElementById('complexity-score').textContent = complexity;
+        }
+
+        // Clear canvas
+        function clearCanvas() {
+            if (confirm('Are you sure you want to clear the canvas?')) {
+                document.querySelectorAll('.canvas-node').forEach(node => node.remove());
+                document.querySelectorAll('.connection-line').forEach(line => line.remove());
+                connections = [];
+                selectedNodes.clear();
+                nodeCounter = 0;
+                updateMetrics();
+            }
+        }
+
+        // Handle keyboard shortcuts
+        function handleKeyDown(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'a':
+                        e.preventDefault();
+                        // Select all
+                        document.querySelectorAll('.canvas-node').forEach(node => {
+                            selectedNodes.add(node.id);
+                            node.classList.add('selected');
+                        });
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        saveDesign();
+                        break;
+                    case 'g':
+                        e.preventDefault();
+                        generateCode();
+                        break;
+                }
+            }
+            
+            if (e.key === 'Delete' && selectedNodes.size > 0) {
+                // Delete selected nodes
+                selectedNodes.forEach(nodeId => {
+                    const node = document.getElementById(nodeId);
+                    if (node) node.remove();
+                    
+                    // Remove connections
+                    connections = connections.filter(conn => {
+                        if (conn.from === nodeId || conn.to === nodeId) {
+                            const line = document.getElementById(conn.id);
+                            if (line) line.remove();
+                            return false;
+                        }
+                        return true;
+                    });
+                });
+                
+                selectedNodes.clear();
+                updateMetrics();
+            }
+        }
+
+        // Save design
+        function saveDesign() {
+            const design = {
+                nodes: Array.from(document.querySelectorAll('.canvas-node')).map(node => ({
+                    id: node.id,
+                    type: node.querySelector('.node-title').textContent,
+                    x: parseInt(node.style.left),
+                    y: parseInt(node.style.top)
+                })),
+                connections: connections,
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(design, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `csp-design-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            console.log('💾 Design saved');
+        }
+
+        // Export code
+        function exportCode() {
+            generateCode();
+            const code = document.getElementById('code-output').textContent;
+            
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `generated-csp-${Date.now()}.py`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            console.log('📄 Code exported');
+        }
+
+        // Run simulation
+        function runSimulation() {
+            if (document.querySelectorAll('.canvas-node').length === 0) {
+                alert('Please add some nodes before running simulation');
+                return;
+            }
+            
+            // Simulate running the CSP process
+            console.log('▶️ Running CSP simulation...');
+            
+            const nodes = document.querySelectorAll('.canvas-node');
+            let currentIndex = 0;
+            
+            function highlightNext() {
+                if (currentIndex < nodes.length) {
+                    // Remove previous highlight
+                    nodes.forEach(node => node.style.boxShadow = '');
+                    
+                    // Highlight current node
+                    nodes[currentIndex].style.boxShadow = '0 0 20px #ffaa00';
+                    
+                    currentIndex++;
+                    setTimeout(highlightNext, 1000);
+                } else {
+                    // Reset all highlights
+                    nodes.forEach(node => node.style.boxShadow = '');
+                    console.log('✅ Simulation complete');
+                }
+            }
+            
+            highlightNext();
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initDesigner);
+    </script>
+</body>
+</html>

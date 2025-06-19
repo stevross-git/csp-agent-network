@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CSP System - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a15 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(0, 255, 136, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 204, 255, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255, 107, 53, 0.2) 0%, transparent 50%);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(1deg); }
+        }
+
+        /* Particles Effect */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            background: #ff6b35;
+            border-radius: 50%;
+            animation: particle-float 8s infinite linear;
+            opacity: 0.6;
+        }
+
+        @keyframes particle-float {
+            0% {
+                transform: translateY(100vh) translateX(-50px) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-10vh) translateX(50px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Login Container */
+        .login-container {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ff6b35;
+            border-radius: 20px;
+            padding: 3rem 2.5rem;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b35, #f7931e, #00ff88, #00ccff);
+            border-radius: 20px 20px 0 0;
+        }
+
+        /* Header */
+        .login-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .login-logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px #ff6b35; }
+            to { text-shadow: 0 0 30px #f7931e, 0 0 40px #ff6b35; }
+        }
+
+        .login-title {
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .login-subtitle {
+            color: #cccccc;
+            font-size: 0.95rem;
+        }
+
+        /* Form */
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        .form-label {
+            display: block;
+            color: #ff6b35;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #ff6b35;
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: #f7931e;
+            box-shadow: 0 0 20px rgba(247, 147, 30, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .form-input::placeholder {
+            color: #888888;
+        }
+
+        /* Input Icons */
+        .input-icon {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #ff6b35;
+            font-size: 1.2rem;
+            margin-top: 0.75rem;
+        }
+
+        /* Remember Me */
+        .remember-forgot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.5rem 0;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #cccccc;
+            font-size: 0.9rem;
+        }
+
+        .remember-me input[type="checkbox"] {
+            accent-color: #ff6b35;
+        }
+
+        .forgot-password {
+            color: #00ccff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            color: #f7931e;
+            text-decoration: underline;
+        }
+
+        /* Login Button */
+        .login-btn {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            border: none;
+            border-radius: 12px;
+            padding: 1.2rem;
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 107, 53, 0.4);
+        }
+
+        .login-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .login-btn:disabled {
+            background: #666666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading State */
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Demo Credentials */
+        .demo-credentials {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .demo-title {
+            color: #00ff88;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .demo-info {
+            color: #cccccc;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .demo-creds {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 6px;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        /* Error Messages */
+        .error-message {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid #ff4444;
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: #ff4444;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            display: none;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Success Message */
+        .success-message {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: #00ff88;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        /* Footer */
+        .login-footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 107, 53, 0.3);
+        }
+
+        .footer-text {
+            color: #888888;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .azure-note {
+            color: #00ccff;
+            font-size: 0.75rem;
+            font-style: italic;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 1rem;
+                padding: 2rem 1.5rem;
+            }
+            
+            .login-title {
+                font-size: 1.5rem;
+            }
+            
+            .login-logo {
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Animation for successful login */
+        .login-success {
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation"></div>
+    
+    <!-- Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Login Container -->
+    <div class="login-container">
+        <!-- Header -->
+        <div class="login-header">
+            <div class="login-logo">🚀</div>
+            <h1 class="login-title">Enhanced CSP System</h1>
+            <p class="login-subtitle">AI-to-AI Communication Platform</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" class="error-message">
+            <strong>Authentication Failed:</strong> Invalid username or password.
+        </div>
+
+        <!-- Success Message -->
+        <div id="success-message" class="success-message">
+            <strong>Login Successful:</strong> Redirecting to admin portal...
+        </div>
+
+        <!-- Login Form -->
+        <form class="login-form" id="login-form">
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    class="form-input" 
+                    placeholder="Enter your username"
+                    required
+                    autocomplete="username"
+                >
+                <span class="input-icon">👤</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    class="form-input" 
+                    placeholder="Enter your password"
+                    required
+                    autocomplete="current-password"
+                >
+                <span class="input-icon">🔒</span>
+            </div>
+
+            <div class="remember-forgot">
+                <label class="remember-me">
+                    <input type="checkbox" id="remember-me">
+                    Remember me
+                </label>
+                <a href="#" class="forgot-password">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="login-btn" id="login-button">
+                <span id="login-text">🔐 Sign In</span>
+                <div id="login-loading" class="loading">
+                    <div class="spinner"></div>
+                    <span>Authenticating...</span>
+                </div>
+            </button>
+        </form>
+
+        <!-- Demo Credentials -->
+        <div class="demo-credentials">
+            <div class="demo-title">🧪 Demo Credentials</div>
+            <div class="demo-info">Use these temporary credentials for testing:</div>
+            <div class="demo-creds">
+                <strong>Username:</strong> admin<br>
+                <strong>Password:</strong> csp2025!
+            </div>
+            <div class="demo-creds">
+                <strong>Username:</strong> developer<br>
+                <strong>Password:</strong> dev123!
+            </div>
+            <div class="demo-info">
+                <em>Additional users: analyst/analyst123!, user/user123!</em>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="login-footer">
+            <div class="footer-text">Enhanced CSP System v2.1.0</div>
+            <div class="azure-note">🔄 Azure AD integration coming soon</div>
+        </div>
+    </div>
+
+    <script>
+        // Demo user credentials (temporary - will be replaced with Azure AD)
+        const demoUsers = {
+            'admin': {
+                password: 'csp2025!',
+                role: 'Administrator',
+                name: 'System Administrator',
+                email: 'admin@csp.ai'
+            },
+            'developer': {
+                password: 'dev123!',
+                role: 'Developer',
+                name: 'Sarah Developer',
+                email: 'developer@csp.ai'
+            },
+            'analyst': {
+                password: 'analyst123!',
+                role: 'Analyst',
+                name: 'Mike Analyst',
+                email: 'analyst@csp.ai'
+            },
+            'user': {
+                password: 'user123!',
+                role: 'User',
+                name: 'Jane User',
+                email: 'user@csp.ai'
+            }
+        };
+
+        // Initialize login system
+        function initLoginSystem() {
+            createParticles();
+            setupFormHandlers();
+            checkExistingSession();
+            console.log('🔐 CSP Login System initialized');
+        }
+
+        // Create floating particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 15;
+
+            for (let i = 0; i < particleCount; i++) {
+                setTimeout(() => {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    
+                    // Random size and position
+                    const size = Math.random() * 4 + 2;
+                    particle.style.width = size + 'px';
+                    particle.style.height = size + 'px';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDuration = (Math.random() * 10 + 8) + 's';
+                    particle.style.animationDelay = Math.random() * 2 + 's';
+                    
+                    particlesContainer.appendChild(particle);
+                    
+                    // Remove particle after animation
+                    setTimeout(() => {
+                        if (particle.parentNode) {
+                            particle.parentNode.removeChild(particle);
+                        }
+                    }, 12000);
+                }, i * 500);
+            }
+
+            // Continue creating particles
+            setTimeout(createParticles, 8000);
+        }
+
+        // Setup form event handlers
+        function setupFormHandlers() {
+            const form = document.getElementById('login-form');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+
+            form.addEventListener('submit', handleLogin);
+            
+            // Clear errors on input
+            usernameInput.addEventListener('input', clearMessages);
+            passwordInput.addEventListener('input', clearMessages);
+
+            // Handle forgot password
+            document.querySelector('.forgot-password').addEventListener('click', (e) => {
+                e.preventDefault();
+                showForgotPassword();
+            });
+
+            // Focus on username field
+            usernameInput.focus();
+        }
+
+        // Handle login submission
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
+
+            if (!username || !password) {
+                showError('Please enter both username and password.');
+                return;
+            }
+
+            setLoadingState(true);
+            clearMessages();
+
+            // Simulate authentication delay
+            setTimeout(() => {
+                authenticateUser(username, password, rememberMe);
+            }, 1500);
+        }
+
+        // Authenticate user (temporary implementation)
+        function authenticateUser(username, password, rememberMe) {
+            const user = demoUsers[username.toLowerCase()];
+            
+            if (user && user.password === password) {
+                // Successful authentication
+                const sessionData = {
+                    username: username,
+                    role: user.role,
+                    name: user.name,
+                    email: user.email,
+                    loginTime: new Date().toISOString(),
+                    rememberMe: rememberMe
+                };
+
+                // Store session
+                if (rememberMe) {
+                    localStorage.setItem('csp_session', JSON.stringify(sessionData));
+                } else {
+                    sessionStorage.setItem('csp_session', JSON.stringify(sessionData));
+                }
+
+                showSuccess();
+                
+                // Redirect to admin portal after delay
+                setTimeout(() => {
+                    redirectToAdminPortal(sessionData);
+                }, 2000);
+
+                console.log(`✅ User authenticated: ${username} (${user.role})`);
+            } else {
+                // Authentication failed
+                setLoadingState(false);
+                showError('Invalid username or password. Please try again.');
+                
+                // Log failed attempt
+                console.log(`❌ Failed login attempt: ${username}`);
+                
+                // Clear password field
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+            }
+        }
+
+        // Set loading state
+        function setLoadingState(loading) {
+            const button = document.getElementById('login-button');
+            const loginText = document.getElementById('login-text');
+            const loginLoading = document.getElementById('login-loading');
+
+            if (loading) {
+                button.disabled = true;
+                loginText.style.display = 'none';
+                loginLoading.style.display = 'flex';
+            } else {
+                button.disabled = false;
+                loginText.style.display = 'block';
+                loginLoading.style.display = 'none';
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.querySelector('strong').nextSibling.textContent = ' ' + message;
+            errorDiv.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Show success message
+        function showSuccess() {
+            setLoadingState(false);
+            const successDiv = document.getElementById('success-message');
+            successDiv.style.display = 'block';
+            
+            // Add success animation to container
+            document.querySelector('.login-container').classList.add('login-success');
+        }
+
+        // Clear all messages
+        function clearMessages() {
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+        }
+
+        // Check for existing session
+        function checkExistingSession() {
+            const session = localStorage.getItem('csp_session') || sessionStorage.getItem('csp_session');
+            
+            if (session) {
+                try {
+                    const sessionData = JSON.parse(session);
+                    const loginTime = new Date(sessionData.loginTime);
+                    const now = new Date();
+                    const hoursSinceLogin = (now - loginTime) / (1000 * 60 * 60);
+                    
+                    // Check if session is still valid (24 hours for remember me, 8 hours otherwise)
+                    const maxHours = sessionData.rememberMe ? 24 : 8;
+                    
+                    if (hoursSinceLogin < maxHours) {
+                        console.log('🔓 Valid session found, redirecting...');
+                        showSuccess();
+                        setTimeout(() => {
+                            redirectToAdminPortal(sessionData);
+                        }, 1000);
+                        return;
+                    } else {
+                        // Session expired
+                        localStorage.removeItem('csp_session');
+                        sessionStorage.removeItem('csp_session');
+                    }
+                } catch (e) {
+                    console.error('Invalid session data');
+                }
+            }
+        }
+
+        // Redirect to admin portal (simulated)
+        function redirectToAdminPortal(sessionData) {
+            // In a real implementation, this would redirect to the admin portal
+            // For demo purposes, we'll show an alert and simulate the redirect
+            
+            const redirectMessage = `
+🚀 Redirecting to Admin Portal...
+
+👤 Welcome, ${sessionData.name}!
+🔑 Role: ${sessionData.role}
+📧 Email: ${sessionData.email}
+⏰ Login Time: ${new Date(sessionData.loginTime).toLocaleString()}
+
+In a real implementation, you would be redirected to:
+🌐 /admin-portal
+
+Press OK to simulate the redirect.
+            `;
+            
+            alert(redirectMessage);
+            
+            // Simulate redirect by reloading the page (in real app, use window.location.href)
+            console.log('🌐 Redirecting to admin portal...');
+            
+            // Store redirect info for demo
+            sessionStorage.setItem('demo_redirect', 'admin-portal');
+            
+            // In real implementation: window.location.href = '/admin-portal';
+        }
+
+        // Show forgot password dialog
+        function showForgotPassword() {
+            const message = `
+🔄 Password Reset (Demo Mode)
+
+In production, this would:
+• Send reset email to your registered address
+• Integrate with Azure AD password reset
+• Provide secure token-based reset flow
+
+For demo purposes, use these credentials:
+👤 admin / csp2025!
+👤 developer / dev123!
+👤 analyst / analyst123!
+👤 user / user123!
+
+🔜 Azure AD integration will handle this automatically.
+            `;
+            
+            alert(message);
+        }
+
+        // Logout function (for use in admin portal)
+        function logout() {
+            localStorage.removeItem('csp_session');
+            sessionStorage.removeItem('csp_session');
+            console.log('🚪 User logged out');
+            window.location.reload();
+        }
+
+        // Get current session (for use in admin portal)
+        function getCurrentSession() {
+            const session = localStorage.getItem('csp_session') || sessionStorage.getItem('csp_session');
+            return session ? JSON.parse(session) : null;
+        }
+
+        // Export functions for admin portal integration
+        window.CSPAuth = {
+            logout: logout,
+            getCurrentSession: getCurrentSession,
+            isAuthenticated: () => getCurrentSession() !== null
+        };
+
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Alt + L to focus username
+            if (e.altKey && e.key === 'l') {
+                e.preventDefault();
+                document.getElementById('username').focus();
+            }
+            
+            // Ctrl + Enter to submit form
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('login-form').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initLoginSystem);
+
+        // Add some visual feedback for demo credentials
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.demo-creds')) {
+                const credsText = e.target.closest('.demo-creds').textContent;
+                const username = credsText.match(/Username:\s*(\w+)/)[1];
+                const password = credsText.match(/Password:\s*([\w!]+)/)[1];
+                
+                document.getElementById('username').value = username;
+                document.getElementById('password').value = password;
+                
+                // Visual feedback
+                e.target.closest('.demo-creds').style.background = 'rgba(0, 255, 136, 0.2)';
+                setTimeout(() => {
+                    e.target.closest('.demo-creds').style.background = 'rgba(0, 0, 0, 0.5)';
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

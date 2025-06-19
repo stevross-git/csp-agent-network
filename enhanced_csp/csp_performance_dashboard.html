@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSP Performance Dashboard - AI-to-AI Communication Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a15 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 2px solid #00ff88;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #cccccc;
+            margin-top: -0.2rem;
+        }
+
+        /* Main Dashboard Grid */
+        .dashboard-container {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            min-height: calc(100vh - 100px);
+        }
+
+        .dashboard-panel {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00ff88, #00ccff);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            color: #00ff88;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #ffffff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 255, 136, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 1rem;
+        }
+
+        .chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-card {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.2);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00ccff;
+            margin-bottom: 0.2rem;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #cccccc;
+        }
+
+        .metric-change {
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+        }
+
+        .metric-change.positive {
+            color: #00ff88;
+        }
+
+        .metric-change.negative {
+            color: #ff4444;
+        }
+
+        /* Process List */
+        .process-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .process-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .process-item:hover {
+            background: rgba(0, 255, 136, 0.1);
+            transform: translateX(5px);
+        }
+
+        .process-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .process-name {
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 0.2rem;
+        }
+
+        .process-details {
+            font-size: 0.8rem;
+            color: #cccccc;
+        }
+
+        .process-status {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-running {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border: 1px solid #00ff88;
+        }
+
+        .status-paused {
+            background: rgba(255, 170, 0, 0.2);
+            color: #ffaa00;
+            border: 1px solid #ffaa00;
+        }
+
+        .status-error {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+
+        /* Network Topology */
+        .topology-container {
+            height: 350px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .topology-node {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #00ff88, #00ccff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .topology-node:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.7);
+        }
+
+        .topology-connection {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.6), rgba(0, 204, 255, 0.6));
+            transform-origin: left center;
+        }
+
+        /* Log Panel */
+        .log-container {
+            background: #000000;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            padding: 1rem;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.3rem;
+            border-radius: 4px;
+        }
+
+        .log-info {
+            color: #00ccff;
+            background: rgba(0, 204, 255, 0.1);
+        }
+
+        .log-success {
+            color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .log-warning {
+            color: #ffaa00;
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        .log-error {
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        /* AI Agents Panel */
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .agent-card {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .agent-card:hover {
+            border-color: #00ccff;
+            transform: translateY(-3px);
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .agent-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .agent-name {
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .agent-stats {
+            font-size: 0.8rem;
+            color: #cccccc;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .header-stats {
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .agent-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>📊 CSP Performance Dashboard</h1>
+        <div class="header-stats">
+            <div class="stat-item">
+                <div class="stat-value" id="total-processes">12</div>
+                <div class="stat-label">Active Processes</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="total-agents">8</div>
+                <div class="stat-label">AI Agents</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="total-channels">24</div>
+                <div class="stat-label">Channels</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="throughput">1.2k</div>
+                <div class="stat-label">Messages/sec</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="dashboard-container">
+        <!-- Performance Metrics -->
+        <div class="dashboard-panel slide-in">
+            <div class="panel-header">
+                <div class="panel-title">⚡ Performance Metrics</div>
+                <div class="panel-controls">
+                    <button class="control-btn" onclick="refreshMetrics()">🔄 Refresh</button>
+                    <button class="control-btn" onclick="exportMetrics()">📊 Export</button>
+                </div>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">99.8%</div>
+                    <div class="metric-label">Uptime</div>
+                    <div class="metric-change positive">+0.2% ↗</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">23ms</div>
+                    <div class="metric-label">Avg Latency</div>
+                    <div class="metric-change positive">-5ms ↗</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">2.4GB</div>
+                    <div class="metric-label">Memory Usage</div>
+                    <div class="metric-change negative">+0.3GB ↘</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">87%</div>
+                    <div class="metric-label">CPU Usage</div>
+                    <div class="metric-change positive">-3% ↗</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Message Flow -->
+        <div class="dashboard-panel slide-in">
+            <div class="panel-header">
+                <div class="panel-title">📡 Message Flow</div>
+                <div class="panel-controls">
+                    <button class="control-btn" onclick="pauseFlow()">⏸ Pause</button>
+                    <button class="control-btn" onclick="clearFlow()">🗑 Clear</button>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="messageFlowChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Active Processes -->
+        <div class="dashboard-panel slide-in">
+            <div class="panel-header">
+                <div class="panel-title">🔄 Active Processes</div>
+                <div class="panel-controls">
+                    <button class="control-btn" onclick="addProcess()">➕ Add</button>
+                    <button class="control-btn" onclick="killSelected()">❌ Kill</button>
+                </div>
+            </div>
+            
+            <div class="process-list" id="process-list">
+                <!-- Processes will be dynamically populated -->
+            </div>
+        </div>
+
+        <!-- Network Topology -->
+        <div class="dashboard-panel slide-in">
+            <div class="panel-header">
+                <div class="panel-title">🌐 Network Topology</div>
+                <div class="panel-controls">
+                    <button class="control-btn" onclick="resetTopology()">🔄 Reset</button>
+                    <button class="control-btn" onclick="exportTopology()">💾 Export</button>
+                </div>
+            </div>
+            
+            <div class="topology-container" id="topology-container">
+                <!-- Network nodes will be dynamically rendered -->
+            </div>
+        </div>
+
+        <!-- AI Agents Status -->
+        <div class="dashboard-panel slide-in">
+            <div class="panel-header">
+                <div class="panel-title">🤖 AI Agents</div>
+                <div class="panel-controls">
+                    <button class="control-btn" onclick="deployAgent()">🚀 Deploy</button>
+                    <button class="control-btn" onclick="configureAgents()">⚙️ Config</button>
+                </div>
+            </div>
+            
+            <div class="agent-grid" id="agent-grid">
+                <!-- AI agents will be dynamically populated -->
+            </div>
+        </div>
+
+        <!-- System Logs -->
+        <div class="dashboard-panel slide-in">
+            <div class="panel-header">
+                <div class="panel-title">📋 System Logs</div>
+                <div class="panel-controls">
+                    <button class="control-btn" onclick="clearLogs()">🗑 Clear</button>
+                    <button class="control-btn" onclick="exportLogs()">📄 Export</button>
+                </div>
+            </div>
+            
+            <div class="log-container" id="log-container">
+                <!-- Logs will be dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let charts = {};
+        let processes = [];
+        let agents = [];
+        let logEntries = [];
+        let isRealTimeUpdating = true;
+
+        // Initialize dashboard
+        function initDashboard() {
+            console.log('🚀 Initializing CSP Performance Dashboard...');
+            
+            // Initialize charts
+            initPerformanceChart();
+            initMessageFlowChart();
+            
+            // Initialize components
+            initProcesses();
+            initAgents();
+            initTopology();
+            initLogs();
+            
+            // Start real-time updates
+            startRealTimeUpdates();
+            
+            console.log('✅ Dashboard initialized successfully');
+        }
+
+        // Initialize performance chart
+        function initPerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            charts.performance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'CPU Usage (%)',
+                            data: [],
+                            borderColor: '#00ff88',
+                            backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Memory Usage (%)',
+                            data: [],
+                            borderColor: '#00ccff',
+                            backgroundColor: 'rgba(0, 204, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Network I/O (MB/s)',
+                            data: [],
+                            borderColor: '#ffaa00',
+                            backgroundColor: 'rgba(255, 170, 0, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#cccccc' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            ticks: { color: '#cccccc' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    },
+                    animation: {
+                        duration: 750
+                    }
+                }
+            });
+        }
+
+        // Initialize message flow chart
+        function initMessageFlowChart() {
+            const ctx = document.getElementById('messageFlowChart').getContext('2d');
+            
+            charts.messageFlow = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Input', 'Processing', 'Output', 'Queued', 'Failed'],
+                    datasets: [{
+                        label: 'Messages',
+                        data: [120, 89, 115, 23, 3],
+                        backgroundColor: [
+                            'rgba(0, 255, 136, 0.7)',
+                            'rgba(0, 204, 255, 0.7)',
+                            'rgba(255, 170, 0, 0.7)',
+                            'rgba(255, 255, 255, 0.7)',
+                            'rgba(255, 68, 68, 0.7)'
+                        ],
+                        borderColor: [
+                            '#00ff88',
+                            '#00ccff',
+                            '#ffaa00',
+                            '#ffffff',
+                            '#ff4444'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#cccccc' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            ticks: { color: '#cccccc' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize processes
+        function initProcesses() {
+            processes = [
+                { id: 'proc_001', name: 'AI Reasoning Engine', status: 'running', cpu: 23, memory: 512 },
+                { id: 'proc_002', name: 'Protocol Handler', status: 'running', cpu: 15, memory: 256 },
+                { id: 'proc_003', name: 'Message Router', status: 'running', cpu: 8, memory: 128 },
+                { id: 'proc_004', name: 'Behavior Analyzer', status: 'paused', cpu: 0, memory: 64 },
+                { id: 'proc_005', name: 'Event Dispatcher', status: 'running', cpu: 12, memory: 200 },
+                { id: 'proc_006', name: 'Channel Manager', status: 'error', cpu: 0, memory: 0 }
+            ];
+            
+            updateProcessList();
+        }
+
+        // Update process list
+        function updateProcessList() {
+            const container = document.getElementById('process-list');
+            container.innerHTML = '';
+            
+            processes.forEach(process => {
+                const item = document.createElement('div');
+                item.className = 'process-item';
+                item.innerHTML = `
+                    <div class="process-info">
+                        <div class="process-name">${process.name}</div>
+                        <div class="process-details">
+                            ID: ${process.id} | CPU: ${process.cpu}% | Memory: ${process.memory}MB
+                        </div>
+                    </div>
+                    <div class="process-status status-${process.status}">${process.status.toUpperCase()}</div>
+                `;
+                
+                item.addEventListener('click', () => selectProcess(process.id));
+                container.appendChild(item);
+            });
+        }
+
+        // Initialize AI agents
+        function initAgents() {
+            agents = [
+                { id: 'agent_001', name: 'GPT-4 Reasoner', model: 'GPT-4', tasks: 15, status: 'active' },
+                { id: 'agent_002', name: 'Claude Analyzer', model: 'Claude-3', tasks: 8, status: 'active' },
+                { id: 'agent_003', name: 'Protocol Bot', model: 'Custom', tasks: 12, status: 'busy' },
+                { id: 'agent_004', name: 'Behavior Agent', model: 'GPT-4', tasks: 3, status: 'idle' },
+                { id: 'agent_005', name: 'Data Processor', model: 'Custom', tasks: 22, status: 'active' },
+                { id: 'agent_006', name: 'Error Handler', model: 'Claude-3', tasks: 0, status: 'standby' }
+            ];
+            
+            updateAgentGrid();
+        }
+
+        // Update agent grid
+        function updateAgentGrid() {
+            const container = document.getElementById('agent-grid');
+            container.innerHTML = '';
+            
+            agents.forEach(agent => {
+                const card = document.createElement('div');
+                card.className = 'agent-card';
+                card.innerHTML = `
+                    <div class="agent-header">
+                        <div class="agent-avatar">${agent.name.charAt(0)}</div>
+                        <div class="agent-name">${agent.name}</div>
+                    </div>
+                    <div class="agent-stats">
+                        Model: ${agent.model}<br>
+                        Tasks: ${agent.tasks}<br>
+                        Status: <span style="color: ${getStatusColor(agent.status)}">${agent.status}</span>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        // Get status color
+        function getStatusColor(status) {
+            const colors = {
+                'active': '#00ff88',
+                'busy': '#ffaa00',
+                'idle': '#cccccc',
+                'standby': '#00ccff',
+                'error': '#ff4444'
+            };
+            return colors[status] || '#cccccc';
+        }
+
+        // Initialize network topology
+        function initTopology() {
+            const container = document.getElementById('topology-container');
+            const nodes = [
+                { id: 'engine', x: 250, y: 150, label: 'CSP' },
+                { id: 'ai1', x: 100, y: 80, label: 'AI1' },
+                { id: 'ai2', x: 400, y: 80, label: 'AI2' },
+                { id: 'ai3', x: 100, y: 220, label: 'AI3' },
+                { id: 'ai4', x: 400, y: 220, label: 'AI4' },
+                { id: 'db', x: 250, y: 280, label: 'DB' }
+            ];
+            
+            const connections = [
+                { from: 'engine', to: 'ai1' },
+                { from: 'engine', to: 'ai2' },
+                { from: 'engine', to: 'ai3' },
+                { from: 'engine', to: 'ai4' },
+                { from: 'engine', to: 'db' },
+                { from: 'ai1', to: 'ai2' },
+                { from: 'ai3', to: 'ai4' }
+            ];
+            
+            // Draw connections
+            connections.forEach(conn => {
+                const fromNode = nodes.find(n => n.id === conn.from);
+                const toNode = nodes.find(n => n.id === conn.to);
+                
+                if (fromNode && toNode) {
+                    const line = document.createElement('div');
+                    line.className = 'topology-connection';
+                    
+                    const dx = toNode.x - fromNode.x;
+                    const dy = toNode.y - fromNode.y;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                    
+                    line.style.left = fromNode.x + 'px';
+                    line.style.top = fromNode.y + 'px';
+                    line.style.width = length + 'px';
+                    line.style.transform = `rotate(${angle}deg)`;
+                    
+                    container.appendChild(line);
+                }
+            });
+            
+            // Draw nodes
+            nodes.forEach(node => {
+                const element = document.createElement('div');
+                element.className = 'topology-node';
+                element.style.left = (node.x - 20) + 'px';
+                element.style.top = (node.y - 20) + 'px';
+                element.textContent = node.label;
+                element.title = `Node: ${node.id}`;
+                
+                container.appendChild(element);
+            });
+        }
+
+        // Initialize logs
+        function initLogs() {
+            const sampleLogs = [
+                { type: 'info', message: '[09:23:45] CSP Engine started successfully', timestamp: new Date() },
+                { type: 'success', message: '[09:24:12] AI Agent GPT-4 connected', timestamp: new Date() },
+                { type: 'info', message: '[09:24:33] Protocol handler initialized', timestamp: new Date() },
+                { type: 'warning', message: '[09:25:01] High memory usage detected', timestamp: new Date() },
+                { type: 'success', message: '[09:25:18] Message routing optimized', timestamp: new Date() },
+                { type: 'error', message: '[09:25:45] Process proc_006 failed to start', timestamp: new Date() }
+            ];
+            
+            logEntries = sampleLogs;
+            updateLogDisplay();
+        }
+
+        // Update log display
+        function updateLogDisplay() {
+            const container = document.getElementById('log-container');
+            container.innerHTML = '';
+            
+            logEntries.slice(-20).forEach(log => {
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${log.type}`;
+                entry.textContent = log.message;
+                container.appendChild(entry);
+            });
+            
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Add new log entry
+        function addLogEntry(type, message) {
+            const entry = {
+                type: type,
+                message: `[${new Date().toLocaleTimeString()}] ${message}`,
+                timestamp: new Date()
+            };
+            
+            logEntries.push(entry);
+            updateLogDisplay();
+        }
+
+        // Start real-time updates
+        function startRealTimeUpdates() {
+            setInterval(updatePerformanceData, 2000);
+            setInterval(updateMessageFlow, 3000);
+            setInterval(simulateActivity, 5000);
+        }
+
+        // Update performance data
+        function updatePerformanceData() {
+            if (!isRealTimeUpdating) return;
+            
+            const now = new Date().toLocaleTimeString();
+            const cpu = Math.random() * 100;
+            const memory = Math.random() * 100;
+            const network = Math.random() * 50;
+            
+            const chart = charts.performance;
+            
+            // Add new data point
+            chart.data.labels.push(now);
+            chart.data.datasets[0].data.push(cpu);
+            chart.data.datasets[1].data.push(memory);
+            chart.data.datasets[2].data.push(network);
+            
+            // Keep only last 20 points
+            if (chart.data.labels.length > 20) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+            
+            chart.update('none');
+        }
+
+        // Update message flow
+        function updateMessageFlow() {
+            if (!isRealTimeUpdating) return;
+            
+            const chart = charts.messageFlow;
+            chart.data.datasets[0].data = [
+                Math.floor(Math.random() * 200) + 50,
+                Math.floor(Math.random() * 150) + 30,
+                Math.floor(Math.random() * 180) + 40,
+                Math.floor(Math.random() * 50) + 5,
+                Math.floor(Math.random() * 10)
+            ];
+            
+            chart.update('none');
+        }
+
+        // Simulate activity
+        function simulateActivity() {
+            // Update header stats
+            document.getElementById('total-processes').textContent = processes.filter(p => p.status === 'running').length;
+            document.getElementById('total-agents').textContent = agents.filter(a => a.status === 'active').length;
+            document.getElementById('throughput').textContent = (Math.random() * 2 + 0.5).toFixed(1) + 'k';
+            
+            // Random log entries
+            const messages = [
+                'Process optimization completed',
+                'New AI agent deployed',
+                'Channel throughput improved',
+                'Memory cleanup executed',
+                'Protocol handshake successful'
+            ];
+            
+            if (Math.random() > 0.7) {
+                addLogEntry('info', messages[Math.floor(Math.random() * messages.length)]);
+            }
+        }
+
+        // Control functions
+        function refreshMetrics() {
+            addLogEntry('info', 'Metrics refreshed manually');
+            updatePerformanceData();
+            updateMessageFlow();
+        }
+
+        function exportMetrics() {
+            addLogEntry('success', 'Metrics exported to CSV');
+        }
+
+        function pauseFlow() {
+            isRealTimeUpdating = !isRealTimeUpdating;
+            const btn = event.target;
+            btn.textContent = isRealTimeUpdating ? '⏸ Pause' : '▶️ Resume';
+            addLogEntry('info', isRealTimeUpdating ? 'Real-time updates resumed' : 'Real-time updates paused');
+        }
+
+        function clearFlow() {
+            charts.messageFlow.data.datasets[0].data = [0, 0, 0, 0, 0];
+            charts.messageFlow.update();
+            addLogEntry('info', 'Message flow data cleared');
+        }
+
+        function addProcess() {
+            const newProcess = {
+                id: `proc_${String(processes.length + 1).padStart(3, '0')}`,
+                name: `New Process ${processes.length + 1}`,
+                status: 'running',
+                cpu: Math.floor(Math.random() * 20),
+                memory: Math.floor(Math.random() * 300) + 100
+            };
+            
+            processes.push(newProcess);
+            updateProcessList();
+            addLogEntry('success', `Process ${newProcess.id} started`);
+        }
+
+        function killSelected() {
+            // Remove last process for demo
+            if (processes.length > 0) {
+                const removed = processes.pop();
+                updateProcessList();
+                addLogEntry('warning', `Process ${removed.id} terminated`);
+            }
+        }
+
+        function selectProcess(id) {
+            addLogEntry('info', `Process ${id} selected`);
+        }
+
+        function resetTopology() {
+            addLogEntry('info', 'Network topology reset');
+        }
+
+        function exportTopology() {
+            addLogEntry('success', 'Network topology exported');
+        }
+
+        function deployAgent() {
+            const newAgent = {
+                id: `agent_${String(agents.length + 1).padStart(3, '0')}`,
+                name: `AI Agent ${agents.length + 1}`,
+                model: 'GPT-4',
+                tasks: 0,
+                status: 'active'
+            };
+            
+            agents.push(newAgent);
+            updateAgentGrid();
+            addLogEntry('success', `AI Agent ${newAgent.id} deployed`);
+        }
+
+        function configureAgents() {
+            addLogEntry('info', 'Agent configuration panel opened');
+        }
+
+        function clearLogs() {
+            logEntries = [];
+            updateLogDisplay();
+            addLogEntry('info', 'Logs cleared');
+        }
+
+        function exportLogs() {
+            const logData = logEntries.map(log => `${log.timestamp.toISOString()}\t${log.type}\t${log.message}`).join('\n');
+            const blob = new Blob([logData], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `csp-logs-${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            addLogEntry('success', 'Logs exported successfully');
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>

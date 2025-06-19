@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CSP Admin Portal - AI-to-AI Communication Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a15 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 2px solid #ff6b35;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .admin-badge {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .emergency-btn {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            animation: pulse 3s infinite;
+        }
+
+        .emergency-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.7);
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 68, 68, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(255, 68, 68, 0.8); }
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: calc(100vh - 80px);
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            background: rgba(0, 0, 0, 0.8);
+            border-right: 1px solid rgba(255, 107, 53, 0.3);
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid rgba(255, 107, 53, 0.2);
+        }
+
+        .nav-section h3 {
+            color: #ff6b35;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            font-size: 0.9rem;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 107, 53, 0.1);
+            border-color: #ff6b35;
+            transform: translateX(5px);
+        }
+
+        .nav-item.active {
+            background: rgba(255, 107, 53, 0.2);
+            border-color: #ff6b35;
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .content-area {
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .admin-card {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .admin-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff6b35, #f7931e);
+        }
+
+        .admin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
+            border-color: #f7931e;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            color: #ff6b35;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #f7931e;
+            margin: 1rem 0;
+        }
+
+        .card-subtitle {
+            color: #cccccc;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        .status-online { background: #00ff88; }
+        .status-warning { background: #ffaa00; }
+        .status-error { background: #ff4444; }
+        .status-maintenance { background: #00ccff; }
+
+        /* Data Tables */
+        .data-table {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .table-header {
+            background: rgba(255, 107, 53, 0.2);
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 107, 53, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ff6b35;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .table-content {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(255, 107, 53, 0.1);
+            color: #ff6b35;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        td {
+            color: #cccccc;
+            font-size: 0.85rem;
+        }
+
+        tr:hover {
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        /* Forms */
+        .form-container {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            color: #ff6b35;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #ff6b35;
+            border-radius: 6px;
+            padding: 0.75rem;
+            color: #ffffff;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #f7931e;
+            box-shadow: 0 0 10px rgba(247, 147, 30, 0.3);
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        /* Buttons */
+        .btn {
+            background: rgba(255, 107, 53, 0.2);
+            border: 1px solid #ff6b35;
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: rgba(255, 107, 53, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+            border: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #00ff88, #00cc6a);
+            border: none;
+        }
+
+        .btn-secondary {
+            background: rgba(108, 117, 125, 0.3);
+            border-color: #6c757d;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-info {
+            background: rgba(0, 204, 255, 0.1);
+            border-color: #00ccff;
+            color: #00ccff;
+        }
+
+        .alert-success {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+
+        .alert-warning {
+            background: rgba(255, 170, 0, 0.1);
+            border-color: #ffaa00;
+            color: #ffaa00;
+        }
+
+        .alert-danger {
+            background: rgba(255, 68, 68, 0.1);
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border: 2px solid #ff6b35;
+            border-radius: 15px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 107, 53, 0.3);
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            color: #ff6b35;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #ff6b35;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            color: #f7931e;
+            transform: scale(1.2);
+        }
+
+        /* Progress Bars */
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 20px;
+            margin: 0.5rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b35, #f7931e);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        /* Charts Container */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .chart-container {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 10px;
+            padding: 1.5rem;
+            height: 300px;
+        }
+
+        /* System Health Indicators */
+        .health-indicators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .health-item {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .health-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+
+        .health-label {
+            color: #cccccc;
+            font-size: 0.85rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 250px 1fr;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
+        }
+
+        @media (max-width: 992px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .content-area {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ff6b35;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🛡️ Enhanced CSP Admin Portal</h1>
+        <div class="header-controls">
+            <div class="admin-badge">
+                🔑 Administrator
+                <span id="admin-user">admin@csp.ai</span>
+            </div>
+            <button class="emergency-btn" onclick="emergencyShutdown()">🚨 Emergency Stop</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <div class="nav-section">
+                <h3>📊 System Overview</h3>
+                <div class="nav-item active" onclick="showSection('dashboard')">
+                    <span class="nav-icon">🏠</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="showSection('monitoring')">
+                    <span class="nav-icon">📈</span>
+                    <span>System Monitoring</span>
+                </div>
+                <div class="nav-item" onclick="showSection('alerts')">
+                    <span class="nav-icon">🚨</span>
+                    <span>Alerts & Incidents</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <h3>👥 User Management</h3>
+                <div class="nav-item" onclick="showSection('users')">
+                    <span class="nav-icon">👤</span>
+                    <span>Users</span>
+                </div>
+                <div class="nav-item" onclick="showSection('roles')">
+                    <span class="nav-icon">🔐</span>
+                    <span>Roles & Permissions</span>
+                </div>
+                <div class="nav-item" onclick="showSection('auth')">
+                    <span class="nav-icon">🔑</span>
+                    <span>Authentication</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <h3>🤖 AI Management</h3>
+                <div class="nav-item" onclick="showSection('ai-models')">
+                    <span class="nav-icon">🧠</span>
+                    <span>AI Models</span>
+                </div>
+                <div class="nav-item" onclick="showSection('agents')">
+                    <span class="nav-icon">🤖</span>
+                    <span>Agent Management</span>
+                </div>
+                <div class="nav-item" onclick="showSection('protocols')">
+                    <span class="nav-icon">📋</span>
+                    <span>Protocol Templates</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <h3>⚙️ System Configuration</h3>
+                <div class="nav-item" onclick="showSection('settings')">
+                    <span class="nav-icon">⚙️</span>
+                    <span>System Settings</span>
+                </div>
+                <div class="nav-item" onclick="showSection('infrastructure')">
+                    <span class="nav-icon">🏗️</span>
+                    <span>Infrastructure</span>
+                </div>
+                <div class="nav-item" onclick="showSection('integrations')">
+                    <span class="nav-icon">🔗</span>
+                    <span>Integrations</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <h3>🔧 Maintenance</h3>
+                <div class="nav-item" onclick="showSection('backups')">
+                    <span class="nav-icon">💾</span>
+                    <span>Backups</span>
+                </div>
+                <div class="nav-item" onclick="showSection('logs')">
+                    <span class="nav-icon">📄</span>
+                    <span>System Logs</span>
+                </div>
+                <div class="nav-item" onclick="showSection('maintenance')">
+                    <span class="nav-icon">🔧</span>
+                    <span>Maintenance</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <h3>📄 Administration</h3>
+                <div class="nav-item" onclick="showSection('licenses')">
+                    <span class="nav-icon">📜</span>
+                    <span>Licenses</span>
+                </div>
+                <div class="nav-item" onclick="showSection('billing')">
+                    <span class="nav-icon">💳</span>
+                    <span>Billing</span>
+                </div>
+                <div class="nav-item" onclick="showSection('audit')">
+                    <span class="nav-icon">🔍</span>
+                    <span>Audit Trail</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="content-section active fade-in">
+                <h2 style="color: #ff6b35; margin-bottom: 2rem; font-size: 2rem;">System Dashboard</h2>
+                
+                <div class="dashboard-grid">
+                    <div class="admin-card">
+                        <div class="card-header">
+                            <div class="card-title">🏥 System Health</div>
+                            <span class="status-indicator status-online"></span>
+                        </div>
+                        <div class="card-value">98.7%</div>
+                        <div class="card-subtitle">Overall system health score</div>
+                    </div>
+
+                    <div class="admin-card">
+                        <div class="card-header">
+                            <div class="card-title">👥 Active Users</div>
+                            <span class="status-indicator status-online"></span>
+                        </div>
+                        <div class="card-value">1,247</div>
+                        <div class="card-subtitle">Currently online users</div>
+                    </div>
+
+                    <div class="admin-card">
+                        <div class="card-header">
+                            <div class="card-title">🤖 AI Agents</div>
+                            <span class="status-indicator status-online"></span>
+                        </div>
+                        <div class="card-value">23/24</div>
+                        <div class="card-subtitle">Active AI agents</div>
+                    </div>
+
+                    <div class="admin-card">
+                        <div class="card-header">
+                            <div class="card-title">📊 Daily Throughput</div>
+                            <span class="status-indicator status-online"></span>
+                        </div>
+                        <div class="card-value">2.4M</div>
+                        <div class="card-subtitle">Messages processed today</div>
+                    </div>
+
+                    <div class="admin-card">
+                        <div class="card-header">
+                            <div class="card-title">💾 Storage Usage</div>
+                            <span class="status-indicator status-warning"></span>
+                        </div>
+                        <div class="card-value">78%</div>
+                        <div class="card-subtitle">of 10TB total capacity</div>
+                    </div>
+
+                    <div class="admin-card">
+                        <div class="card-header">
+                            <div class="card-title">🚨 Active Alerts</div>
+                            <span class="status-indicator status-warning"></span>
+                        </div>
+                        <div class="card-value">3</div>
+                        <div class="card-subtitle">Require immediate attention</div>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning">
+                    <span>⚠️</span>
+                    <div>
+                        <strong>Storage Warning:</strong> System storage is approaching 80% capacity. Consider adding more storage or archiving old data.
+                    </div>
+                </div>
+
+                <div class="data-table">
+                    <div class="table-header">
+                        <div class="table-title">Recent System Activity</div>
+                        <div class="table-actions">
+                            <button class="btn btn-secondary">🔄 Refresh</button>
+                            <button class="btn btn-secondary">📊 Export</button>
+                        </div>
+                    </div>
+                    <div class="table-content">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Event Type</th>
+                                    <th>Description</th>
+                                    <th>User</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2025-06-20 14:23:45</td>
+                                    <td>🤖 Agent Deploy</td>
+                                    <td>New GPT-4 agent deployed to production</td>
+                                    <td>admin@csp.ai</td>
+                                    <td><span style="color: #00ff88">✅ Success</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2025-06-20 14:18:32</td>
+                                    <td>👥 User Login</td>
+                                    <td>Administrator login from 192.168.1.100</td>
+                                    <td>admin@csp.ai</td>
+                                    <td><span style="color: #00ff88">✅ Success</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2025-06-20 14:15:12</td>
+                                    <td>⚙️ Config Change</td>
+                                    <td>Updated AI model temperature settings</td>
+                                    <td>developer@csp.ai</td>
+                                    <td><span style="color: #00ff88">✅ Success</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2025-06-20 14:10:08</td>
+                                    <td>🚨 Alert</td>
+                                    <td>High memory usage detected on server-03</td>
+                                    <td>system</td>
+                                    <td><span style="color: #ffaa00">⚠️ Warning</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2025-06-20 14:05:45</td>
+                                    <td>📊 Backup</td>
+                                    <td>Automated system backup completed</td>
+                                    <td>system</td>
+                                    <td><span style="color: #00ff88">✅ Success</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Section -->
+            <div id="users" class="content-section">
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">User Management</h2>
+                
+                <div class="dashboard-grid">
+                    <div class="admin-card">
+                        <div class="card-title">👥 Total Users</div>
+                        <div class="card-value">1,847</div>
+                        <div class="card-subtitle">Registered users</div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="card-title">🟢 Active Today</div>
+                        <div class="card-value">1,247</div>
+                        <div class="card-subtitle">Users online today</div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="card-title">👑 Administrators</div>
+                        <div class="card-value">12</div>
+                        <div class="card-subtitle">Admin users</div>
+                    </div>
+                </div>
+
+                <div class="data-table">
+                    <div class="table-header">
+                        <div class="table-title">User Management</div>
+                        <div class="table-actions">
+                            <button class="btn btn-primary" onclick="openModal('add-user-modal')">➕ Add User</button>
+                            <button class="btn btn-secondary">📊 Export</button>
+                        </div>
+                    </div>
+                    <div class="table-content">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Last Login</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>USR-001</td>
+                                    <td>John Admin</td>
+                                    <td>admin@csp.ai</td>
+                                    <td>Administrator</td>
+                                    <td>2025-06-20 14:18:32</td>
+                                    <td><span style="color: #00ff88">🟢 Active</span></td>
+                                    <td>
+                                        <button class="btn">✏️ Edit</button>
+                                        <button class="btn btn-danger">🗑️ Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>USR-002</td>
+                                    <td>Sarah Developer</td>
+                                    <td>developer@csp.ai</td>
+                                    <td>Developer</td>
+                                    <td>2025-06-20 13:45:21</td>
+                                    <td><span style="color: #00ff88">🟢 Active</span></td>
+                                    <td>
+                                        <button class="btn">✏️ Edit</button>
+                                        <button class="btn btn-danger">🗑️ Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>USR-003</td>
+                                    <td>Mike Analyst</td>
+                                    <td>analyst@csp.ai</td>
+                                    <td>Analyst</td>
+                                    <td>2025-06-20 12:30:15</td>
+                                    <td><span style="color: #ffaa00">🟡 Suspended</span></td>
+                                    <td>
+                                        <button class="btn">✏️ Edit</button>
+                                        <button class="btn btn-success">🔓 Unsuspend</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Models Section -->
+            <div id="ai-models" class="content-section">
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">AI Model Management</h2>
+                
+                <div class="dashboard-grid">
+                    <div class="admin-card">
+                        <div class="card-title">🧠 Active Models</div>
+                        <div class="card-value">8</div>
+                        <div class="card-subtitle">Currently deployed</div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="card-title">📊 Total Requests</div>
+                        <div class="card-value">847K</div>
+                        <div class="card-subtitle">Today's AI requests</div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="card-title">⚡ Avg Response</div>
+                        <div class="card-value">1.2s</div>
+                        <div class="card-subtitle">Average response time</div>
+                    </div>
+                </div>
+
+                <div class="data-table">
+                    <div class="table-header">
+                        <div class="table-title">AI Model Registry</div>
+                        <div class="table-actions">
+                            <button class="btn btn-primary" onclick="openModal('deploy-model-modal')">🚀 Deploy Model</button>
+                            <button class="btn btn-secondary">📊 Performance Report</button>
+                        </div>
+                    </div>
+                    <div class="table-content">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Model ID</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Version</th>
+                                    <th>Status</th>
+                                    <th>Requests/hr</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>MDL-001</td>
+                                    <td>GPT-4 Turbo</td>
+                                    <td>Language Model</td>
+                                    <td>v1.2.3</td>
+                                    <td><span style="color: #00ff88">🟢 Running</span></td>
+                                    <td>12,450</td>
+                                    <td>
+                                        <button class="btn">⚙️ Configure</button>
+                                        <button class="btn btn-danger">🛑 Stop</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>MDL-002</td>
+                                    <td>Claude-3 Sonnet</td>
+                                    <td>Language Model</td>
+                                    <td>v3.0.1</td>
+                                    <td><span style="color: #00ff88">🟢 Running</span></td>
+                                    <td>8,230</td>
+                                    <td>
+                                        <button class="btn">⚙️ Configure</button>
+                                        <button class="btn btn-danger">🛑 Stop</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>MDL-003</td>
+                                    <td>Custom Reasoning</td>
+                                    <td>Reasoning Engine</td>
+                                    <td>v2.1.0</td>
+                                    <td><span style="color: #ffaa00">🟡 Updating</span></td>
+                                    <td>0</td>
+                                    <td>
+                                        <button class="btn" disabled>⏳ Updating...</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Settings Section -->
+            <div id="settings" class="content-section">
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">System Configuration</h2>
+                
+                <div class="form-container">
+                    <h3 style="color: #ff6b35; margin-bottom: 1.5rem;">General Settings</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">System Name</label>
+                        <input type="text" class="form-input" value="Enhanced CSP System" placeholder="Enter system name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Default AI Model</label>
+                        <select class="form-select">
+                            <option value="gpt-4">GPT-4 Turbo</option>
+                            <option value="claude-3">Claude-3 Sonnet</option>
+                            <option value="custom">Custom Model</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Max Concurrent Processes</label>
+                        <input type="number" class="form-input" value="100" min="1" max="1000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Session Timeout (minutes)</label>
+                        <input type="number" class="form-input" value="30" min="5" max="480">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Log Retention (days)</label>
+                        <input type="number" class="form-input" value="90" min="1" max="365">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">System Description</label>
+                        <textarea class="form-textarea" placeholder="Enter system description">Advanced AI-to-AI Communication Platform using Communicating Sequential Processes (CSP) architecture for scalable, intelligent agent interactions.</textarea>
+                    </div>
+                    
+                    <button class="btn btn-primary">💾 Save Configuration</button>
+                    <button class="btn btn-secondary">🔄 Reset to Defaults</button>
+                </div>
+
+                <div class="form-container">
+                    <h3 style="color: #ff6b35; margin-bottom: 1.5rem;">Security Settings</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Enable Two-Factor Authentication</label>
+                        <input type="checkbox" checked> Required for all admin users
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Password Policy</label>
+                        <select class="form-select">
+                            <option value="strict">Strict (12+ chars, symbols required)</option>
+                            <option value="medium">Medium (8+ chars, numbers required)</option>
+                            <option value="basic">Basic (6+ chars)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">API Rate Limiting (requests/minute)</label>
+                        <input type="number" class="form-input" value="1000" min="10" max="10000">
+                    </div>
+                    
+                    <button class="btn btn-primary">🔒 Update Security Settings</button>
+                </div>
+            </div>
+
+            <!-- Monitoring Section -->
+            <div id="monitoring" class="content-section">
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">System Monitoring</h2>
+                
+                <div class="health-indicators">
+                    <div class="health-item">
+                        <div class="health-value" style="color: #00ff88;">99.8%</div>
+                        <div class="health-label">System Uptime</div>
+                    </div>
+                    <div class="health-item">
+                        <div class="health-value" style="color: #ffaa00;">76%</div>
+                        <div class="health-label">CPU Usage</div>
+                    </div>
+                    <div class="health-item">
+                        <div class="health-value" style="color: #00ccff;">62%</div>
+                        <div class="health-label">Memory Usage</div>
+                    </div>
+                    <div class="health-item">
+                        <div class="health-value" style="color: #ff6b35;">1.2 GB/s</div>
+                        <div class="health-label">Network I/O</div>
+                    </div>
+                </div>
+
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <h3 style="color: #ff6b35; margin-bottom: 1rem;">Resource Usage Trends</h3>
+                        <canvas id="resourceChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 style="color: #ff6b35; margin-bottom: 1rem;">AI Request Volume</h3>
+                        <canvas id="requestChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="data-table">
+                    <div class="table-header">
+                        <div class="table-title">Server Status</div>
+                        <div class="table-actions">
+                            <button class="btn btn-secondary">🔄 Refresh</button>
+                            <button class="btn btn-primary">➕ Add Server</button>
+                        </div>
+                    </div>
+                    <div class="table-content">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Server</th>
+                                    <th>Status</th>
+                                    <th>CPU</th>
+                                    <th>Memory</th>
+                                    <th>Disk</th>
+                                    <th>Load</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>csp-web-01</td>
+                                    <td><span style="color: #00ff88">🟢 Online</span></td>
+                                    <td>45%</td>
+                                    <td>67%</td>
+                                    <td>23%</td>
+                                    <td>Normal</td>
+                                    <td><button class="btn">📊 Details</button></td>
+                                </tr>
+                                <tr>
+                                    <td>csp-ai-01</td>
+                                    <td><span style="color: #00ff88">🟢 Online</span></td>
+                                    <td>89%</td>
+                                    <td>78%</td>
+                                    <td>45%</td>
+                                    <td>High</td>
+                                    <td><button class="btn">📊 Details</button></td>
+                                </tr>
+                                <tr>
+                                    <td>csp-db-01</td>
+                                    <td><span style="color: #ffaa00">🟡 Warning</span></td>
+                                    <td>23%</td>
+                                    <td>92%</td>
+                                    <td>78%</td>
+                                    <td>High</td>
+                                    <td><button class="btn btn-danger">🚨 Investigate</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div id="alerts" class="content-section">
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">Alerts & Incidents</h2>
+                
+                <div class="dashboard-grid">
+                    <div class="admin-card">
+                        <div class="card-title">🚨 Critical Alerts</div>
+                        <div class="card-value">0</div>
+                        <div class="card-subtitle">Requiring immediate action</div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="card-title">⚠️ Warnings</div>
+                        <div class="card-value">3</div>
+                        <div class="card-subtitle">Need attention</div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="card-title">ℹ️ Info Alerts</div>
+                        <div class="card-value">12</div>
+                        <div class="card-subtitle">Informational only</div>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning">
+                    <span>⚠️</span>
+                    <div>
+                        <strong>High Memory Usage:</strong> Server csp-db-01 is using 92% of available memory. Consider scaling or optimization.
+                    </div>
+                </div>
+
+                <div class="data-table">
+                    <div class="table-header">
+                        <div class="table-title">Active Alerts</div>
+                        <div class="table-actions">
+                            <button class="btn btn-primary">🔕 Acknowledge All</button>
+                            <button class="btn btn-secondary">📊 Alert History</button>
+                        </div>
+                    </div>
+                    <div class="table-content">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Alert</th>
+                                    <th>Source</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span style="color: #ffaa00">⚠️ Warning</span></td>
+                                    <td>High Memory Usage</td>
+                                    <td>csp-db-01</td>
+                                    <td>5 min ago</td>
+                                    <td>Active</td>
+                                    <td>
+                                        <button class="btn">🔕 Acknowledge</button>
+                                        <button class="btn">🔧 Resolve</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><span style="color: #ffaa00">⚠️ Warning</span></td>
+                                    <td>Disk Space Low</td>
+                                    <td>csp-ai-01</td>
+                                    <td>15 min ago</td>
+                                    <td>Active</td>
+                                    <td>
+                                        <button class="btn">🔕 Acknowledge</button>
+                                        <button class="btn">🔧 Resolve</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><span style="color: #00ccff">ℹ️ Info</span></td>
+                                    <td>Backup Completed</td>
+                                    <td>system</td>
+                                    <td>1 hour ago</td>
+                                    <td>Acknowledged</td>
+                                    <td>
+                                        <button class="btn btn-secondary">📋 Details</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="add-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">➕ Add New User</div>
+                <button class="close-btn" onclick="closeModal('add-user-modal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-input" placeholder="Enter full name">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-input" placeholder="Enter email address">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Role</label>
+                <select class="form-select">
+                    <option value="user">User</option>
+                    <option value="developer">Developer</option>
+                    <option value="analyst">Analyst</option>
+                    <option value="admin">Administrator</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <input type="text" class="form-input" placeholder="Enter department">
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-primary">👤 Create User</button>
+                <button class="btn btn-secondary" onclick="closeModal('add-user-modal')">❌ Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deploy Model Modal -->
+    <div id="deploy-model-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">🚀 Deploy AI Model</div>
+                <button class="close-btn" onclick="closeModal('deploy-model-modal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Model Name</label>
+                <input type="text" class="form-input" placeholder="Enter model name">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Model Type</label>
+                <select class="form-select">
+                    <option value="language">Language Model</option>
+                    <option value="reasoning">Reasoning Engine</option>
+                    <option value="vision">Vision Model</option>
+                    <option value="custom">Custom Model</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Model Source</label>
+                <textarea class="form-textarea" placeholder="Enter model URL or upload path"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Resource Allocation</label>
+                <div>
+                    <label>CPU Cores: <input type="range" min="1" max="32" value="4" style="width: 200px;"></label>
+                    <span>4 cores</span>
+                </div>
+                <div style="margin-top: 0.5rem;">
+                    <label>Memory (GB): <input type="range" min="1" max="64" value="8" style="width: 200px;"></label>
+                    <span>8 GB</span>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-primary">🚀 Deploy Model</button>
+                <button class="btn btn-secondary" onclick="closeModal('deploy-model-modal')">❌ Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentSection = 'dashboard';
+
+        // Initialize admin portal
+        function initAdminPortal() {
+            console.log('🛡️ Enhanced CSP Admin Portal initialized');
+            updateSystemStats();
+            startRealTimeUpdates();
+        }
+
+        // Show specific section
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to corresponding nav item
+            event.target.closest('.nav-item').classList.add('active');
+            
+            currentSection = sectionId;
+            
+            // Load section-specific data
+            loadSectionData(sectionId);
+        }
+
+        // Load section-specific data
+        function loadSectionData(sectionId) {
+            switch(sectionId) {
+                case 'monitoring':
+                    updateMonitoringCharts();
+                    break;
+                case 'users':
+                    loadUserData();
+                    break;
+                case 'ai-models':
+                    loadAIModelData();
+                    break;
+                case 'alerts':
+                    loadAlertData();
+                    break;
+            }
+        }
+
+        // Update system statistics
+        function updateSystemStats() {
+            // Simulate real-time data updates
+            const stats = {
+                health: Math.random() * 5 + 95,
+                users: Math.floor(Math.random() * 100) + 1200,
+                agents: `${Math.floor(Math.random() * 3) + 22}/24`,
+                throughput: (Math.random() * 0.5 + 2).toFixed(1) + 'M',
+                storage: Math.floor(Math.random() * 10) + 75,
+                alerts: Math.floor(Math.random() * 5) + 1
+            };
+            
+            // Update dashboard cards if visible
+            if (currentSection === 'dashboard') {
+                document.querySelectorAll('.card-value').forEach((element, index) => {
+                    const values = Object.values(stats);
+                    if (values[index]) {
+                        element.textContent = values[index] + (typeof values[index] === 'number' && index === 0 ? '%' : '');
+                    }
+                });
+            }
+        }
+
+        // Start real-time updates
+        function startRealTimeUpdates() {
+            setInterval(updateSystemStats, 5000);
+            setInterval(updateSystemTime, 1000);
+        }
+
+        // Update system time
+        function updateSystemTime() {
+            const now = new Date();
+            // Update any time displays
+        }
+
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Emergency shutdown
+        function emergencyShutdown() {
+            if (confirm('⚠️ WARNING: This will immediately shut down all CSP processes and AI agents. Continue?')) {
+                if (confirm('🚨 FINAL WARNING: This action cannot be undone. All active sessions will be terminated. Proceed?')) {
+                    // Simulate emergency shutdown
+                    document.body.style.filter = 'grayscale(100%)';
+                    
+                    // Show shutdown overlay
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(255, 0, 0, 0.8);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 9999;
+                        font-size: 3rem;
+                        color: white;
+                        font-weight: bold;
+                        text-align: center;
+                    `;
+                    overlay.innerHTML = '🚨 EMERGENCY SHUTDOWN INITIATED 🚨<br><div style="font-size: 1.5rem; margin-top: 1rem;">All systems are being safely terminated...</div>';
+                    document.body.appendChild(overlay);
+                    
+                    // Simulate shutdown process
+                    setTimeout(() => {
+                        overlay.innerHTML = '⚠️ SYSTEM OFFLINE ⚠️<br><div style="font-size: 1.5rem; margin-top: 1rem;">Contact system administrator to restart</div>';
+                    }, 3000);
+                    
+                    console.log('🚨 Emergency shutdown initiated by administrator');
+                }
+            }
+        }
+
+        // Load user data
+        function loadUserData() {
+            console.log('👥 Loading user management data...');
+            // Simulate API call to load user data
+        }
+
+        // Load AI model data
+        function loadAIModelData() {
+            console.log('🧠 Loading AI model data...');
+            // Simulate API call to load AI model data
+        }
+
+        // Load alert data
+        function loadAlertData() {
+            console.log('🚨 Loading alert data...');
+            // Simulate API call to load alert data
+        }
+
+        // Update monitoring charts
+        function updateMonitoringCharts() {
+            console.log('📊 Updating monitoring charts...');
+            // This would integrate with Chart.js or similar library
+        }
+
+        // Administrative actions
+        function createUser() {
+            console.log('👤 Creating new user...');
+            closeModal('add-user-modal');
+        }
+
+        function deployModel() {
+            console.log('🚀 Deploying AI model...');
+            closeModal('deploy-model-modal');
+        }
+
+        function acknowledgeAlert(alertId) {
+            console.log(`🔕 Acknowledging alert: ${alertId}`);
+        }
+
+        function resolveAlert(alertId) {
+            console.log(`🔧 Resolving alert: ${alertId}`);
+        }
+
+        // Security functions
+        function auditUserActivity() {
+            console.log('🔍 Running user activity audit...');
+        }
+
+        function exportSystemLogs() {
+            console.log('📄 Exporting system logs...');
+        }
+
+        function backupSystem() {
+            console.log('💾 Initiating system backup...');
+        }
+
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'h':
+                        e.preventDefault();
+                        showSection('dashboard');
+                        break;
+                    case 'u':
+                        e.preventDefault();
+                        showSection('users');
+                        break;
+                    case 'm':
+                        e.preventDefault();
+                        showSection('monitoring');
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        showSection('settings');
+                        break;
+                }
+            }
+            
+            // ESC to close modals
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initAdminPortal);
+    </script>
+</body>
+</html>
