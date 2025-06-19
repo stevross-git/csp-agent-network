@@ -1,0 +1,345 @@
+# docker-compose.yml - Complete Development & Production Setup
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # MAIN APPLICATION
+  # ==========================================================================
+  
+  api:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=csp_visual_designer
+      - DB_USER=csp_user
+      - DB_PASSWORD=csp_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./backend:/app/backend
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - csp-network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.localhost`)"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
+
+  # ==========================================================================
+  # DATABASE SERVICES
+  # ==========================================================================
+  
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=csp_visual_designer
+      - POSTGRES_USER=csp_user
+      - POSTGRES_PASSWORD=csp_password
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U csp_user -d csp_visual_designer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=false"
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=false"
+
+  # ==========================================================================
+  # MONITORING SERVICES
+  # ==========================================================================
+  
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - csp-network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    networks:
+      - csp-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
+
+  # ==========================================================================
+  # UTILITY SERVICES
+  # ==========================================================================
+  
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./static:/usr/share/nginx/html/static
+    depends_on:
+      - api
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - csp-network
+    restart: unless-stopped
+    profiles:
+      - traefik
+
+  # ==========================================================================
+  # DEVELOPMENT TOOLS
+  # ==========================================================================
+  
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - csp-network
+    restart: unless-stopped
+    profiles:
+      - dev
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin.rule=Host(`pgadmin.localhost`)"
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - csp-network
+    restart: unless-stopped
+    profiles:
+      - dev
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.redis-commander.rule=Host(`redis.localhost`)"
+
+  # ==========================================================================
+  # TESTING SERVICES
+  # ==========================================================================
+  
+  test-runner:
+    build:
+      context: .
+      target: development
+    environment:
+      - ENVIRONMENT=testing
+      - DB_HOST=postgres-test
+      - REDIS_HOST=redis-test
+    volumes:
+      - ./backend:/app/backend
+      - ./tests:/app/tests
+      - ./coverage:/app/coverage
+    command: >
+      sh -c "
+        python -m pytest tests/ 
+        --cov=backend 
+        --cov-report=html:/app/coverage/html 
+        --cov-report=xml:/app/coverage/coverage.xml
+        --junitxml=/app/coverage/junit.xml
+      "
+    depends_on:
+      - postgres-test
+      - redis-test
+    networks:
+      - test-network
+    profiles:
+      - test
+
+  postgres-test:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=csp_test_db
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    networks:
+      - test-network
+    profiles:
+      - test
+
+  redis-test:
+    image: redis:7-alpine
+    networks:
+      - test-network
+    profiles:
+      - test
+
+  # ==========================================================================
+  # LOAD TESTING
+  # ==========================================================================
+  
+  locust:
+    image: locustio/locust:latest
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./tests/load:/mnt/locust
+    command: -f /mnt/locust/locustfile.py --host=http://api:8000
+    depends_on:
+      - api
+    networks:
+      - csp-network
+    profiles:
+      - load-test
+
+# =============================================================================
+# NETWORKS AND VOLUMES
+# =============================================================================
+
+networks:
+  csp-network:
+    driver: bridge
+  test-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_test_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+# =============================================================================
+# PRODUCTION OVERRIDE
+# =============================================================================
+
+# docker-compose.prod.yml
+# version: '3.8'
+# 
+# services:
+#   api:
+#     build:
+#       target: production
+#     environment:
+#       - ENVIRONMENT=production
+#       - DEBUG=false
+#       - DB_HOST=${DB_HOST}
+#       - DB_PASSWORD=${DB_PASSWORD}
+#       - SECRET_KEY=${SECRET_KEY}
+#     deploy:
+#       replicas: 3
+#       resources:
+#         limits:
+#           memory: 1G
+#           cpus: '0.5'
+#         reservations:
+#           memory: 512M
+#           cpus: '0.25'
+#   
+#   postgres:
+#     environment:
+#       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+#     deploy:
+#       resources:
+#         limits:
+#           memory: 2G
+#           cpus: '1'

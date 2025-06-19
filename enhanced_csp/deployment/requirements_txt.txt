@@ -1,0 +1,408 @@
+# Enhanced CSP Visual Designer Backend - Complete Dependencies
+# ===========================================================
+
+# ============================================================================
+# CORE FRAMEWORK
+# ============================================================================
+
+# FastAPI and ASGI server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+gunicorn==21.2.0
+
+# Pydantic for data validation
+pydantic==2.4.2
+pydantic[email]==2.4.2
+
+# Starlette (FastAPI dependency)
+starlette==0.27.0
+
+# Python multipart for file uploads
+python-multipart==0.0.6
+
+# Jinja2 for templates
+jinja2==3.1.2
+
+# ============================================================================
+# DATABASE AND ORM
+# ============================================================================
+
+# SQLAlchemy ORM with async support
+sqlalchemy==2.0.23
+sqlalchemy[asyncio]==2.0.23
+
+# Database migration tool
+alembic==1.12.1
+
+# Database drivers
+# PostgreSQL (async and sync)
+asyncpg==0.29.0
+psycopg2-binary==2.9.7
+
+# SQLite (included in Python standard library)
+aiosqlite==0.19.0
+
+# ============================================================================
+# CACHING AND MESSAGE QUEUES
+# ============================================================================
+
+# Redis for caching and session management
+redis==5.0.1
+aioredis==2.0.1
+hiredis==2.2.3
+
+# Optional: RabbitMQ support
+# aio-pika==9.3.1
+
+# ============================================================================
+# HTTP AND WEBSOCKET CLIENTS
+# ============================================================================
+
+# HTTP clients
+httpx==0.25.1
+aiohttp==3.9.0
+requests==2.31.0
+
+# WebSocket support
+websockets==12.0
+
+# File handling
+aiofiles==23.2.0
+
+# ============================================================================
+# AUTHENTICATION AND SECURITY
+# ============================================================================
+
+# JWT tokens
+python-jose[cryptography]==3.3.0
+PyJWT==2.8.0
+
+# Password hashing
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+
+# Cryptography
+cryptography==41.0.7
+pycryptodome==3.19.0
+
+# Security utilities
+python-multipart==0.0.6
+
+# ============================================================================
+# AI AND MACHINE LEARNING
+# ============================================================================
+
+# OpenAI
+openai==1.3.5
+tiktoken==0.5.1
+
+# Anthropic
+anthropic==0.7.7
+
+# Hugging Face Transformers
+transformers==4.35.2
+torch==2.1.0
+sentence-transformers==2.2.2
+tokenizers==0.15.0
+
+# Additional ML libraries
+scikit-learn==1.3.2
+numpy==1.24.3
+scipy==1.11.4
+
+# LangChain (optional for advanced AI workflows)
+langchain==0.0.335
+langchain-openai==0.0.2
+
+# ============================================================================
+# DATA PROCESSING AND ANALYSIS
+# ============================================================================
+
+# Data manipulation
+pandas==2.1.3
+numpy==1.24.3
+scipy==1.11.4
+
+# JSON and data formats
+orjson==3.9.10
+ujson==5.8.0
+msgpack==1.0.7
+
+# Network analysis (for CSP graphs)
+networkx==3.2
+
+# ============================================================================
+# MONITORING AND OBSERVABILITY
+# ============================================================================
+
+# Prometheus metrics
+prometheus-client==0.19.0
+
+# OpenTelemetry
+opentelemetry-api==1.21.0
+opentelemetry-sdk==1.21.0
+opentelemetry-instrumentation-fastapi==0.42b0
+opentelemetry-exporter-jaeger==1.21.0
+
+# Jaeger tracing
+jaeger-client==4.8.0
+
+# Structured logging
+structlog==23.2.0
+python-json-logger==2.0.7
+
+# System monitoring
+psutil==5.9.6
+
+# ============================================================================
+# CONFIGURATION AND ENVIRONMENT
+# ============================================================================
+
+# Environment configuration
+python-dotenv==1.0.0
+pydantic-settings==2.0.3
+
+# Configuration management
+dynaconf==3.2.4
+pyyaml==6.0.1
+
+# JSON schema validation
+jsonschema==4.19.2
+
+# ============================================================================
+# CLI AND USER INTERFACE
+# ============================================================================
+
+# CLI framework
+click==8.1.7
+typer==0.9.0
+
+# Rich output formatting
+rich==13.7.0
+colorama==0.4.6
+
+# Progress bars and tables
+tabulate==0.9.0
+
+# ============================================================================
+# TESTING FRAMEWORK
+# ============================================================================
+
+# pytest and async testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0
+pytest-cov==4.1.0
+pytest-xdist==3.3.1
+
+# HTTP testing
+httpx==0.25.1
+
+# Factory for test data
+factory-boy==3.3.0
+
+# Fake data generation
+faker==20.1.0
+
+# Redis testing
+fakeredis==2.20.1
+
+# Load testing
+locust==2.17.0
+
+# ============================================================================
+# CODE QUALITY AND LINTING
+# ============================================================================
+
+# Code formatting
+black==23.10.1
+isort==5.12.0
+
+# Linting
+flake8==6.1.0
+pylint==3.0.2
+
+# Type checking
+mypy==1.7.0
+types-redis==4.6.0.11
+types-requests==2.31.0.10
+
+# Security scanning
+bandit==1.7.5
+safety==2.3.5
+
+# Pre-commit hooks
+pre-commit==3.5.0
+
+# ============================================================================
+# DEVELOPMENT TOOLS
+# ============================================================================
+
+# Jupyter for development
+jupyter==1.0.0
+ipython==8.17.2
+
+# Development server
+watchdog==3.0.0
+
+# Debugging
+pdb++==0.10.3
+ipdb==0.13.13
+
+# ============================================================================
+# DEPLOYMENT AND CONTAINERIZATION
+# ============================================================================
+
+# WSGI/ASGI servers
+gunicorn==21.2.0
+uvicorn[standard]==0.24.0
+
+# Process management
+supervisor==4.2.5
+
+# ============================================================================
+# DOCUMENTATION
+# ============================================================================
+
+# API documentation
+fastapi==0.104.1  # Already included above
+
+# Documentation generation
+sphinx==7.2.6
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+
+# ============================================================================
+# ADDITIONAL UTILITIES
+# ============================================================================
+
+# Date and time handling
+python-dateutil==2.8.2
+pytz==2023.3
+
+# URL handling
+yarl==1.9.2
+furl==2.1.3
+
+# File format support
+openpyxl==3.1.2
+xlsxwriter==3.1.9
+
+# Image processing (if needed)
+Pillow==10.1.0
+
+# PDF processing (if needed)
+PyPDF2==3.0.1
+
+# Async utilities
+asyncio-mqtt==0.13.0
+aiostream==0.5.2
+
+# ============================================================================
+# OPTIONAL QUANTUM COMPUTING (if needed)
+# ============================================================================
+
+# Quantum computing libraries (uncomment if needed)
+# qiskit==0.44.2
+# cirq==1.2.0
+# pennylane==0.33.1
+# qiskit-aer==0.12.2
+
+# ============================================================================
+# OPTIONAL BLOCKCHAIN (if needed)
+# ============================================================================
+
+# Blockchain libraries (uncomment if needed)
+# web3==6.11.3
+# eth-account==0.9.0
+# solcx==1.12.1
+
+# ============================================================================
+# PRODUCTION DEPENDENCIES
+# ============================================================================
+
+# Production WSGI server
+gunicorn==21.2.0
+
+# Process monitoring
+setproctitle==1.3.3
+
+# Memory profiling
+memory-profiler==0.61.0
+
+# ============================================================================
+# PLATFORM-SPECIFIC DEPENDENCIES
+# ============================================================================
+
+# Windows-specific
+pywin32==306; sys_platform == "win32"
+
+# Linux-specific utilities
+# systemd-python==235; sys_platform == "linux"
+
+# ============================================================================
+# DEVELOPMENT-ONLY DEPENDENCIES (install separately)
+# ============================================================================
+
+# Development requirements file: requirements-dev.txt
+# pytest==7.4.3
+# pytest-asyncio==0.21.1
+# pytest-cov==4.1.0
+# black==23.10.1
+# isort==5.12.0
+# flake8==6.1.0
+# mypy==1.7.0
+# pre-commit==3.5.0
+# jupyter==1.0.0
+# ipython==8.17.2
+
+# ============================================================================
+# PINNED VERSIONS FOR STABILITY
+# ============================================================================
+
+# Core dependencies with pinned versions for production stability
+# These are the minimum required versions - you can upgrade as needed
+
+# Python 3.11+ is recommended
+# python>=3.11
+
+# ============================================================================
+# INSTALLATION NOTES
+# ============================================================================
+
+# To install all dependencies:
+# pip install -r requirements.txt
+
+# To install development dependencies:
+# pip install -r requirements-dev.txt
+
+# To install optional dependencies:
+# pip install -r requirements.txt[quantum,blockchain]
+
+# For production deployment:
+# pip install -r requirements.txt --no-dev
+
+# Docker installation:
+# COPY requirements.txt .
+# RUN pip install --no-cache-dir -r requirements.txt
+
+# ============================================================================
+# DEPENDENCY GROUPS (for modern pip)
+# ============================================================================
+
+# If using pip-tools or similar, you can organize dependencies:
+# 
+# Core:
+# - fastapi, uvicorn, sqlalchemy, redis
+# 
+# AI:
+# - openai, anthropic, transformers
+# 
+# Monitoring:
+# - prometheus-client, opentelemetry
+# 
+# Testing:
+# - pytest, httpx, factory-boy
+# 
+# Development:
+# - black, isort, mypy, jupyter
