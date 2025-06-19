@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CSP System - Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --dark-light: #374151;
+            --light: #f8fafc;
+            --border: #e5e7eb;
+            --text: #374151;
+            --text-light: #6b7280;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --quantum-gradient: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--dark);
+            color: white;
+            padding: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--dark-light);
+            background: var(--gradient);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-header p {
+            opacity: 0.9;
+            font-size: 0.875rem;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1.5rem 0.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #9ca3af;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: #d1d5db;
+            text-decoration: none;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: var(--dark-light);
+            color: white;
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--primary);
+        }
+
+        .nav-item i {
+            width: 20px;
+            margin-right: 0.75rem;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .top-bar {
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-bar h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #f3f4f6;
+            border-radius: 20px;
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.warning { background: var(--warning); }
+        .status-dot.danger { background: var(--danger); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .widget {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .widget-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .widget-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        /* Metrics Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary);
+        }
+
+        .metric-card.quantum::before { background: var(--quantum-gradient); }
+        .metric-card.blockchain::before { background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card.neural::before { background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%); }
+        .metric-card.security::before { background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%); }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-light);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-change {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .metric-change.positive { color: var(--success); }
+        .metric-change.negative { color: var(--danger); }
+
+        /* Process Visualization */
+        .process-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .process-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .process-card:hover {
+            border-color: var(--primary);
+            background: white;
+            transform: scale(1.02);
+        }
+
+        .process-card.active {
+            border-color: var(--success);
+            background: #f0fdf4;
+        }
+
+        .process-card.error {
+            border-color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .process-name {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .process-status {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .process-status.running {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .process-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .process-status.idle {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Quantum Visualization */
+        .quantum-viz {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quantum-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 50%;
+            animation: float 6s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        /* Chart Container */
+        .chart-container {
+            height: 300px;
+            margin-top: 1rem;
+        }
+
+        /* Real-time Updates */
+        .realtime-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Interactive Elements */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-light);
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-network-wired"></i> Enhanced CSP</h1>
+                <p>AI-to-AI Communication Platform</p>
+            </div>
+            
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Main</div>
+                    <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </a>
+                    <a href="#processes" class="nav-item" data-page="processes">
+                        <i class="fas fa-cogs"></i>
+                        CSP Processes
+                    </a>
+                    <a href="#agents" class="nav-item" data-page="agents">
+                        <i class="fas fa-robot"></i>
+                        AI Agents
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Advanced</div>
+                    <a href="#quantum" class="nav-item" data-page="quantum">
+                        <i class="fas fa-atom"></i>
+                        Quantum Computing
+                    </a>
+                    <a href="#blockchain" class="nav-item" data-page="blockchain">
+                        <i class="fas fa-link"></i>
+                        Blockchain Network
+                    </a>
+                    <a href="#neural" class="nav-item" data-page="neural">
+                        <i class="fas fa-brain"></i>
+                        Neural Optimizer
+                    </a>
+                    <a href="#security" class="nav-item" data-page="security">
+                        <i class="fas fa-shield-alt"></i>
+                        Security Engine
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">System</div>
+                    <a href="#monitoring" class="nav-item" data-page="monitoring">
+                        <i class="fas fa-chart-line"></i>
+                        Monitoring
+                    </a>
+                    <a href="#logs" class="nav-item" data-page="logs">
+                        <i class="fas fa-file-alt"></i>
+                        System Logs
+                    </a>
+                    <a href="#settings" class="nav-item" data-page="settings">
+                        <i class="fas fa-cog"></i>
+                        Settings
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <h2 id="page-title">System Dashboard</h2>
+                <div class="status-indicators">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        System Online
+                    </div>
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        AI Engines Active
+                    </div>
+                    <div class="status-indicator">
+                        <div class="status-dot warning"></div>
+                        Quantum Calibrating
+                    </div>
+                    <div class="realtime-indicator">
+                        <div class="live-dot"></div>
+                        Live Updates
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page">
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="active-processes">24</div>
+                        <div class="metric-label">Active Processes</div>
+                        <div class="metric-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            12% increase
+                        </div>
+                    </div>
+
+                    <div class="metric-card quantum">
+                        <div class="metric-value" id="quantum-entanglements">8</div>
+                        <div class="metric-label">Quantum Entanglements</div>
+                        <div class="metric-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            Fidelity: 94.2%
+                        </div>
+                    </div>
+
+                    <div class="metric-card blockchain">
+                        <div class="metric-value" id="blockchain-transactions">156</div>
+                        <div class="metric-label">Blockchain Transactions</div>
+                        <div class="metric-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            Gas saved: 23%
+                        </div>
+                    </div>
+
+                    <div class="metric-card neural">
+                        <div class="metric-value" id="neural-efficiency">87%</div>
+                        <div class="metric-label">Neural Efficiency</div>
+                        <div class="metric-change positive">
+                            <i class="fas fa-arrow-up"></i>
+                            Optimized routing
+                        </div>
+                    </div>
+
+                    <div class="metric-card security">
+                        <div class="metric-value" id="security-threats">0</div>
+                        <div class="metric-label">Security Threats</div>
+                        <div class="metric-change positive">
+                            <i class="fas fa-shield-alt"></i>
+                            All clear
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-value" id="system-uptime">99.8%</div>
+                        <div class="metric-label">System Uptime</div>
+                        <div class="metric-change positive">
+                            <i class="fas fa-clock"></i>
+                            47 days running
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Grid -->
+                <div class="dashboard-grid">
+                    <!-- System Overview -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">System Overview</h3>
+                            <div class="widget-icon" style="background: var(--primary)">
+                                <i class="fas fa-server"></i>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="system-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Active Processes -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Active CSP Processes</h3>
+                            <button class="btn btn-primary">
+                                <i class="fas fa-plus"></i>
+                                New Process
+                            </button>
+                        </div>
+                        <div class="process-grid">
+                            <div class="process-card active">
+                                <div class="process-name">AI Collaboration Hub</div>
+                                <div class="process-status running">Running</div>
+                            </div>
+                            <div class="process-card active">
+                                <div class="process-name">Quantum Router</div>
+                                <div class="process-status running">Running</div>
+                            </div>
+                            <div class="process-card active">
+                                <div class="process-name">Blockchain Validator</div>
+                                <div class="process-status running">Running</div>
+                            </div>
+                            <div class="process-card error">
+                                <div class="process-name">Neural Optimizer</div>
+                                <div class="process-status error">Calibrating</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quantum Visualization -->
+                    <div class="widget quantum-viz">
+                        <div class="quantum-particles">
+                            <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+                            <div class="particle" style="left: 30%; animation-delay: 1s;"></div>
+                            <div class="particle" style="left: 50%; animation-delay: 2s;"></div>
+                            <div class="particle" style="left: 70%; animation-delay: 3s;"></div>
+                            <div class="particle" style="left: 90%; animation-delay: 4s;"></div>
+                        </div>
+                        <div class="widget-header">
+                            <h3 class="widget-title">Quantum Communication</h3>
+                            <div class="widget-icon" style="background: rgba(255,255,255,0.2)">
+                                <i class="fas fa-atom"></i>
+                            </div>
+                        </div>
+                        <div style="position: relative; z-index: 1;">
+                            <p>8 Active Entanglements</p>
+                            <p>Fidelity: 94.2% avg</p>
+                            <p>Quantum Volume: 256</p>
+                        </div>
+                    </div>
+
+                    <!-- AI Agents Status -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">AI Agents</h3>
+                            <div class="widget-icon" style="background: var(--secondary)">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>Reasoning Agent</span>
+                                <span class="process-status running">Active</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>Analysis Agent</span>
+                                <span class="process-status running">Active</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>Collaboration Agent</span>
+                                <span class="process-status running">Active</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>Security Agent</span>
+                                <span class="process-status idle">Idle</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Metrics -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Performance</h3>
+                            <div class="widget-icon" style="background: var(--success)">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="performance-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Recent Activity</h3>
+                            <div class="widget-icon" style="background: var(--warning)">
+                                <i class="fas fa-history"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+                                <div style="font-weight: 500;">Quantum entanglement created</div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">2 minutes ago</div>
+                            </div>
+                            <div style="padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+                                <div style="font-weight: 500;">AI collaboration completed</div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">5 minutes ago</div>
+                            </div>
+                            <div style="padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+                                <div style="font-weight: 500;">Neural optimization applied</div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">8 minutes ago</div>
+                            </div>
+                            <div style="padding: 0.5rem 0;">
+                                <div style="font-weight: 500;">Blockchain transaction validated</div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">12 minutes ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other pages would go here with display:none initially -->
+            <div id="processes-page" class="page" style="display: none;">
+                <h3>CSP Processes Management</h3>
+                <p>Detailed process management interface...</p>
+            </div>
+
+            <div id="agents-page" class="page" style="display: none;">
+                <h3>AI Agents Control</h3>
+                <p>AI agent configuration and monitoring...</p>
+            </div>
+
+            <!-- More pages... -->
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+        // Dashboard JavaScript
+        class EnhancedCSPDashboard {
+            constructor() {
+                this.websocket = null;
+                this.charts = {};
+                this.currentPage = 'dashboard';
+                this.init();
+            }
+
+            init() {
+                this.setupNavigation();
+                this.setupWebSocket();
+                this.initializeCharts();
+                this.startRealTimeUpdates();
+            }
+
+            setupNavigation() {
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const page = item.dataset.page;
+                        this.navigateToPage(page);
+                    });
+                });
+            }
+
+            navigateToPage(page) {
+                // Update active nav item
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+                // Show/hide pages
+                document.querySelectorAll('.page').forEach(pageEl => {
+                    pageEl.style.display = 'none';
+                });
+                document.getElementById(`${page}-page`).style.display = 'block';
+
+                // Update page title
+                const titles = {
+                    'dashboard': 'System Dashboard',
+                    'processes': 'CSP Processes',
+                    'agents': 'AI Agents',
+                    'quantum': 'Quantum Computing',
+                    'blockchain': 'Blockchain Network',
+                    'neural': 'Neural Optimizer',
+                    'security': 'Security Engine',
+                    'monitoring': 'System Monitoring',
+                    'logs': 'System Logs',
+                    'settings': 'Settings'
+                };
+                document.getElementById('page-title').textContent = titles[page] || 'Dashboard';
+                this.currentPage = page;
+            }
+
+            setupWebSocket() {
+                try {
+                    this.websocket = new WebSocket('ws://localhost:8000/ws');
+                    
+                    this.websocket.onopen = () => {
+                        console.log('WebSocket connected');
+                    };
+
+                    this.websocket.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        this.handleRealTimeUpdate(data);
+                    };
+
+                    this.websocket.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                    };
+
+                    this.websocket.onclose = () => {
+                        console.log('WebSocket disconnected');
+                        // Attempt to reconnect after 5 seconds
+                        setTimeout(() => this.setupWebSocket(), 5000);
+                    };
+                } catch (error) {
+                    console.error('WebSocket setup failed:', error);
+                    // Fall back to polling
+                    this.setupPolling();
+                }
+            }
+
+            setupPolling() {
+                setInterval(() => {
+                    fetch('/api/metrics')
+                        .then(response => response.json())
+                        .then(data => this.handleRealTimeUpdate(data))
+                        .catch(error => console.error('Polling error:', error));
+                }, 5000);
+            }
+
+            handleRealTimeUpdate(data) {
+                // Update metrics
+                if (data.active_processes) {
+                    document.getElementById('active-processes').textContent = data.active_processes;
+                }
+                if (data.quantum_entanglements) {
+                    document.getElementById('quantum-entanglements').textContent = data.quantum_entanglements;
+                }
+                if (data.blockchain_transactions) {
+                    document.getElementById('blockchain-transactions').textContent = data.blockchain_transactions;
+                }
+                if (data.neural_efficiency) {
+                    document.getElementById('neural-efficiency').textContent = data.neural_efficiency + '%';
+                }
+                if (data.security_threats !== undefined) {
+                    document.getElementById('security-threats').textContent = data.security_threats;
+                }
+                if (data.system_uptime) {
+                    document.getElementById('system-uptime').textContent = data.system_uptime + '%';
+                }
+
+                // Update charts
+                this.updateCharts(data);
+            }
+
+            initializeCharts() {
+                // System Overview Chart
+                const systemCtx = document.getElementById('system-chart');
+                if (systemCtx) {
+                    this.charts.system = new Chart(systemCtx, {
+                        type: 'line',
+                        data: {
+                            labels: Array.from({length: 20}, (_, i) => i + 1),
+                            datasets: [{
+                                label: 'CPU Usage',
+                                data: Array.from({length: 20}, () => Math.random() * 100),
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4
+                            }, {
+                                label: 'Memory Usage',
+                                data: Array.from({length: 20}, () => Math.random() * 100),
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Performance Chart
+                const perfCtx = document.getElementById('performance-chart');
+                if (perfCtx) {
+                    this.charts.performance = new Chart(perfCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Quantum', 'Blockchain', 'Neural', 'Security'],
+                            datasets: [{
+                                data: [25, 30, 35, 10],
+                                backgroundColor: [
+                                    '#667eea',
+                                    '#f093fb',
+                                    '#4facfe',
+                                    '#43e97b'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            updateCharts(data) {
+                // Update system chart with new data
+                if (this.charts.system && data.cpu_usage && data.memory_usage) {
+                    const systemChart = this.charts.system;
+                    systemChart.data.datasets[0].data.shift();
+                    systemChart.data.datasets[0].data.push(data.cpu_usage);
+                    systemChart.data.datasets[1].data.shift();
+                    systemChart.data.datasets[1].data.push(data.memory_usage);
+                    systemChart.update('none');
+                }
+            }
+
+            startRealTimeUpdates() {
+                // Simulate real-time updates
+                setInterval(() => {
+                    const simulatedData = {
+                        active_processes: Math.floor(Math.random() * 10) + 20,
+                        quantum_entanglements: Math.floor(Math.random() * 5) + 5,
+                        blockchain_transactions: Math.floor(Math.random() * 50) + 150,
+                        neural_efficiency: Math.floor(Math.random() * 10) + 85,
+                        security_threats: Math.random() > 0.95 ? 1 : 0,
+                        system_uptime: (99.5 + Math.random() * 0.5).toFixed(1),
+                        cpu_usage: Math.random() * 100,
+                        memory_usage: Math.random() * 100
+                    };
+                    this.handleRealTimeUpdate(simulatedData);
+                }, 3000);
+            }
+        }
+
+        // Initialize dashboard when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new EnhancedCSPDashboard();
+        });
+    </script>
+</body>
+</html>

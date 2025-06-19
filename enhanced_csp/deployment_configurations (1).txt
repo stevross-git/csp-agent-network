@@ -1,0 +1,979 @@
+# ============================================================================
+# COMPLETE DOCKER CONFIGURATIONS
+# ============================================================================
+
+# docker-compose.yml - Complete Multi-Service Deployment
+version: '3.8'
+
+services:
+  # Core CSP Engine
+  csp-core:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.core
+    container_name: enhanced-csp-core
+    ports:
+      - "8000:8000"
+    environment:
+      - CSP_DATABASE_URL=postgresql://csp_user:csp_pass@postgres:5432/csp_db
+      - CSP_REDIS_URL=redis://redis:6379/0
+      - CSP_ENVIRONMENT=production
+      - CSP_ENABLE_AI=true
+      - CSP_ENABLE_QUANTUM=true
+      - CSP_ENABLE_BLOCKCHAIN=true
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - csp-network
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Quantum Computing Service
+  csp-quantum:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.quantum
+    container_name: enhanced-csp-quantum
+    ports:
+      - "8001:8001"
+    environment:
+      - QUANTUM_BACKEND=qiskit_simulator
+      - QUANTUM_TOKEN=${QUANTUM_TOKEN}
+      - CSP_CORE_URL=http://csp-core:8000
+    depends_on:
+      - csp-core
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  # Blockchain Network Service
+  csp-blockchain:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.blockchain
+    container_name: enhanced-csp-blockchain
+    ports:
+      - "8002:8002"
+    environment:
+      - BLOCKCHAIN_NETWORK=ethereum_testnet
+      - WEB3_PROVIDER_URL=${WEB3_PROVIDER_URL}
+      - CSP_CORE_URL=http://csp-core:8000
+    depends_on:
+      - csp-core
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  # Neural Optimizer Service
+  csp-neural:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.neural
+    container_name: enhanced-csp-neural
+    ports:
+      - "8003:8003"
+    environment:
+      - NEURAL_MODEL_PATH=/app/models
+      - PYTORCH_DEVICE=cpu
+      - CSP_CORE_URL=http://csp-core:8000
+    depends_on:
+      - csp-core
+    networks:
+      - csp-network
+    volumes:
+      - ./models:/app/models
+    restart: unless-stopped
+
+  # AI Hub Service
+  csp-ai-hub:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ai-hub
+    container_name: enhanced-csp-ai-hub
+    ports:
+      - "8004:8004"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
+      - CSP_CORE_URL=http://csp-core:8000
+    depends_on:
+      - csp-core
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  # Security Engine
+  csp-security:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.security
+    container_name: enhanced-csp-security
+    ports:
+      - "8005:8005"
+    environment:
+      - SECURITY_KEY=${SECURITY_KEY}
+      - ENCRYPTION_ALGORITHM=AES-256
+      - CSP_CORE_URL=http://csp-core:8000
+    depends_on:
+      - csp-core
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  # Real-time Visualizer
+  csp-visualizer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.visualizer
+    container_name: enhanced-csp-visualizer
+    ports:
+      - "8006:8006"
+    environment:
+      - DASH_DEBUG=false
+      - CSP_CORE_URL=http://csp-core:8000
+    depends_on:
+      - csp-core
+    networks:
+      - csp-network
+    restart: unless-stopped
+
+  # Autonomous Controller
+  csp-controller:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.controller
+    container_name: enhanced-csp-controller
+    ports:
+      - "8007:8007"
+    environment:
+      - CONTROLLER_MODE=autonomous
+      - CSP_CORE_URL=http://csp-core:8000
+    depends_on:
+      - csp-core
+    networks:
+      - csp-network
+    restart: unless-stopped
+    privileged: true  # Needed for system monitoring
+
+  # Database
+  postgres:
+    image: postgres:15
+    container_name: enhanced-csp-postgres
+    environment:
+      POSTGRES_DB: csp_db
+      POSTGRES_USER: csp_user
+      POSTGRES_PASSWORD: csp_pass
+    ports:
+      - "5432:5432"
+    networks:
+      - csp-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: enhanced-csp-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - csp-network
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Monitoring - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: enhanced-csp-prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - csp-network
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+
+  # Monitoring - Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: enhanced-csp-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: csp_admin
+    networks:
+      - csp-network
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    restart: unless-stopped
+
+  # Load Balancer - Nginx
+  nginx:
+    image: nginx:alpine
+    container_name: enhanced-csp-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - csp-network
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - csp-core
+    restart: unless-stopped
+
+networks:
+  csp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+---
+
+# ============================================================================
+# KUBERNETES DEPLOYMENT MANIFESTS
+# ============================================================================
+
+# k8s/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: enhanced-csp
+  labels:
+    name: enhanced-csp
+    version: "1.0.0"
+
+---
+
+# k8s/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: csp-config
+  namespace: enhanced-csp
+data:
+  CSP_ENVIRONMENT: "production"
+  CSP_ENABLE_AI: "true"
+  CSP_ENABLE_QUANTUM: "true"
+  CSP_ENABLE_BLOCKCHAIN: "true"
+  CSP_LOG_LEVEL: "INFO"
+  PROMETHEUS_ENABLED: "true"
+
+---
+
+# k8s/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: csp-secrets
+  namespace: enhanced-csp
+type: Opaque
+data:
+  database-url: cG9zdGdyZXNxbDovL2NzcF91c2VyOmNzcF9wYXNzQHBvc3RncmVzOjU0MzIvY3NwX2Ri
+  openai-api-key: c2stWU9VUl9PUEVOQUlfQVBJX0tFWV9IRVJF
+  quantum-token: WU9VUl9RVUFOVFVNX1RPS0VOX0hFUkU=
+  security-key: WU9VUl9TRUNVUklUWV9LRVlfSEVSRQ==
+
+---
+
+# k8s/deployment-core.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: csp-core
+  namespace: enhanced-csp
+  labels:
+    app: csp-core
+    version: "1.0.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: csp-core
+  template:
+    metadata:
+      labels:
+        app: csp-core
+        version: "1.0.0"
+    spec:
+      containers:
+      - name: csp-core
+        image: enhanced-csp/core:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: CSP_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: csp-secrets
+              key: database-url
+        - name: CSP_REDIS_URL
+          value: "redis://redis:6379/0"
+        envFrom:
+        - configMapRef:
+            name: csp-config
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+
+# k8s/deployment-quantum.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: csp-quantum
+  namespace: enhanced-csp
+  labels:
+    app: csp-quantum
+    version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: csp-quantum
+  template:
+    metadata:
+      labels:
+        app: csp-quantum
+        version: "1.0.0"
+    spec:
+      containers:
+      - name: csp-quantum
+        image: enhanced-csp/quantum:latest
+        ports:
+        - containerPort: 8001
+        env:
+        - name: QUANTUM_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: csp-secrets
+              key: quantum-token
+        - name: CSP_CORE_URL
+          value: "http://csp-core:8000"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+
+---
+
+# k8s/service-core.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: csp-core
+  namespace: enhanced-csp
+  labels:
+    app: csp-core
+spec:
+  selector:
+    app: csp-core
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+
+---
+
+# k8s/service-quantum.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: csp-quantum
+  namespace: enhanced-csp
+  labels:
+    app: csp-quantum
+spec:
+  selector:
+    app: csp-quantum
+  ports:
+  - port: 8001
+    targetPort: 8001
+    protocol: TCP
+  type: ClusterIP
+
+---
+
+# k8s/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: csp-ingress
+  namespace: enhanced-csp
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+spec:
+  tls:
+  - hosts:
+    - csp.yourdomain.com
+    secretName: csp-tls
+  rules:
+  - host: csp.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: csp-core
+            port:
+              number: 8000
+      - path: /quantum
+        pathType: Prefix
+        backend:
+          service:
+            name: csp-quantum
+            port:
+              number: 8001
+
+---
+
+# k8s/hpa.yaml - Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: csp-core-hpa
+  namespace: enhanced-csp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: csp-core
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+
+# k8s/pdb.yaml - Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: csp-core-pdb
+  namespace: enhanced-csp
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: csp-core
+
+---
+
+# ============================================================================
+# HELM CHART CONFIGURATION
+# ============================================================================
+
+# helm/enhanced-csp/Chart.yaml
+apiVersion: v2
+name: enhanced-csp
+description: Revolutionary AI-to-AI Communication Platform using CSP
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ai
+  - communication
+  - csp
+  - quantum
+  - blockchain
+home: https://github.com/csp-system/csp-system
+sources:
+  - https://github.com/csp-system/csp-system
+maintainers:
+  - name: CSP Team
+    email: team@csp-system.org
+
+---
+
+# helm/enhanced-csp/values.yaml
+# Default values for enhanced-csp
+replicaCount: 3
+
+image:
+  registry: enhanced-csp
+  repository: core
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: csp.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: csp-tls
+      hosts:
+        - csp.yourdomain.com
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# CSP-specific configuration
+csp:
+  environment: production
+  enableAI: true
+  enableQuantum: true
+  enableBlockchain: true
+  logLevel: INFO
+
+# Database configuration
+database:
+  type: postgresql
+  host: postgres
+  port: 5432
+  name: csp_db
+  user: csp_user
+  password: csp_pass
+
+# Redis configuration
+redis:
+  host: redis
+  port: 6379
+  database: 0
+
+# Monitoring configuration
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9090
+  grafana:
+    enabled: true
+    port: 3000
+
+# Security configuration
+security:
+  enabled: true
+  encryptionAlgorithm: AES-256
+  tlsEnabled: true
+
+---
+
+# ============================================================================
+# CI/CD PIPELINE CONFIGURATION
+# ============================================================================
+
+# .github/workflows/ci-cd.yml
+name: Enhanced CSP CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: enhanced-csp
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', '3.11']
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Run linting
+      run: |
+        flake8 enhanced_csp/ --count --show-source --statistics
+        black --check enhanced_csp/
+        isort --check-only enhanced_csp/
+    
+    - name: Run type checking
+      run: mypy enhanced_csp/
+    
+    - name: Run security scan
+      run: bandit -r enhanced_csp/
+    
+    - name: Run unit tests
+      run: |
+        pytest tests/unit/ -v --cov=enhanced_csp --cov-report=xml
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: csp_pass
+          POSTGRES_USER: csp_user
+          POSTGRES_DB: csp_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Run integration tests
+      run: |
+        pytest tests/integration/ -v
+      env:
+        CSP_DATABASE_URL: postgresql://csp_user:csp_pass@localhost:5432/csp_db
+        CSP_REDIS_URL: redis://localhost:6379/0
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: [test, integration-test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: docker/Dockerfile.core
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production Kubernetes cluster"
+        # Add your deployment commands here
+        # kubectl apply -f k8s/
+        # helm upgrade --install enhanced-csp ./helm/enhanced-csp
+
+---
+
+# ============================================================================
+# DOCKER COMPOSE FOR DEVELOPMENT
+# ============================================================================
+
+# docker-compose.dev.yml
+version: '3.8'
+
+services:
+  csp-core-dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: csp-core-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - CSP_ENVIRONMENT=development
+      - CSP_DEBUG=true
+      - CSP_DATABASE_URL=postgresql://csp_user:csp_pass@postgres:5432/csp_db
+      - CSP_REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    networks:
+      - csp-dev-network
+    command: python -m uvicorn enhanced_csp.main:app --host 0.0.0.0 --port 8000 --reload
+
+  postgres:
+    image: postgres:15
+    container_name: csp-postgres-dev
+    environment:
+      POSTGRES_DB: csp_db
+      POSTGRES_USER: csp_user
+      POSTGRES_PASSWORD: csp_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - csp-dev-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: csp-redis-dev
+    ports:
+      - "6379:6379"
+    networks:
+      - csp-dev-network
+
+networks:
+  csp-dev-network:
+    driver: bridge
+
+volumes:
+  postgres_dev_data:
+
+---
+
+# ============================================================================
+# MAKEFILE FOR AUTOMATION
+# ============================================================================
+
+# Makefile
+.PHONY: help install test build deploy clean
+
+help:
+	@echo "Enhanced CSP System - Available Commands:"
+	@echo ""
+	@echo "Development:"
+	@echo "  install          Install dependencies"
+	@echo "  install-dev      Install development dependencies"
+	@echo "  test             Run all tests"
+	@echo "  test-unit        Run unit tests"
+	@echo "  test-integration Run integration tests"
+	@echo "  lint             Run code linting"
+	@echo "  format           Format code"
+	@echo ""
+	@echo "Docker:"
+	@echo "  build            Build Docker images"
+	@echo "  build-dev        Build development image"
+	@echo "  up               Start services with docker-compose"
+	@echo "  up-dev           Start development environment"
+	@echo "  down             Stop services"
+	@echo ""
+	@echo "Kubernetes:"
+	@echo "  deploy-k8s       Deploy to Kubernetes"
+	@echo "  deploy-helm      Deploy using Helm"
+	@echo "  undeploy-k8s     Remove from Kubernetes"
+	@echo ""
+	@echo "Utilities:"
+	@echo "  clean            Clean build artifacts"
+	@echo "  logs             Show application logs"
+	@echo "  shell            Open development shell"
+
+install:
+	pip install -r requirements.txt
+
+install-dev:
+	pip install -r requirements.txt -r requirements-dev.txt
+	pre-commit install
+
+test:
+	pytest tests/ -v --cov=enhanced_csp --cov-report=html
+
+test-unit:
+	pytest tests/unit/ -v
+
+test-integration:
+	pytest tests/integration/ -v
+
+lint:
+	flake8 enhanced_csp/
+	mypy enhanced_csp/
+	bandit -r enhanced_csp/
+
+format:
+	black enhanced_csp/ tests/
+	isort enhanced_csp/ tests/
+
+build:
+	docker-compose build
+
+build-dev:
+	docker-compose -f docker-compose.dev.yml build
+
+up:
+	docker-compose up -d
+
+up-dev:
+	docker-compose -f docker-compose.dev.yml up
+
+down:
+	docker-compose down
+
+deploy-k8s:
+	kubectl apply -f k8s/
+
+deploy-helm:
+	helm upgrade --install enhanced-csp ./helm/enhanced-csp \
+		--namespace enhanced-csp \
+		--create-namespace
+
+undeploy-k8s:
+	kubectl delete -f k8s/
+
+clean:
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type f -name "*.pyc" -delete
+	docker system prune -f
+
+logs:
+	docker-compose logs -f csp-core
+
+shell:
+	docker-compose exec csp-core /bin/bash
