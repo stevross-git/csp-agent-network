@@ -7,14 +7,16 @@ port: 8000
 workers: 1
 reload: false
 
+# Use PostgreSQL since it's running (much better than SQLite for production)
 database:
-  url: "sqlite+aiosqlite:///./data/csp_system.db"
+  url: "postgresql+asyncpg://postgres:password@localhost:5432/enhanced_csp"
   echo: false
   pool_size: 10
   max_overflow: 20
 
+# Use the Redis container that's already running
 redis:
-  url: null
+  url: "redis://localhost:6379/0"
   max_connections: 10
   retry_on_timeout: true
 
@@ -22,15 +24,15 @@ runtime:
   execution_model: "MULTI_THREADED"
   max_workers: 4
   memory_limit_gb: 8.0
-  enable_monitoring: false
-  enable_optimization: false
+  enable_monitoring: true
+  enable_optimization: true
   enable_debugging: false
 
 ai:
   enable_llm_integration: false
 
 monitoring:
-  enable_prometheus: false
+  enable_prometheus: true
   metrics_port: 9090
 
 secret_key: "dev-secret-key-change-in-production"
