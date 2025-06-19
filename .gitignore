@@ -1,1 +1,6 @@
 csp-agent-network.zip
+**/venv/**
+
+/__pycache__/**
+
+

@@ -90,7 +90,7 @@ check_requirements() {
     
     # Check Kubernetes
     if command -v kubectl &> /dev/null; then
-        KUBECTL_VERSION=$(kubectl version --client --short | cut -d' ' -f3)
+        KUBECTL_VERSION=$(kubectl version --client --output=yaml | grep gitVersion | cut -d' ' -f4)
         log_success "kubectl ${KUBECTL_VERSION} found"
     else
         log_warning "kubectl not found - will install"
