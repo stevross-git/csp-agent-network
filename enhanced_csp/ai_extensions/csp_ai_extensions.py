@@ -735,7 +735,7 @@ class AdvancedCSPEngineWithAI:
     
     def __init__(self):
         # Import the base engine
-        from advanced_csp_core import AdvancedCSPEngine
+        from core.advanced_csp_core import AdvancedCSPEngine
         self.base_engine = AdvancedCSPEngine()
         
         # Add AI extensions

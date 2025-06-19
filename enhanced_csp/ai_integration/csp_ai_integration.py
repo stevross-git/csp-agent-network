@@ -26,11 +26,11 @@ from collections import defaultdict
 import networkx as nx
 
 # Import our advanced CSP components
-from advanced_csp_core import (
+from core.advanced_csp_core import (
     AdvancedCSPEngine, Process, AtomicProcess, CompositeProcess,
     CompositionOperator, ChannelType, Event, ProcessSignature
 )
-from csp_ai_extensions import (
+from ai_extensions.csp_ai_extensions import (
     AdvancedCSPEngineWithAI, ProtocolSpec, ProtocolTemplate,
     CausalEvent, CausalityTracker, EmergentBehaviorDetector
 )

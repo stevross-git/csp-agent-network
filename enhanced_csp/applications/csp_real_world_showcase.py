@@ -35,19 +35,19 @@ import random
 import uuid
 
 # Import our complete CSP system
-from advanced_csp_core import (
+from core.advanced_csp_core import (
     AdvancedCSPEngine, Process, AtomicProcess, CompositeProcess, 
     CompositionOperator, ChannelType, Event, ProcessSignature
 )
-from csp_ai_extensions import (
+from ai_extensions.csp_ai_extensions import (
     AdvancedCSPEngineWithAI, ProtocolSpec, ProtocolTemplate,
     EmergentBehaviorDetector, CausalityTracker
 )
-from csp_ai_integration import (
-    AIAgent, CollaborativeAIProcess, LLMCapability, 
+from ai_integration.csp_ai_integration import (
+    AIAgent, CollaborativeAIProcess, LLMCapability,
     VisionCapability, ReasoningCapability, AISwarmOrganizer
 )
-from csp_runtime_environment import (
+from runtime.csp_runtime_environment import (
     CSPRuntimeOrchestrator, RuntimeConfig, ExecutionModel, SchedulingPolicy
 )
 from csp_deployment_system import (
