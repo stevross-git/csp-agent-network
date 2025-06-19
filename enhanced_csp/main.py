@@ -40,21 +40,52 @@ import uvicorn
 
 # Database and storage
 import sqlite3
-import redis.asyncio as redis
+
+try:
+    import redis.asyncio as redis
+except Exception:  # pragma: no cover - optional dependency
+    redis = None
+    logging.warning("Redis library not available; Redis features disabled")
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 # Monitoring and metrics
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
-import psutil
+try:
+    from prometheus_client import (
+        Counter,
+        Histogram,
+        Gauge,
+        generate_latest,
+        CONTENT_TYPE_LATEST,
+    )
+except Exception:  # pragma: no cover - optional dependency
+    Counter = Histogram = Gauge = generate_latest = None
+    CONTENT_TYPE_LATEST = "text/plain"
+    logging.warning("prometheus_client not available; metrics disabled")
+
+try:
+    import psutil
+except Exception:  # pragma: no cover - optional dependency
+    psutil = None
+    logging.warning("psutil not available; system metrics disabled")
 
 # Configuration and utilities
 import yaml
 from pydantic import BaseModel, Field, validator
 from dotenv import load_dotenv
-import aiofiles
-import aiohttp
+
+try:
+    import aiofiles
+except Exception:  # pragma: no cover - optional dependency
+    aiofiles = None
+    logging.warning("aiofiles not available; some features disabled")
+
+try:
+    import aiohttp
+except Exception:  # pragma: no cover - optional dependency
+    aiohttp = None
+    logging.warning("aiohttp not available; some features disabled")
 
 # Enhanced CSP Core Components
 try:
@@ -88,10 +119,19 @@ try:
         AlertManager, SystemHealthChecker
     )
     from web_ui.dashboard.app import create_dashboard_app
-    from database.migrate import migrate_main as run_migrations
 except ImportError as e:
     logging.error(f"Failed to import CSP components: {e}")
-    logging.error("Some features may not be available")
+    logging.error("Some features may not be available")# Database migrations are required even if optional components fail to import
+try:
+    from database.migrate import migrate_main as run_migrations
+except Exception as e:  # ensure a definition exists
+    logging.error(f"Database migration module unavailable: {e}")
+
+    def run_migrations() -> None:
+        """Fallback migration runner when migrate module is missing."""
+        logging.error("run_migrations placeholder invoked; no migrations run")
+
+
 
 # Load environment variables
 load_dotenv()
@@ -115,7 +155,7 @@ logger = logging.getLogger(__name__)
 
 class DatabaseConfig(BaseModel):
     """Database configuration"""
-    url: str = "sqlite:///./data/enhanced_csp.db"
+    url: str = "sqlite+aiosqlite:///./data/enhanced_csp.db"
     echo: bool = False
     pool_size: int = 20
     max_overflow: int = 30
@@ -373,12 +413,14 @@ async def lifespan(app: FastAPI):
         await initialize_csp_system()
         
         # Update system health
-        SYSTEM_HEALTH.set(1.0)
+        if SYSTEM_HEALTH:
+            SYSTEM_HEALTH.set(1.0)
         logger.info("System startup completed successfully")
         
     except Exception as e:
         logger.error(f"Startup failed: {e}")
-        SYSTEM_HEALTH.set(0.0)
+        if SYSTEM_HEALTH:
+            SYSTEM_HEALTH.set(0.0)
         raise
     
     yield
@@ -475,9 +517,9 @@ async def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "system": {
-            "cpu_percent": psutil.cpu_percent(),
-            "memory_percent": psutil.virtual_memory().percent,
-            "disk_percent": psutil.disk_usage('/').percent
+            "cpu_percent": psutil.cpu_percent() if psutil else 0.0,
+            "memory_percent": psutil.virtual_memory().percent if psutil else 0.0,
+            "disk_percent": psutil.disk_usage('/') .percent if psutil else 0.0
         },
         "components": {
             "database": system_state.db_engine is not None,
@@ -490,15 +532,19 @@ async def health_check():
     }
     
     # Update metrics
-    ACTIVE_PROCESSES.set(len(system_state.active_processes))
-    WEBSOCKET_CONNECTIONS.set(len(system_state.active_websockets))
+    if ACTIVE_PROCESSES:
+        ACTIVE_PROCESSES.set(len(system_state.active_processes))
+    if WEBSOCKET_CONNECTIONS:
+        WEBSOCKET_CONNECTIONS.set(len(system_state.active_websockets))
     
     return health_data
 
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint"""
-    return PlainTextResponse(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+    if generate_latest:
+        return PlainTextResponse(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+    return PlainTextResponse("metrics unavailable", media_type=CONTENT_TYPE_LATEST)
 
 # CSP Process Management
 @app.post("/api/processes")
@@ -748,7 +794,7 @@ def main():
     
     try:
         uvicorn.run(
-            "main:app",
+            app,
             host=config.host,
             port=config.port,
             workers=config.workers,
