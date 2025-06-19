@@ -12,7 +12,7 @@ python-multipart==0.0.6
 # Database and ORM
 sqlalchemy==2.0.23
 alembic==1.12.1
-sqlite3  # Built-in Python module
+# sqlite3 is part of the Python standard library
 psycopg2-binary==2.9.7  # PostgreSQL support
 asyncpg==0.29.0  # Async PostgreSQL
 
@@ -183,9 +183,9 @@ google-cloud-run==0.10.4  # Google Cloud
 google-cloud-storage==2.10.0
 
 # Container and Orchestration
-docker-compose==1.29.2
+# docker-compose Python package is deprecated; install Docker Compose separately
 helm==0.3.0
-kubectl==1.27.0
+
 
 # Protocol Buffers and gRPC
 protobuf==4.25.1
@@ -225,7 +225,7 @@ beautifulsoup4==4.12.2
 scrapy==2.11.0
 
 # Email and Notifications
-smtplib  # Built-in
+# smtplib  # Built-in
 emails==0.6.0
 twilio==8.10.1
 
@@ -238,12 +238,12 @@ python-decouple==3.8
 environs==10.0.0
 
 # Performance and Profiling
-cProfile  # Built-in
+# cProfile  # smtplib-in
 py-spy==0.3.14
 scalene==1.5.26
 
 # Experimental and Research
-gym==0.29.1  # Reinforcement Learning
+gym  # Reinforcement Learning
 stable-baselines3==2.2.1
 optuna==3.4.0  # Hyperparameter optimization
 
@@ -252,20 +252,20 @@ tqdm==4.66.1
 alive-progress==3.1.5
 humanize==4.8.0
 arrow==1.3.0
-dateutil==2.8.2
+#dateutil==2.8.2
 
 # Security Scanning
 safety==2.3.5
 semgrep==1.45.0
 
 # Code Generation and AST
-ast  # Built-in
+#ast  # Built-in
 astor==0.8.1
 jinja2-time==0.2.0
 
 # API Documentation
-redoc==2.1.0
-swagger-ui-bundle==0.1.2
+redoc
+swagger-ui-bundle
 
 # Logging and Monitoring
 loguru==0.7.2
@@ -286,7 +286,7 @@ joblib==1.3.2
 
 # Deployment and Infrastructure
 ansible==8.7.0
-terraform==1.6.4
+
 pulumi==3.92.0
 
 # Development Dependencies (should be in requirements-dev.txt)
