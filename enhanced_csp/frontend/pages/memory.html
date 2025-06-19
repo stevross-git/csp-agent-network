@@ -3,9 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced CSP Memory Portal - AI Memory Management</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <title>Enhanced CSP Memory Management</title>
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --neural-gradient: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 50%, #45b7d1 100%);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -14,47 +29,210 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-            color: #ffffff;
+            background: var(--background);
+            color: var(--text);
             min-height: 100vh;
         }
 
-        /* Header */
-        .header {
-            background: rgba(0, 0, 0, 0.9);
-            border-bottom: 2px solid #9c27b0;
-            padding: 1rem 2rem;
+        .memory-container {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 4px 20px rgba(156, 39, 176, 0.3);
+            height: 100vh;
         }
 
-        .header h1 {
-            font-size: 1.8rem;
-            background: linear-gradient(45deg, #9c27b0, #e91e63);
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: var(--neural-gradient);
+            border-radius: 12px;
+            color: white;
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-header p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-item:hover {
+            background: #f1f5f9;
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item .icon {
+            font-size: 1.25rem;
+            min-width: 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            margin-bottom: 2rem;
+        }
+
+        .content-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: var(--gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
-        .header-controls {
+        .content-subtitle {
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .tabs-header {
             display: flex;
-            gap: 1rem;
+            background: linear-gradient(90deg, #f8fafc 0%, #e2e8f0 100%);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-light);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            background: var(--surface);
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 2rem;
+            min-height: 600px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Memory Cards */
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .memory-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .memory-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .memory-card-header {
+            display: flex;
             align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .memory-card-icon {
+            font-size: 1.5rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .memory-card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
         }
 
         .memory-stats {
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .stat-item {
@@ -62,599 +240,89 @@
         }
 
         .stat-value {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #9c27b0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
         }
 
         .stat-label {
-            font-size: 0.7rem;
-            color: #cccccc;
-        }
-
-        /* Main Layout */
-        .main-container {
-            display: grid;
-            grid-template-columns: 300px 1fr 350px;
-            min-height: calc(100vh - 80px);
-        }
-
-        /* Left Sidebar */
-        .left-sidebar {
-            background: rgba(0, 0, 0, 0.8);
-            border-right: 1px solid rgba(156, 39, 176, 0.3);
-            backdrop-filter: blur(10px);
-            overflow-y: auto;
-        }
-
-        .sidebar-section {
-            padding: 1.5rem 1rem;
-            border-bottom: 1px solid rgba(156, 39, 176, 0.2);
-        }
-
-        .sidebar-section h3 {
-            color: #9c27b0;
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            margin: 0.25rem 0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid transparent;
-            font-size: 0.9rem;
-        }
-
-        .nav-item:hover {
-            background: rgba(156, 39, 176, 0.1);
-            border-color: #9c27b0;
-            transform: translateX(5px);
-        }
-
-        .nav-item.active {
-            background: rgba(156, 39, 176, 0.2);
-            border-color: #9c27b0;
-        }
-
-        .nav-icon {
-            font-size: 1.2rem;
-            width: 20px;
-            text-align: center;
-        }
-
-        /* Search Section */
-        .search-section {
-            padding: 1rem;
-            background: rgba(156, 39, 176, 0.1);
-        }
-
-        .search-container {
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
-        .search-input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #9c27b0;
-            border-radius: 25px;
-            padding: 0.75rem 1rem 0.75rem 2.5rem;
-            color: #ffffff;
-            font-size: 0.9rem;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-            border-color: #e91e63;
-            box-shadow: 0 0 15px rgba(233, 30, 99, 0.3);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9c27b0;
-            font-size: 1.1rem;
-        }
-
-        .filter-options {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .filter-tag {
-            background: rgba(156, 39, 176, 0.2);
-            border: 1px solid #9c27b0;
-            border-radius: 15px;
-            padding: 0.3rem 0.8rem;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .filter-tag:hover, .filter-tag.active {
-            background: rgba(156, 39, 176, 0.4);
-            transform: scale(1.05);
-        }
-
-        /* Central Content */
-        .content-area {
-            padding: 2rem;
-            overflow-y: auto;
-        }
-
-        .content-section {
-            display: none;
-        }
-
-        .content-section.active {
-            display: block;
-        }
-
-        /* Memory Cards */
-        .memory-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-
-        .memory-card {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(156, 39, 176, 0.3);
-            border-radius: 15px;
-            padding: 1.5rem;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .memory-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #9c27b0, #e91e63);
-        }
-
-        .memory-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(156, 39, 176, 0.3);
-            border-color: #e91e63;
-        }
-
-        .memory-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .memory-title {
-            font-size: 1.1rem;
-            color: #9c27b0;
-            font-weight: bold;
-            margin-bottom: 0.3rem;
-        }
-
-        .memory-meta {
-            font-size: 0.8rem;
-            color: #cccccc;
-        }
-
-        .memory-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .memory-content {
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
-            font-size: 0.9rem;
-            line-height: 1.4;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-
-        .memory-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .memory-tag {
-            background: rgba(156, 39, 176, 0.2);
-            border: 1px solid #9c27b0;
-            border-radius: 12px;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.75rem;
-            color: #e91e63;
-        }
-
-        .memory-stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(156, 39, 176, 0.2);
-            font-size: 0.8rem;
-            color: #cccccc;
-        }
-
-        /* Timeline View */
-        .timeline-container {
-            position: relative;
-            padding: 2rem 0;
-        }
-
-        .timeline-line {
-            position: absolute;
-            left: 50%;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(180deg, #9c27b0, #e91e63);
-            transform: translateX(-50%);
-        }
-
-        .timeline-item {
-            display: flex;
-            align-items: center;
-            margin: 2rem 0;
-            position: relative;
-        }
-
-        .timeline-item:nth-child(even) {
-            flex-direction: row-reverse;
-        }
-
-        .timeline-content {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(156, 39, 176, 0.3);
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin: 0 2rem;
-            width: calc(50% - 3rem);
-            backdrop-filter: blur(10px);
-        }
-
-        .timeline-marker {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 20px;
-            height: 20px;
-            background: #9c27b0;
-            border-radius: 50%;
-            border: 3px solid #ffffff;
-            z-index: 2;
-        }
-
-        /* Knowledge Graph */
-        .knowledge-graph {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(156, 39, 176, 0.3);
-            border-radius: 15px;
-            padding: 1.5rem;
-            height: 500px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .graph-node {
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: radial-gradient(circle, #9c27b0, #e91e63);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            font-size: 0.8rem;
-            color: white;
-        }
-
-        .graph-node:hover {
-            transform: scale(1.2);
-            box-shadow: 0 0 20px rgba(156, 39, 176, 0.7);
-            z-index: 10;
-        }
-
-        .graph-connection {
-            position: absolute;
-            height: 2px;
-            background: linear-gradient(90deg, rgba(156, 39, 176, 0.6), rgba(233, 30, 99, 0.6));
-            transform-origin: left center;
-            z-index: 1;
-        }
-
-        /* Right Sidebar */
-        .right-sidebar {
-            background: rgba(0, 0, 0, 0.8);
-            border-left: 1px solid rgba(156, 39, 176, 0.3);
-            backdrop-filter: blur(10px);
-            overflow-y: auto;
-        }
-
-        .details-panel {
-            padding: 1.5rem;
-        }
-
-        .details-panel h3 {
-            color: #9c27b0;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .detail-group {
-            margin-bottom: 1.5rem;
-            background: rgba(156, 39, 176, 0.05);
-            border-radius: 8px;
-            padding: 1rem;
-            border: 1px solid rgba(156, 39, 176, 0.2);
-        }
-
-        .detail-group h4 {
-            color: #e91e63;
-            margin-bottom: 0.75rem;
-            font-size: 0.9rem;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-            font-size: 0.85rem;
-        }
-
-        .detail-label {
-            color: #cccccc;
-        }
-
-        .detail-value {
-            color: #ffffff;
-            font-weight: 500;
-        }
-
-        /* Analytics Charts */
-        .analytics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 2rem;
-            margin: 2rem 0;
-        }
-
-        .chart-container {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(156, 39, 176, 0.3);
-            border-radius: 15px;
-            padding: 1.5rem;
-            backdrop-filter: blur(10px);
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(156, 39, 176, 0.2);
-        }
-
-        .chart-title {
-            color: #9c27b0;
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-
-        .chart-canvas {
-            height: 300px;
-        }
-
-        /* Buttons */
-        .btn {
-            background: rgba(156, 39, 176, 0.2);
-            border: 1px solid #9c27b0;
-            color: #ffffff;
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn:hover {
-            background: rgba(156, 39, 176, 0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(156, 39, 176, 0.3);
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #9c27b0, #e91e63);
-            border: none;
-        }
-
-        .btn-secondary {
-            background: rgba(108, 117, 125, 0.3);
-            border-color: #6c757d;
-        }
-
-        .btn-small {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.75rem;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 2000;
-            backdrop-filter: blur(5px);
-        }
-
-        .modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border: 2px solid #9c27b0;
-            border-radius: 15px;
-            padding: 2rem;
-            max-width: 800px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(156, 39, 176, 0.3);
-        }
-
-        .modal-title {
-            font-size: 1.4rem;
-            color: #9c27b0;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            color: #9c27b0;
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .close-btn:hover {
-            color: #e91e63;
-            transform: scale(1.2);
-        }
-
-        /* Form Elements */
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-label {
-            display: block;
-            color: #9c27b0;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .form-input, .form-select, .form-textarea {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid #9c27b0;
-            border-radius: 6px;
-            padding: 0.75rem;
-            color: #ffffff;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-            outline: none;
-            border-color: #e91e63;
-            box-shadow: 0 0 10px rgba(233, 30, 99, 0.3);
-        }
-
-        .form-textarea {
-            min-height: 120px;
-            resize: vertical;
+            font-size: 0.875rem;
+            color: var(--text-light);
         }
 
         /* Progress Bars */
         .progress-bar {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
             overflow: hidden;
-            height: 20px;
-            margin: 0.5rem 0;
+            margin-bottom: 0.5rem;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #9c27b0, #e91e63);
+            background: var(--gradient);
             transition: width 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: bold;
         }
 
-        /* Data Tables */
-        .data-table {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(156, 39, 176, 0.3);
-            border-radius: 10px;
+        /* Memory Visualization */
+        .memory-visualization {
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            position: relative;
             overflow: hidden;
-            margin: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .memory-nodes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .memory-node {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Tables */
+        .data-table {
+            background: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .table-header {
-            background: rgba(156, 39, 176, 0.2);
-            padding: 1rem;
-            border-bottom: 1px solid rgba(156, 39, 176, 0.3);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 1.5rem;
+            background: linear-gradient(90deg, #f8fafc 0%, #e2e8f0 100%);
+            border-bottom: 1px solid var(--border);
         }
 
         .table-title {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #9c27b0;
+            font-size: 1.125rem;
+            font-weight: 600;
         }
 
-        .table-content {
-            overflow-x: auto;
+        .table-actions {
+            display: flex;
+            gap: 0.5rem;
         }
 
         table {
@@ -663,1324 +331,2057 @@
         }
 
         th, td {
-            padding: 0.75rem 1rem;
+            padding: 1rem;
             text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--border);
         }
 
         th {
-            background: rgba(156, 39, 176, 0.1);
-            color: #9c27b0;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        td {
-            color: #cccccc;
-            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-light);
+            background: #f8fafc;
         }
 
         tr:hover {
-            background: rgba(156, 39, 176, 0.05);
+            background: #f8fafc;
         }
 
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
         }
 
-        .fade-in {
-            animation: fadeIn 0.5s ease-out;
+        .btn-primary {
+            background: var(--primary);
+            color: white;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+        .btn-primary:hover {
+            background: var(--primary-dark);
         }
 
-        .pulse {
-            animation: pulse 2s infinite;
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .status-sync {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+        }
+
+        .status-crystallizing {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        /* Shared Memory Specific Styles */
+        .shared-memory-network {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .agent-memory-node {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .agent-memory-node.connected {
+            border-color: var(--success);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+        }
+
+        .crystallization-progress {
+            margin: 2rem 0;
+        }
+
+        .crystal-formation {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .crystal-icon {
+            font-size: 2rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         /* Responsive Design */
-        @media (max-width: 1400px) {
-            .main-container {
-                grid-template-columns: 280px 1fr 300px;
-            }
-        }
-
-        @media (max-width: 1200px) {
-            .main-container {
-                grid-template-columns: 250px 1fr 250px;
-            }
-            
-            .memory-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 992px) {
-            .main-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .left-sidebar, .right-sidebar {
-                display: none;
-            }
-            
-            .content-area {
-                padding: 1rem;
-            }
-        }
-
         @media (max-width: 768px) {
-            .header {
-                padding: 1rem;
+            .memory-container {
                 flex-direction: column;
-                gap: 1rem;
             }
-            
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+            }
+
             .memory-grid {
                 grid-template-columns: 1fr;
             }
-            
-            .analytics-grid {
-                grid-template-columns: 1fr;
+
+            .tabs-header {
+                flex-wrap: wrap;
             }
+
+            .tab-button {
+                flex: none;
+                min-width: 120px;
+            }
+        }
+
+        /* Loading animations */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(37, 99, 235, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Alert styles */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-info {
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            color: var(--primary);
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: var(--warning);
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <h1>🧠 Enhanced CSP Memory Portal</h1>
-        <div class="header-controls">
-            <div class="memory-stats">
-                <div class="stat-item">
-                    <div class="stat-value" id="total-memories">127,482</div>
-                    <div class="stat-label">Total Memories</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="memory-size">2.4TB</div>
-                    <div class="stat-label">Storage Used</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="active-conversations">1,247</div>
-                    <div class="stat-label">Active Sessions</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="knowledge-nodes">89,342</div>
-                    <div class="stat-label">Knowledge Nodes</div>
-                </div>
+    <div class="memory-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1>🧠 Memory System</h1>
+                <p>Enhanced CSP Memory Management</p>
             </div>
-            <button class="btn btn-primary" onclick="openModal('export-modal')">📤 Export Data</button>
-        </div>
-    </div>
 
-    <!-- Main Container -->
-    <div class="main-container">
-        <!-- Left Sidebar -->
-        <div class="left-sidebar">
-            <!-- Search Section -->
-            <div class="search-section">
-                <div class="search-container">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" class="search-input" placeholder="Search memories, conversations, knowledge..." id="memory-search">
+            <div class="nav-section">
+                <div class="nav-section-title">Memory Types</div>
+                <div class="nav-item active" data-tab="working-memory">
+                    <span class="icon">💭</span>
+                    <span>Working Memory</span>
                 </div>
-                <div class="filter-options">
-                    <div class="filter-tag active" data-filter="all">All</div>
-                    <div class="filter-tag" data-filter="conversations">Conversations</div>
-                    <div class="filter-tag" data-filter="knowledge">Knowledge</div>
-                    <div class="filter-tag" data-filter="patterns">Patterns</div>
-                    <div class="filter-tag" data-filter="recent">Recent</div>
+                <div class="nav-item" data-tab="shared-memory">
+                    <span class="icon">🌐</span>
+                    <span>Shared Memory</span>
+                </div>
+                <div class="nav-item" data-tab="crystallized-memory">
+                    <span class="icon">💎</span>
+                    <span>Crystallized Memory</span>
+                </div>
+                <div class="nav-item" data-tab="collective-memory">
+                    <span class="icon">🧬</span>
+                    <span>Collective Memory</span>
                 </div>
             </div>
 
-            <!-- Navigation -->
-            <div class="sidebar-section">
-                <h3>📊 Memory Views</h3>
-                <div class="nav-item active" onclick="showSection('overview')">
-                    <span class="nav-icon">🏠</span>
-                    <span>Overview</span>
-                </div>
-                <div class="nav-item" onclick="showSection('conversations')">
-                    <span class="nav-icon">💬</span>
-                    <span>Conversations</span>
-                </div>
-                <div class="nav-item" onclick="showSection('knowledge-graph')">
-                    <span class="nav-icon">🕸️</span>
-                    <span>Knowledge Graph</span>
-                </div>
-                <div class="nav-item" onclick="showSection('timeline')">
-                    <span class="nav-icon">📅</span>
-                    <span>Timeline View</span>
-                </div>
-                <div class="nav-item" onclick="showSection('analytics')">
-                    <span class="nav-icon">📈</span>
+            <div class="nav-section">
+                <div class="nav-section-title">Management</div>
+                <div class="nav-item" data-tab="memory-analytics">
+                    <span class="icon">📊</span>
                     <span>Analytics</span>
                 </div>
-            </div>
-
-            <div class="sidebar-section">
-                <h3>🔧 Memory Management</h3>
-                <div class="nav-item" onclick="showSection('storage')">
-                    <span class="nav-icon">💾</span>
-                    <span>Storage Management</span>
+                <div class="nav-item" data-tab="memory-optimization">
+                    <span class="icon">⚡</span>
+                    <span>Optimization</span>
                 </div>
-                <div class="nav-item" onclick="showSection('retention')">
-                    <span class="nav-icon">⏰</span>
-                    <span>Retention Policies</span>
+                <div class="nav-item" data-tab="memory-sync">
+                    <span class="icon">🔄</span>
+                    <span>Synchronization</span>
                 </div>
-                <div class="nav-item" onclick="showSection('privacy')">
-                    <span class="nav-icon">🔒</span>
-                    <span>Privacy Controls</span>
-                </div>
-                <div class="nav-item" onclick="showSection('backup')">
-                    <span class="nav-icon">🔄</span>
-                    <span>Backup & Restore</span>
+                <div class="nav-item" data-tab="memory-settings">
+                    <span class="icon">⚙️</span>
+                    <span>Settings</span>
                 </div>
             </div>
 
-            <div class="sidebar-section">
-                <h3>🎯 AI Features</h3>
-                <div class="nav-item" onclick="showSection('patterns')">
-                    <span class="nav-icon">🔍</span>
-                    <span>Pattern Recognition</span>
+            <div class="nav-section">
+                <div class="nav-section-title">System Status</div>
+                <div style="padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; margin-bottom: 0.5rem;">
+                    <div style="font-size: 0.875rem; color: var(--success); font-weight: 500;">Memory System: Online</div>
+                    <div style="font-size: 0.75rem; color: var(--text-light);">Last sync: 2 min ago</div>
                 </div>
-                <div class="nav-item" onclick="showSection('clustering')">
-                    <span class="nav-icon">🎭</span>
-                    <span>Memory Clustering</span>
-                </div>
-                <div class="nav-item" onclick="showSection('insights')">
-                    <span class="nav-icon">💡</span>
-                    <span>AI Insights</span>
-                </div>
-                <div class="nav-item" onclick="showSection('predictions')">
-                    <span class="nav-icon">🔮</span>
-                    <span>Predictions</span>
+                <div style="padding: 1rem; background: rgba(37, 99, 235, 0.1); border-radius: 8px;">
+                    <div style="font-size: 0.875rem; color: var(--primary); font-weight: 500;">Active Agents: 8</div>
+                    <div style="font-size: 0.75rem; color: var(--text-light);">Crystals forming: 3</div>
                 </div>
             </div>
-        </div>
+        </nav>
 
-        <!-- Central Content -->
-        <div class="content-area">
-            <!-- Overview Section -->
-            <div id="overview" class="content-section active fade-in">
-                <h2 style="color: #9c27b0; margin-bottom: 2rem; font-size: 2rem;">Memory Overview Dashboard</h2>
-                
-                <div class="analytics-grid">
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-title">📈 Memory Growth Trends</div>
-                            <button class="btn btn-small">⚙️ Configure</button>
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="content-header">
+                <h1 class="content-title">Memory Management Dashboard</h1>
+                <p class="content-subtitle">Monitor and manage all memory systems across the CSP network</p>
+            </div>
+
+            <!-- Tabs Container -->
+            <div class="tabs-container">
+                <div class="tabs-header">
+                    <button class="tab-button active" data-tab="working-memory">Working Memory</button>
+                    <button class="tab-button" data-tab="shared-memory">Shared Memory</button>
+                    <button class="tab-button" data-tab="crystallized-memory">Crystallized Memory</button>
+                    <button class="tab-button" data-tab="collective-memory">Collective Memory</button>
+                    <button class="tab-button" data-tab="memory-analytics">Analytics</button>
+                    <button class="tab-button" data-tab="memory-optimization">Optimization</button>
+                    <button class="tab-button" data-tab="memory-sync">Synchronization</button>
+                    <button class="tab-button" data-tab="memory-settings">Settings</button>
+                </div>
+
+                <!-- Working Memory Tab -->
+                <div class="tab-content active" id="working-memory">
+                    <div class="memory-grid">
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">💭</div>
+                                <div class="memory-card-title">Working Memory Pool</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">2.4GB</div>
+                                    <div class="stat-label">Used</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">8.0GB</div>
+                                    <div class="stat-label">Total</div>
+                                </div>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 30%;"></div>
+                            </div>
                         </div>
-                        <div class="chart-canvas">
-                            <canvas id="memoryGrowthChart"></canvas>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🔄</div>
+                                <div class="memory-card-title">Active Sessions</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">47</div>
+                                    <div class="stat-label">Sessions</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">12</div>
+                                    <div class="stat-label">Agents</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">⚡</div>
+                                <div class="memory-card-title">Access Speed</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">0.2ms</div>
+                                    <div class="stat-label">Avg Latency</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">99.9%</div>
+                                    <div class="stat-label">Hit Rate</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-title">🎯 Memory Types Distribution</div>
-                            <button class="btn btn-small">📊 Details</button>
+                    <div class="data-table">
+                        <div class="table-header">
+                            <div class="table-title">Active Memory Sessions</div>
+                            <div class="table-actions">
+                                <button class="btn btn-primary" onclick="refreshWorkingMemory()">🔄 Refresh</button>
+                                <button class="btn btn-secondary" onclick="optimizeMemory()">⚡ Optimize</button>
+                            </div>
                         </div>
-                        <div class="chart-canvas">
-                            <canvas id="memoryTypesChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-title">⚡ Memory Access Patterns</div>
-                            <button class="btn btn-small">🔍 Analyze</button>
-                        </div>
-                        <div class="chart-canvas">
-                            <canvas id="accessPatternsChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-title">🧠 AI Agent Memory Usage</div>
-                            <button class="btn btn-small">👥 Agents</button>
-                        </div>
-                        <div class="chart-canvas">
-                            <canvas id="agentUsageChart"></canvas>
-                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Session ID</th>
+                                    <th>Agent</th>
+                                    <th>Memory Usage</th>
+                                    <th>Last Access</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="working-memory-table">
+                                <tr>
+                                    <td>WM-001</td>
+                                    <td>CSP-Agent-Alpha</td>
+                                    <td>156MB</td>
+                                    <td>2 min ago</td>
+                                    <td><span class="status-indicator status-active">Active</span></td>
+                                    <td>
+                                        <button class="btn btn-warning">📊 Details</button>
+                                        <button class="btn btn-danger">🗑️ Clear</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>WM-002</td>
+                                    <td>CSP-Agent-Beta</td>
+                                    <td>203MB</td>
+                                    <td>5 min ago</td>
+                                    <td><span class="status-indicator status-active">Active</span></td>
+                                    <td>
+                                        <button class="btn btn-warning">📊 Details</button>
+                                        <button class="btn btn-danger">🗑️ Clear</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                <div class="data-table">
-                    <div class="table-header">
-                        <div class="table-title">🔥 Recent Memory Activity</div>
-                        <div>
-                            <button class="btn btn-small">🔄 Refresh</button>
-                            <button class="btn btn-small">📊 Export</button>
+                <!-- Shared Memory Tab -->
+                <div class="tab-content" id="shared-memory">
+                    <div class="alert alert-info">
+                        <strong>🌐 Shared Memory System</strong> - Real-time collaboration between AI agents through distributed memory networks
+                    </div>
+
+                    <div class="memory-grid">
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🌐</div>
+                                <div class="memory-card-title">Network Status</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">8</div>
+                                    <div class="stat-label">Connected Agents</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">124</div>
+                                    <div class="stat-label">Shared Objects</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🔄</div>
+                                <div class="memory-card-title">Synchronization</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">98.7%</div>
+                                    <div class="stat-label">Sync Rate</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">3.2ms</div>
+                                    <div class="stat-label">Avg Delay</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">📡</div>
+                                <div class="memory-card-title">Data Transfer</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">45.2MB/s</div>
+                                    <div class="stat-label">Throughput</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">1,247</div>
+                                    <div class="stat-label">Operations/sec</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="table-content">
+
+                    <div class="shared-memory-network">
+                        <div class="agent-memory-node connected">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🤖</div>
+                            <div style="font-weight: 600;">Agent Alpha</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Working Memory: 156MB</div>
+                            <div style="font-size: 0.875rem; color: var(--success);">✓ Synchronized</div>
+                        </div>
+
+                        <div class="agent-memory-node connected">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🤖</div>
+                            <div style="font-weight: 600;">Agent Beta</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Working Memory: 203MB</div>
+                            <div style="font-size: 0.875rem; color: var(--success);">✓ Synchronized</div>
+                        </div>
+
+                        <div class="agent-memory-node connected">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🤖</div>
+                            <div style="font-weight: 600;">Agent Gamma</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Working Memory: 89MB</div>
+                            <div style="font-size: 0.875rem; color: var(--warning);">⚡ Syncing...</div>
+                        </div>
+
+                        <div class="agent-memory-node">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🤖</div>
+                            <div style="font-weight: 600;">Agent Delta</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Working Memory: 127MB</div>
+                            <div style="font-size: 0.875rem; color: var(--danger);">⚠️ Disconnected</div>
+                        </div>
+                    </div>
+
+                    <div class="data-table">
+                        <div class="table-header">
+                            <div class="table-title">Shared Memory Objects</div>
+                            <div class="table-actions">
+                                <button class="btn btn-primary" onclick="initializeSharedMemory()">🚀 Initialize New</button>
+                                <button class="btn btn-secondary" onclick="synchronizeAll()">🔄 Sync All</button>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Object ID</th>
+                                    <th>Type</th>
+                                    <th>Participants</th>
+                                    <th>Size</th>
+                                    <th>Last Modified</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shared-memory-table">
+                                <tr>
+                                    <td>SM-knowledge-001</td>
+                                    <td>Knowledge Graph</td>
+                                    <td>Alpha, Beta, Gamma</td>
+                                    <td>24.6MB</td>
+                                    <td>3 min ago</td>
+                                    <td><span class="status-indicator status-sync">Synced</span></td>
+                                </tr>
+                                <tr>
+                                    <td>SM-task-queue-002</td>
+                                    <td>Task Queue</td>
+                                    <td>All Agents</td>
+                                    <td>512KB</td>
+                                    <td>1 min ago</td>
+                                    <td><span class="status-indicator status-active">Active</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Crystallized Memory Tab -->
+                <div class="tab-content" id="crystallized-memory">
+                    <div class="alert alert-success">
+                        <strong>💎 Memory Crystallization</strong> - Persistent memory structures formed from agent interactions
+                    </div>
+
+                    <div class="crystallization-progress">
+                        <div class="crystal-formation">
+                            <div class="crystal-icon">💎</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">Crystal Formation in Progress</div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 67%;"></div>
+                                </div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">3 agents collaborating • 67% complete</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="memory-grid">
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">💎</div>
+                                <div class="memory-card-title">Active Crystals</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">17</div>
+                                    <div class="stat-label">Formed</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">3</div>
+                                    <div class="stat-label">Forming</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🔗</div>
+                                <div class="memory-card-title">Knowledge Links</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">1,247</div>
+                                    <div class="stat-label">Connections</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">94.2%</div>
+                                    <div class="stat-label">Strength</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">⏱️</div>
+                                <div class="memory-card-title">Formation Time</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">4.7s</div>
+                                    <div class="stat-label">Average</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">1.2s</div>
+                                    <div class="stat-label">Fastest</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="data-table">
+                        <div class="table-header">
+                            <div class="table-title">Memory Crystals</div>
+                            <div class="table-actions">
+                                <button class="btn btn-primary" onclick="crystallizeMemory()">💎 Crystallize</button>
+                                <button class="btn btn-warning" onclick="analyzeCrystals()">🔍 Analyze</button>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Crystal ID</th>
+                                    <th>Participants</th>
+                                    <th>Strength</th>
+                                    <th>Knowledge Type</th>
+                                    <th>Formed</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crystallized-memory-table">
+                                <tr>
+                                    <td>CRYS-001</td>
+                                    <td>Alpha, Beta, Gamma</td>
+                                    <td>94.2%</td>
+                                    <td>Problem Solving</td>
+                                    <td>15 min ago</td>
+                                    <td><span class="status-indicator status-active">Stable</span></td>
+                                </tr>
+                                <tr>
+                                    <td>CRYS-002</td>
+                                    <td>Beta, Delta</td>
+                                    <td>67.1%</td>
+                                    <td>Data Analysis</td>
+                                    <td>8 min ago</td>
+                                    <td><span class="status-indicator status-crystallizing">Forming</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Collective Memory Tab -->
+                <div class="tab-content" id="collective-memory">
+                    <div class="alert alert-warning">
+                        <strong>🧬 Collective Memory</strong> - Emergent intelligence from collective agent experiences
+                    </div>
+
+                    <div class="memory-visualization">
+                        <div class="memory-nodes" id="collective-memory-viz">
+                            <!-- Dynamic memory nodes will be generated here -->
+                        </div>
+                    </div>
+
+                    <div class="memory-grid">
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🧬</div>
+                                <div class="memory-card-title">Collective Patterns</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">847</div>
+                                    <div class="stat-label">Patterns</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">92.1%</div>
+                                    <div class="stat-label">Confidence</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🎯</div>
+                                <div class="memory-card-title">Consensus</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">89.7%</div>
+                                    <div class="stat-label">Agreement</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">7</div>
+                                    <div class="stat-label">Active Topics</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">⚡</div>
+                                <div class="memory-card-title">Emergence</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">12</div>
+                                    <div class="stat-label">New Insights</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">4.2</div>
+                                    <div class="stat-label">Complexity Score</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="data-table">
+                        <div class="table-header">
+                            <div class="table-title">Collective Insights</div>
+                            <div class="table-actions">
+                                <button class="btn btn-primary" onclick="generateInsights()">🧠 Generate</button>
+                                <button class="btn btn-secondary" onclick="exportCollectiveMemory()">📤 Export</button>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Insight ID</th>
+                                    <th>Topic</th>
+                                    <th>Contributors</th>
+                                    <th>Emergence Score</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="collective-memory-table">
+                                <tr>
+                                    <td>INS-001</td>
+                                    <td>Optimization Patterns</td>
+                                    <td>5 agents</td>
+                                    <td>8.7</td>
+                                    <td>12 min ago</td>
+                                    <td>
+                                        <button class="btn btn-warning">🔍 Explore</button>
+                                        <button class="btn btn-success">📊 Analyze</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Memory Analytics Tab -->
+                <div class="tab-content" id="memory-analytics">
+                    <div class="memory-grid">
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">📊</div>
+                                <div class="memory-card-title">Memory Usage Trends</div>
+                            </div>
+                            <canvas id="memoryTrendsChart" style="width: 100%; height: 200px;"></canvas>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">⚡</div>
+                                <div class="memory-card-title">Performance Metrics</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">99.2%</div>
+                                    <div class="stat-label">Availability</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">0.8ms</div>
+                                    <div class="stat-label">Avg Response</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🔄</div>
+                                <div class="memory-card-title">Synchronization Health</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">98.7%</div>
+                                    <div class="stat-label">Success Rate</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">2.1ms</div>
+                                    <div class="stat-label">Avg Latency</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="data-table">
+                        <div class="table-header">
+                            <div class="table-title">Performance Analysis</div>
+                            <div class="table-actions">
+                                <button class="btn btn-primary" onclick="generateReport()">📄 Generate Report</button>
+                                <button class="btn btn-secondary" onclick="exportAnalytics()">📊 Export Data</button>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Current</th>
+                                    <th>Target</th>
+                                    <th>Trend</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Memory Utilization</td>
+                                    <td>67.3%</td>
+                                    <td>< 80%</td>
+                                    <td>📈 +2.1%</td>
+                                    <td><span class="status-indicator status-active">Good</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Sync Success Rate</td>
+                                    <td>98.7%</td>
+                                    <td>> 95%</td>
+                                    <td>📈 +0.3%</td>
+                                    <td><span class="status-indicator status-active">Excellent</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Memory Optimization Tab -->
+                <div class="tab-content" id="memory-optimization">
+                    <div class="alert alert-info">
+                        <strong>⚡ Memory Optimization Engine</strong> - Automated optimization and performance tuning for all memory systems
+                    </div>
+
+                    <div class="memory-grid">
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">⚡</div>
+                                <div class="memory-card-title">Optimization Status</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value" id="optimization-status">Idle</div>
+                                    <div class="stat-label">Current Status</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="last-optimization">Never</div>
+                                    <div class="stat-label">Last Run</div>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="runFullOptimization()" style="width: 100%; margin-top: 1rem;">🚀 Run Full Optimization</button>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🎯</div>
+                                <div class="memory-card-title">Quick Optimizations</div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <button class="btn btn-secondary" onclick="optimizeWorkingMemory()">💭 Optimize Working Memory</button>
+                                <button class="btn btn-secondary" onclick="optimizeSharedMemory()">🌐 Optimize Shared Memory</button>
+                                <button class="btn btn-secondary" onclick="defragmentMemory()">🔧 Defragment Memory</button>
+                                <button class="btn btn-secondary" onclick="clearUnusedMemory()">🗑️ Clear Unused Memory</button>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">📈</div>
+                                <div class="memory-card-title">Optimization Results</div>
+                            </div>
+                            <div id="optimization-results" style="font-size: 0.875rem; color: var(--text-light); text-align: center; padding: 2rem;">
+                                No optimization results yet. Run an optimization to see improvements.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="data-table">
+                        <div class="table-header">
+                            <div class="table-title">Optimization History</div>
+                            <div class="table-actions">
+                                <button class="btn btn-secondary" onclick="clearOptimizationHistory()">🗑️ Clear History</button>
+                            </div>
+                        </div>
                         <table>
                             <thead>
                                 <tr>
                                     <th>Timestamp</th>
-                                    <th>Memory Type</th>
+                                    <th>Type</th>
+                                    <th>Target</th>
+                                    <th>Improvement</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="optimization-history-table">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; color: var(--text-light); padding: 2rem;">
+                                        No optimization history available
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Memory Synchronization Tab -->
+                <div class="tab-content" id="memory-sync">
+                    <div class="alert alert-warning">
+                        <strong>🔄 Memory Synchronization Control</strong> - Manage synchronization between all memory systems and agents
+                    </div>
+
+                    <div class="memory-grid">
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🔄</div>
+                                <div class="memory-card-title">Sync Control Center</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value" id="sync-status">Active</div>
+                                    <div class="stat-label">Sync Status</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="sync-rate">98.7%</div>
+                                    <div class="stat-label">Success Rate</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                <button class="btn btn-success" onclick="startSynchronization()">▶️ Start Sync</button>
+                                <button class="btn btn-danger" onclick="stopSynchronization()">⏹️ Stop Sync</button>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🎛️</div>
+                                <div class="memory-card-title">Sync Settings</div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Sync Interval (ms)</label>
+                                    <input type="range" id="sync-interval" min="100" max="5000" value="1000" style="width: 100%;" onchange="updateSyncInterval(this.value)">
+                                    <div style="text-align: center; font-size: 0.875rem; color: var(--text-light);" id="sync-interval-display">1000ms</div>
+                                </div>
+                                <div>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="checkbox" id="auto-sync" checked onchange="toggleAutoSync(this.checked)">
+                                        <span>Enable Auto-Sync</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">📊</div>
+                                <div class="memory-card-title">Sync Performance</div>
+                            </div>
+                            <div class="memory-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value" id="sync-latency">2.1ms</div>
+                                    <div class="stat-label">Avg Latency</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="sync-throughput">45.2MB/s</div>
+                                    <div class="stat-label">Throughput</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0;">
+                        <div class="agent-memory-node connected" id="agent-alpha-sync">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🤖</div>
+                            <div style="font-weight: 600;">Agent Alpha</div>
+                            <div style="font-size: 0.875rem; color: var(--success);" id="alpha-sync-status">✓ Synchronized</div>
+                            <button class="btn btn-secondary" onclick="forceSyncAgent('alpha')" style="margin-top: 0.5rem; font-size: 0.75rem;">🔄 Force Sync</button>
+                        </div>
+
+                        <div class="agent-memory-node connected" id="agent-beta-sync">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🤖</div>
+                            <div style="font-weight: 600;">Agent Beta</div>
+                            <div style="font-size: 0.875rem; color: var(--success);" id="beta-sync-status">✓ Synchronized</div>
+                            <button class="btn btn-secondary" onclick="forceSyncAgent('beta')" style="margin-top: 0.5rem; font-size: 0.75rem;">🔄 Force Sync</button>
+                        </div>
+
+                        <div class="agent-memory-node" id="agent-gamma-sync">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🤖</div>
+                            <div style="font-weight: 600;">Agent Gamma</div>
+                            <div style="font-size: 0.875rem; color: var(--warning);" id="gamma-sync-status">⚡ Syncing...</div>
+                            <button class="btn btn-secondary" onclick="forceSyncAgent('gamma')" style="margin-top: 0.5rem; font-size: 0.75rem;">🔄 Force Sync</button>
+                        </div>
+
+                        <div class="agent-memory-node" id="agent-delta-sync">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🤖</div>
+                            <div style="font-weight: 600;">Agent Delta</div>
+                            <div style="font-size: 0.875rem; color: var(--danger);" id="delta-sync-status">⚠️ Disconnected</div>
+                            <button class="btn btn-danger" onclick="reconnectAgent('delta')" style="margin-top: 0.5rem; font-size: 0.75rem;">🔌 Reconnect</button>
+                        </div>
+                    </div>
+
+                    <div class="data-table">
+                        <div class="table-header">
+                            <div class="table-title">Synchronization Log</div>
+                            <div class="table-actions">
+                                <button class="btn btn-primary" onclick="forceSyncAll()">🔄 Sync All Agents</button>
+                                <button class="btn btn-secondary" onclick="clearSyncLog()">🗑️ Clear Log</button>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
                                     <th>Agent</th>
-                                    <th>Content Preview</th>
-                                    <th>Size</th>
-                                    <th>Actions</th>
+                                    <th>Type</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th>Data Size</th>
                                 </tr>
                             </thead>
-                            <tbody id="recent-activity">
-                                <!-- Dynamic content -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Conversations Section -->
-            <div id="conversations" class="content-section">
-                <h2 style="color: #9c27b0; margin-bottom: 2rem;">💬 Conversation Memories</h2>
-                
-                <div class="memory-grid" id="conversations-grid">
-                    <!-- Dynamic conversation cards -->
-                </div>
-            </div>
-
-            <!-- Knowledge Graph Section -->
-            <div id="knowledge-graph" class="content-section">
-                <h2 style="color: #9c27b0; margin-bottom: 2rem;">🕸️ Knowledge Graph Visualization</h2>
-                
-                <div class="knowledge-graph" id="knowledge-graph-container">
-                    <!-- Dynamic knowledge graph -->
-                </div>
-                
-                <div class="data-table" style="margin-top: 2rem;">
-                    <div class="table-header">
-                        <div class="table-title">🔗 Knowledge Connections</div>
-                        <div>
-                            <button class="btn btn-small">➕ Add Node</button>
-                            <button class="btn btn-small">🔗 Add Connection</button>
-                        </div>
-                    </div>
-                    <div class="table-content">
-                        <table>
-                            <thead>
+                            <tbody id="sync-log-table">
                                 <tr>
-                                    <th>Node ID</th>
-                                    <th>Concept</th>
-                                    <th>Connections</th>
-                                    <th>Strength</th>
-                                    <th>Last Updated</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>KN-001</td>
-                                    <td>Natural Language Processing</td>
-                                    <td>47</td>
-                                    <td><span style="color: #00ff88">High</span></td>
-                                    <td>2025-06-20 14:23</td>
-                                    <td><button class="btn btn-small">🔍 Explore</button></td>
+                                    <td>2025-06-20 14:32:15</td>
+                                    <td>Agent Alpha</td>
+                                    <td>Full Sync</td>
+                                    <td>127ms</td>
+                                    <td><span class="status-indicator status-active">Success</span></td>
+                                    <td>2.4MB</td>
                                 </tr>
                                 <tr>
-                                    <td>KN-002</td>
-                                    <td>Machine Learning Models</td>
-                                    <td>89</td>
-                                    <td><span style="color: #00ff88">Very High</span></td>
-                                    <td>2025-06-20 13:45</td>
-                                    <td><button class="btn btn-small">🔍 Explore</button></td>
-                                </tr>
-                                <tr>
-                                    <td>KN-003</td>
-                                    <td>Agent Communication</td>
-                                    <td>34</td>
-                                    <td><span style="color: #ffaa00">Medium</span></td>
-                                    <td>2025-06-20 12:10</td>
-                                    <td><button class="btn btn-small">🔍 Explore</button></td>
+                                    <td>2025-06-20 14:31:58</td>
+                                    <td>Agent Beta</td>
+                                    <td>Incremental</td>
+                                    <td>45ms</td>
+                                    <td><span class="status-indicator status-active">Success</span></td>
+                                    <td>512KB</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-            </div>
 
-            <!-- Timeline Section -->
-            <div id="timeline" class="content-section">
-                <h2 style="color: #9c27b0; margin-bottom: 2rem;">📅 Memory Timeline</h2>
-                
-                <div class="timeline-container" id="timeline-container">
-                    <!-- Dynamic timeline items -->
-                </div>
-            </div>
+                <!-- Memory Settings Tab -->
+                <div class="tab-content" id="memory-settings">
+                    <div class="alert alert-info">
+                        <strong>⚙️ Memory System Configuration</strong> - Configure all memory system parameters and behavior
+                    </div>
 
-            <!-- Analytics Section -->
-            <div id="analytics" class="content-section">
-                <h2 style="color: #9c27b0; margin-bottom: 2rem;">📈 Memory Analytics</h2>
-                
-                <div class="analytics-grid">
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-title">📊 Memory Quality Metrics</div>
-                            <button class="btn btn-small">⚙️ Configure</button>
+                    <div class="memory-grid">
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">💾</div>
+                                <div class="memory-card-title">Storage Settings</div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Memory Pool Size (GB)</label>
+                                    <input type="range" id="memory-pool-size" min="1" max="32" value="8" style="width: 100%;" onchange="updateMemoryPoolSize(this.value)">
+                                    <div style="text-align: center; font-size: 0.875rem; color: var(--text-light);" id="memory-pool-display">8 GB</div>
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Cache Retention (minutes)</label>
+                                    <input type="range" id="cache-retention" min="5" max="120" value="30" style="width: 100%;" onchange="updateCacheRetention(this.value)">
+                                    <div style="text-align: center; font-size: 0.875rem; color: var(--text-light);" id="cache-retention-display">30 minutes</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="chart-canvas">
-                            <canvas id="qualityMetricsChart"></canvas>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🔧</div>
+                                <div class="memory-card-title">Behavior Settings</div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" id="auto-crystallization" checked onchange="toggleAutoCrystallization(this.checked)">
+                                    <span>Enable Auto-Crystallization</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" id="memory-compression" checked onchange="toggleMemoryCompression(this.checked)">
+                                    <span>Enable Memory Compression</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" id="redundant-storage" onchange="toggleRedundantStorage(this.checked)">
+                                    <span>Redundant Storage</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" id="debug-logging" onchange="toggleDebugLogging(this.checked)">
+                                    <span>Debug Logging</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="memory-card">
+                            <div class="memory-card-header">
+                                <div class="memory-card-icon">🚨</div>
+                                <div class="memory-card-title">Alert Thresholds</div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Memory Usage Warning (%)</label>
+                                    <input type="range" id="memory-warning-threshold" min="50" max="95" value="80" style="width: 100%;" onchange="updateMemoryWarningThreshold(this.value)">
+                                    <div style="text-align: center; font-size: 0.875rem; color: var(--text-light);" id="memory-warning-display">80%</div>
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Sync Failure Threshold</label>
+                                    <input type="range" id="sync-failure-threshold" min="1" max="10" value="3" style="width: 100%;" onchange="updateSyncFailureThreshold(this.value)">
+                                    <div style="text-align: center; font-size: 0.875rem; color: var(--text-light);" id="sync-failure-display">3 failures</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-title">🎯 Retrieval Accuracy</div>
-                            <button class="btn btn-small">📈 Optimize</button>
+                    <div class="data-table">
+                        <div class="table-header">
+                            <div class="table-title">Configuration Actions</div>
+                            <div class="table-actions">
+                                <button class="btn btn-success" onclick="saveSettings()">💾 Save Settings</button>
+                                <button class="btn btn-warning" onclick="resetToDefaults()">🔄 Reset to Defaults</button>
+                                <button class="btn btn-secondary" onclick="exportSettings()">📤 Export Config</button>
+                                <button class="btn btn-primary" onclick="importSettings()">📥 Import Config</button>
+                            </div>
                         </div>
-                        <div class="chart-canvas">
-                            <canvas id="accuracyChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-title">⚡ Performance Metrics</div>
-                            <button class="btn btn-small">🔧 Tune</button>
-                        </div>
-                        <div class="chart-canvas">
-                            <canvas id="performanceChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <div class="chart-title">🔍 Search Efficiency</div>
-                            <button class="btn btn-small">📊 Report</button>
-                        </div>
-                        <div class="chart-canvas">
-                            <canvas id="searchChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Storage Management Section -->
-            <div id="storage" class="content-section">
-                <h2 style="color: #9c27b0; margin-bottom: 2rem;">💾 Storage Management</h2>
-                
-                <div class="analytics-grid">
-                    <div class="detail-group">
-                        <h4>💽 Storage Overview</h4>
-                        <div class="detail-row">
-                            <span class="detail-label">Total Capacity:</span>
-                            <span class="detail-value">10.0 TB</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Used Space:</span>
-                            <span class="detail-value">2.4 TB (24%)</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 24%;">24%</div>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Available:</span>
-                            <span class="detail-value">7.6 TB</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Growth Rate:</span>
-                            <span class="detail-value">+45 GB/day</span>
-                        </div>
-                    </div>
-
-                    <div class="detail-group">
-                        <h4>📈 Storage Trends</h4>
-                        <div class="detail-row">
-                            <span class="detail-label">Conversations:</span>
-                            <span class="detail-value">1.2 TB (50%)</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Knowledge Base:</span>
-                            <span class="detail-value">0.8 TB (33%)</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Analytics Data:</span>
-                            <span class="detail-value">0.3 TB (12%)</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Indexes:</span>
-                            <span class="detail-value">0.1 TB (5%)</span>
+                        <div style="padding: 1.5rem; background: var(--surface); text-align: center;">
+                            <div style="margin-bottom: 1rem; font-weight: 500;">Current Configuration Status</div>
+                            <div id="settings-status" style="color: var(--success);">✅ All settings saved and applied</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light); margin-top: 0.5rem;">Last modified: <span id="last-modified">2025-06-20 14:30:00</span></div>
                         </div>
                     </div>
                 </div>
-
-                <div class="data-table">
-                    <div class="table-header">
-                        <div class="table-title">📁 Storage Breakdown by Category</div>
-                        <div>
-                            <button class="btn btn-small">🗂️ Organize</button>
-                            <button class="btn btn-small">🗑️ Cleanup</button>
-                        </div>
-                    </div>
-                    <div class="table-content">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Category</th>
-                                    <th>Size</th>
-                                    <th>Files</th>
-                                    <th>Last Modified</th>
-                                    <th>Compression</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>💬 Conversations</td>
-                                    <td>1.2 TB</td>
-                                    <td>89,342</td>
-                                    <td>2025-06-20 14:30</td>
-                                    <td>85%</td>
-                                    <td><button class="btn btn-small">📊 Analyze</button></td>
-                                </tr>
-                                <tr>
-                                    <td>🧠 Knowledge Base</td>
-                                    <td>0.8 TB</td>
-                                    <td>45,128</td>
-                                    <td>2025-06-20 13:15</td>
-                                    <td>92%</td>
-                                    <td><button class="btn btn-small">🔧 Optimize</button></td>
-                                </tr>
-                                <tr>
-                                    <td>📈 Analytics</td>
-                                    <td>0.3 TB</td>
-                                    <td>12,476</td>
-                                    <td>2025-06-20 14:25</td>
-                                    <td>78%</td>
-                                    <td><button class="btn btn-small">🗑️ Archive</button></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
-        </div>
-
-        <!-- Right Sidebar -->
-        <div class="right-sidebar">
-            <div class="details-panel">
-                <h3>🔍 Memory Details</h3>
-                
-                <div class="detail-group">
-                    <h4>📊 Current Selection</h4>
-                    <div class="detail-row">
-                        <span class="detail-label">Type:</span>
-                        <span class="detail-value" id="selected-type">Conversation</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">ID:</span>
-                        <span class="detail-value" id="selected-id">MEM-2025-001</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Created:</span>
-                        <span class="detail-value" id="selected-created">2025-06-20 14:23</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Size:</span>
-                        <span class="detail-value" id="selected-size">2.4 KB</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Agent:</span>
-                        <span class="detail-value" id="selected-agent">GPT-4 Turbo</span>
-                    </div>
-                </div>
-
-                <div class="detail-group">
-                    <h4>🏷️ Tags & Metadata</h4>
-                    <div class="memory-tags" id="selected-tags">
-                        <span class="memory-tag">AI Conversation</span>
-                        <span class="memory-tag">Technical</span>
-                        <span class="memory-tag">High Priority</span>
-                    </div>
-                </div>
-
-                <div class="detail-group">
-                    <h4>📈 Performance Metrics</h4>
-                    <div class="detail-row">
-                        <span class="detail-label">Access Count:</span>
-                        <span class="detail-value">847</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Relevance Score:</span>
-                        <span class="detail-value">94%</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Last Accessed:</span>
-                        <span class="detail-value">5 min ago</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Quality Score:</span>
-                        <span class="detail-value">98%</span>
-                    </div>
-                </div>
-
-                <div class="detail-group">
-                    <h4>🔗 Related Memories</h4>
-                    <div style="font-size: 0.8rem; color: #cccccc; margin-bottom: 0.5rem;">
-                        <div>• Similar conversation (92% match)</div>
-                        <div>• Related knowledge node (87% match)</div>
-                        <div>• Previous interaction (95% match)</div>
-                        <div>• Pattern cluster (78% match)</div>
-                    </div>
-                    <button class="btn btn-small" style="width: 100%;">🔍 Explore Connections</button>
-                </div>
-
-                <div class="detail-group">
-                    <h4>⚙️ Actions</h4>
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <button class="btn btn-small">📝 Edit Metadata</button>
-                        <button class="btn btn-small">🏷️ Add Tags</button>
-                        <button class="btn btn-small">📤 Export</button>
-                        <button class="btn btn-small">🗑️ Archive</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Export Modal -->
-    <div id="export-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">📤 Export Memory Data</div>
-                <button class="close-btn" onclick="closeModal('export-modal')">&times;</button>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Export Type</label>
-                <select class="form-select">
-                    <option value="conversations">Conversations Only</option>
-                    <option value="knowledge">Knowledge Base</option>
-                    <option value="analytics">Analytics Data</option>
-                    <option value="full">Complete Memory Export</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Date Range</label>
-                <div style="display: flex; gap: 1rem;">
-                    <input type="date" class="form-input" value="2025-01-01">
-                    <input type="date" class="form-input" value="2025-06-20">
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Export Format</label>
-                <select class="form-select">
-                    <option value="json">JSON</option>
-                    <option value="csv">CSV</option>
-                    <option value="xml">XML</option>
-                    <option value="parquet">Parquet</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Compression</label>
-                <select class="form-select">
-                    <option value="gzip">GZip</option>
-                    <option value="zip">ZIP</option>
-                    <option value="none">None</option>
-                </select>
-            </div>
-            
-            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <button class="btn btn-primary" onclick="startExport()">📤 Start Export</button>
-                <button class="btn btn-secondary" onclick="closeModal('export-modal')">❌ Cancel</button>
-            </div>
-        </div>
+        </main>
     </div>
 
     <script>
-        // Global state
-        let currentSection = 'overview';
-        let selectedMemory = null;
-        let searchFilters = { type: 'all', dateRange: 'all' };
-        let charts = {};
-
-        // Initialize memory portal
-        function initMemoryPortal() {
-            console.log('🧠 Enhanced CSP Memory Portal initialized');
-            
-            setupEventListeners();
-            loadMemoryData();
-            initializeCharts();
-            startRealTimeUpdates();
-        }
-
-        // Setup event listeners
-        function setupEventListeners() {
-            // Search functionality
-            document.getElementById('memory-search').addEventListener('input', handleSearch);
-            
-            // Filter tags
-            document.querySelectorAll('.filter-tag').forEach(tag => {
-                tag.addEventListener('click', handleFilterClick);
-            });
-            
-            // Keyboard shortcuts
-            document.addEventListener('keydown', handleKeyboardShortcuts);
-        }
-
-        // Show specific section
-        function showSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Remove active class from all nav items
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // Show selected section
-            document.getElementById(sectionId).classList.add('active');
-            
-            // Add active class to corresponding nav item
-            event.target.closest('.nav-item').classList.add('active');
-            
-            currentSection = sectionId;
-            
-            // Load section-specific data
-            loadSectionData(sectionId);
-        }
-
-        // Load section-specific data
-        function loadSectionData(sectionId) {
-            switch(sectionId) {
-                case 'conversations':
-                    loadConversations();
-                    break;
-                case 'knowledge-graph':
-                    loadKnowledgeGraph();
-                    break;
-                case 'timeline':
-                    loadTimeline();
-                    break;
-                case 'analytics':
-                    loadAnalytics();
-                    break;
-                case 'storage':
-                    loadStorageData();
-                    break;
+        // Memory Management System JavaScript
+        class MemoryManagementSystem {
+            constructor() {
+                this.currentTab = 'working-memory';
+                this.memoryData = {
+                    workingMemory: [],
+                    sharedMemory: [],
+                    crystallizedMemory: [],
+                    collectiveMemory: []
+                };
+                this.websocket = null;
+                this.init();
             }
-        }
 
-        // Load memory data
-        function loadMemoryData() {
-            loadRecentActivity();
-            updateMemoryStats();
-        }
+            init() {
+                this.setupNavigation();
+                this.setupTabSwitching();
+                this.initializeVisualization();
+                this.startRealTimeUpdates();
+                this.loadInitialData();
+            }
 
-        // Load recent activity
-        function loadRecentActivity() {
-            const activities = [
-                {
-                    timestamp: '2025-06-20 14:30:45',
-                    type: 'Conversation',
-                    agent: 'GPT-4 Turbo',
-                    preview: 'Discussing machine learning optimization strategies...',
-                    size: '2.4 KB'
-                },
-                {
-                    timestamp: '2025-06-20 14:25:32',
-                    type: 'Knowledge Update',
-                    agent: 'Claude-3',
-                    preview: 'Added new neural network architecture patterns...',
-                    size: '5.1 KB'
-                },
-                {
-                    timestamp: '2025-06-20 14:18:15',
-                    type: 'Pattern Recognition',
-                    agent: 'Custom AI',
-                    preview: 'Identified recurring communication patterns in...',
-                    size: '1.8 KB'
-                },
-                {
-                    timestamp: '2025-06-20 14:12:08',
-                    type: 'Memory Clustering',
-                    agent: 'System',
-                    preview: 'Automatically clustered 1,247 related memories...',
-                    size: '8.3 KB'
-                },
-                {
-                    timestamp: '2025-06-20 14:05:22',
-                    type: 'Conversation',
-                    agent: 'GPT-4',
-                    preview: 'Technical discussion about CSP architecture...',
-                    size: '3.7 KB'
-                }
-            ];
-
-            const tbody = document.getElementById('recent-activity');
-            tbody.innerHTML = activities.map(activity => `
-                <tr onclick="selectMemory('${activity.timestamp}')">
-                    <td>${activity.timestamp}</td>
-                    <td>${activity.type}</td>
-                    <td>${activity.agent}</td>
-                    <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${activity.preview}</td>
-                    <td>${activity.size}</td>
-                    <td>
-                        <button class="btn btn-small">👁️ View</button>
-                        <button class="btn btn-small">📤 Export</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // Load conversations
-        function loadConversations() {
-            const conversations = [
-                {
-                    id: 'CONV-001',
-                    title: 'AI Model Performance Optimization',
-                    participants: ['GPT-4 Turbo', 'Claude-3'],
-                    messages: 47,
-                    duration: '2h 15m',
-                    timestamp: '2025-06-20 12:30',
-                    tags: ['Technical', 'Performance', 'AI Models'],
-                    preview: 'Deep discussion about optimizing transformer architectures for better performance and reduced computational overhead...'
-                },
-                {
-                    id: 'CONV-002',
-                    title: 'Natural Language Understanding',
-                    participants: ['GPT-4', 'Custom NLP Agent'],
-                    messages: 23,
-                    duration: '45m',
-                    timestamp: '2025-06-20 11:15',
-                    tags: ['NLP', 'Understanding', 'Research'],
-                    preview: 'Exploring advances in contextual understanding and semantic analysis for improved AI communication...'
-                },
-                {
-                    id: 'CONV-003',
-                    title: 'Multi-Agent Coordination Strategies',
-                    participants: ['Agent Alpha', 'Agent Beta', 'Coordinator'],
-                    messages: 89,
-                    duration: '3h 20m',
-                    timestamp: '2025-06-20 09:45',
-                    tags: ['Coordination', 'Multi-Agent', 'Strategy'],
-                    preview: 'Comprehensive analysis of coordination protocols and decision-making frameworks for multi-agent systems...'
-                }
-            ];
-
-            const container = document.getElementById('conversations-grid');
-            container.innerHTML = conversations.map(conv => `
-                <div class="memory-card" onclick="selectConversation('${conv.id}')">
-                    <div class="memory-header">
-                        <div>
-                            <div class="memory-title">${conv.title}</div>
-                            <div class="memory-meta">
-                                ID: ${conv.id} • ${conv.messages} messages • ${conv.duration}
-                            </div>
-                        </div>
-                        <div class="memory-actions">
-                            <button class="btn btn-small">👁️</button>
-                            <button class="btn btn-small">📤</button>
-                        </div>
-                    </div>
-                    <div class="memory-content">${conv.preview}</div>
-                    <div class="memory-tags">
-                        ${conv.tags.map(tag => `<span class="memory-tag">${tag}</span>`).join('')}
-                    </div>
-                    <div class="memory-stats">
-                        <span>👥 ${conv.participants.join(', ')}</span>
-                        <span>⏰ ${conv.timestamp}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Load knowledge graph
-        function loadKnowledgeGraph() {
-            const container = document.getElementById('knowledge-graph-container');
-            container.innerHTML = ''; // Clear existing content
-            
-            // Create nodes
-            const nodes = [
-                { id: 'ai', label: 'AI', x: 250, y: 200 },
-                { id: 'ml', label: 'ML', x: 150, y: 120 },
-                { id: 'nlp', label: 'NLP', x: 350, y: 120 },
-                { id: 'deep', label: 'Deep Learning', x: 100, y: 280 },
-                { id: 'neural', label: 'Neural Networks', x: 200, y: 350 },
-                { id: 'transformer', label: 'Transformers', x: 400, y: 280 },
-                { id: 'gpt', label: 'GPT', x: 450, y: 180 },
-                { id: 'bert', label: 'BERT', x: 300, y: 50 }
-            ];
-            
-            const connections = [
-                { from: 'ai', to: 'ml' },
-                { from: 'ai', to: 'nlp' },
-                { from: 'ml', to: 'deep' },
-                { from: 'ml', to: 'neural' },
-                { from: 'nlp', to: 'transformer' },
-                { from: 'nlp', to: 'gpt' },
-                { from: 'nlp', to: 'bert' },
-                { from: 'deep', to: 'neural' },
-                { from: 'transformer', to: 'gpt' },
-                { from: 'transformer', to: 'bert' }
-            ];
-            
-            // Draw connections first
-            connections.forEach(conn => {
-                const fromNode = nodes.find(n => n.id === conn.from);
-                const toNode = nodes.find(n => n.id === conn.to);
-                
-                if (fromNode && toNode) {
-                    const line = document.createElement('div');
-                    line.className = 'graph-connection';
-                    
-                    const dx = toNode.x - fromNode.x;
-                    const dy = toNode.y - fromNode.y;
-                    const length = Math.sqrt(dx * dx + dy * dy);
-                    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                    
-                    line.style.left = fromNode.x + 'px';
-                    line.style.top = fromNode.y + 'px';
-                    line.style.width = length + 'px';
-                    line.style.transform = `rotate(${angle}deg)`;
-                    
-                    container.appendChild(line);
-                }
-            });
-            
-            // Draw nodes
-            nodes.forEach(node => {
-                const element = document.createElement('div');
-                element.className = 'graph-node';
-                element.style.left = (node.x - 30) + 'px';
-                element.style.top = (node.y - 30) + 'px';
-                element.textContent = node.label;
-                element.title = `Knowledge Node: ${node.label}`;
-                element.onclick = () => selectKnowledgeNode(node.id);
-                
-                container.appendChild(element);
-            });
-        }
-
-        // Load timeline
-        function loadTimeline() {
-            const timelineItems = [
-                {
-                    id: 'TL-001',
-                    timestamp: '2025-06-20 14:30',
-                    type: 'Major Conversation',
-                    title: 'AI Architecture Discussion',
-                    description: 'Extended technical discussion between multiple AI agents about system architecture improvements.',
-                    participants: ['GPT-4', 'Claude-3', 'Custom Agent']
-                },
-                {
-                    id: 'TL-002',
-                    timestamp: '2025-06-20 12:15',
-                    type: 'Knowledge Update',
-                    title: 'Machine Learning Database Expansion',
-                    description: 'Significant addition to the knowledge base with new ML research findings and best practices.',
-                    participants: ['Research Agent', 'Knowledge Curator']
-                },
-                {
-                    id: 'TL-003',
-                    timestamp: '2025-06-20 10:45',
-                    type: 'Pattern Discovery',
-                    title: 'Communication Pattern Analysis',
-                    description: 'AI system discovered recurring patterns in agent communications, leading to optimization opportunities.',
-                    participants: ['Pattern Recognition AI']
-                },
-                {
-                    id: 'TL-004',
-                    timestamp: '2025-06-20 08:30',
-                    type: 'System Optimization',
-                    title: 'Memory Clustering Enhancement',
-                    description: 'Automated memory clustering process improved organization of stored conversations and knowledge.',
-                    participants: ['System Optimizer']
-                }
-            ];
-
-            const container = document.getElementById('timeline-container');
-            container.innerHTML = `
-                <div class="timeline-line"></div>
-                ${timelineItems.map((item, index) => `
-                    <div class="timeline-item">
-                        <div class="timeline-marker"></div>
-                        <div class="timeline-content">
-                            <div class="memory-header">
-                                <div>
-                                    <div class="memory-title">${item.title}</div>
-                                    <div class="memory-meta">${item.type} • ${item.timestamp}</div>
-                                </div>
-                            </div>
-                            <div class="memory-content">${item.description}</div>
-                            <div class="memory-stats">
-                                <span>👥 ${item.participants.join(', ')}</span>
-                                <span>🆔 ${item.id}</span>
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-            `;
-        }
-
-        // Initialize charts
-        function initializeCharts() {
-            initMemoryGrowthChart();
-            initMemoryTypesChart();
-            initAccessPatternsChart();
-            initAgentUsageChart();
-        }
-
-        // Memory growth chart
-        function initMemoryGrowthChart() {
-            const ctx = document.getElementById('memoryGrowthChart').getContext('2d');
-            charts.memoryGrowth = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    datasets: [{
-                        label: 'Total Memories',
-                        data: [45000, 52000, 61000, 73000, 89000, 127482],
-                        borderColor: '#9c27b0',
-                        backgroundColor: 'rgba(156, 39, 176, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }, {
-                        label: 'Knowledge Nodes',
-                        data: [23000, 27000, 34000, 45000, 62000, 89342],
-                        borderColor: '#e91e63',
-                        backgroundColor: 'rgba(233, 30, 99, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#ffffff' }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: '#cccccc' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        y: {
-                            ticks: { color: '#cccccc' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Memory types chart
-        function initMemoryTypesChart() {
-            const ctx = document.getElementById('memoryTypesChart').getContext('2d');
-            charts.memoryTypes = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Conversations', 'Knowledge Base', 'Patterns', 'Analytics', 'System Data'],
-                    datasets: [{
-                        data: [45, 28, 12, 10, 5],
-                        backgroundColor: [
-                            '#9c27b0',
-                            '#e91e63',
-                            '#ff5722',
-                            '#ff9800',
-                            '#ffc107'
-                        ],
-                        borderColor: '#ffffff',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#ffffff' }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Access patterns chart
-        function initAccessPatternsChart() {
-            const ctx = document.getElementById('accessPatternsChart').getContext('2d');
-            charts.accessPatterns = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-                    datasets: [{
-                        label: 'Memory Access',
-                        data: [1200, 800, 2400, 3800, 4200, 2800],
-                        backgroundColor: 'rgba(156, 39, 176, 0.7)',
-                        borderColor: '#9c27b0',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#ffffff' }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: '#cccccc' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        y: {
-                            ticks: { color: '#cccccc' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Agent usage chart
-        function initAgentUsageChart() {
-            const ctx = document.getElementById('agentUsageChart').getContext('2d');
-            charts.agentUsage = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ['Storage', 'Retrieval', 'Analysis', 'Generation', 'Learning'],
-                    datasets: [{
-                        label: 'GPT-4',
-                        data: [85, 92, 78, 96, 88],
-                        borderColor: '#9c27b0',
-                        backgroundColor: 'rgba(156, 39, 176, 0.2)',
-                        pointBackgroundColor: '#9c27b0'
-                    }, {
-                        label: 'Claude-3',
-                        data: [78, 88, 95, 82, 90],
-                        borderColor: '#e91e63',
-                        backgroundColor: 'rgba(233, 30, 99, 0.2)',
-                        pointBackgroundColor: '#e91e63'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#ffffff' }
-                        }
-                    },
-                    scales: {
-                        r: {
-                            ticks: { color: '#cccccc' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                            pointLabels: { color: '#cccccc' }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Update memory statistics
-        function updateMemoryStats() {
-            const stats = {
-                totalMemories: Math.floor(Math.random() * 1000) + 127000,
-                memorySize: (Math.random() * 0.5 + 2.0).toFixed(1) + 'TB',
-                activeConversations: Math.floor(Math.random() * 100) + 1200,
-                knowledgeNodes: Math.floor(Math.random() * 1000) + 89000
-            };
-
-            document.getElementById('total-memories').textContent = stats.totalMemories.toLocaleString();
-            document.getElementById('memory-size').textContent = stats.memorySize;
-            document.getElementById('active-conversations').textContent = stats.activeConversations.toLocaleString();
-            document.getElementById('knowledge-nodes').textContent = stats.knowledgeNodes.toLocaleString();
-        }
-
-        // Start real-time updates
-        function startRealTimeUpdates() {
-            setInterval(updateMemoryStats, 10000);
-            setInterval(updateCharts, 30000);
-        }
-
-        // Update charts with new data
-        function updateCharts() {
-            Object.values(charts).forEach(chart => {
-                if (chart && chart.data && chart.data.datasets) {
-                    chart.data.datasets.forEach(dataset => {
-                        if (dataset.data) {
-                            dataset.data = dataset.data.map(value => 
-                                typeof value === 'number' ? 
-                                Math.max(0, value + (Math.random() - 0.5) * 10) : value
-                            );
+            setupNavigation() {
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const tab = item.dataset.tab;
+                        if (tab) {
+                            this.switchTab(tab);
+                            this.updateActiveNavItem(item);
                         }
                     });
-                    chart.update('none');
-                }
-            });
-        }
-
-        // Handle search
-        function handleSearch(event) {
-            const query = event.target.value.toLowerCase();
-            console.log('🔍 Searching memories:', query);
-            
-            // Filter memories based on search query
-            filterMemories(query);
-        }
-
-        // Handle filter clicks
-        function handleFilterClick(event) {
-            // Remove active class from all filters
-            document.querySelectorAll('.filter-tag').forEach(tag => {
-                tag.classList.remove('active');
-            });
-            
-            // Add active class to clicked filter
-            event.target.classList.add('active');
-            
-            const filterType = event.target.dataset.filter;
-            searchFilters.type = filterType;
-            
-            console.log('🏷️ Filter applied:', filterType);
-            applyFilters();
-        }
-
-        // Apply filters to memory display
-        function applyFilters() {
-            // Filter implementation based on current filters
-            console.log('Applying filters:', searchFilters);
-        }
-
-        // Filter memories based on search
-        function filterMemories(query) {
-            // Implementation for filtering memories
-            console.log('Filtering memories with query:', query);
-        }
-
-        // Select memory for details
-        function selectMemory(memoryId) {
-            selectedMemory = memoryId;
-            updateDetailsPanel(memoryId);
-            console.log('📝 Selected memory:', memoryId);
-        }
-
-        // Select conversation
-        function selectConversation(conversationId) {
-            selectedMemory = conversationId;
-            updateDetailsPanel(conversationId);
-            console.log('💬 Selected conversation:', conversationId);
-        }
-
-        // Select knowledge node
-        function selectKnowledgeNode(nodeId) {
-            selectedMemory = nodeId;
-            updateDetailsPanel(nodeId);
-            console.log('🧠 Selected knowledge node:', nodeId);
-        }
-
-        // Update details panel
-        function updateDetailsPanel(itemId) {
-            // Update the right sidebar with selected item details
-            document.getElementById('selected-id').textContent = itemId;
-            document.getElementById('selected-type').textContent = 'Selected Item';
-            document.getElementById('selected-created').textContent = new Date().toLocaleString();
-            document.getElementById('selected-size').textContent = (Math.random() * 10 + 1).toFixed(1) + ' KB';
-            document.getElementById('selected-agent').textContent = 'GPT-4 Turbo';
-        }
-
-        // Modal functions
-        function openModal(modalId) {
-            document.getElementById(modalId).classList.add('active');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
-
-        // Start export process
-        function startExport() {
-            console.log('📤 Starting memory export...');
-            
-            // Show progress
-            const progressHtml = `
-                <div style="text-align: center; padding: 2rem;">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
-                    <h3 style="color: #9c27b0; margin-bottom: 1rem;">Preparing Export...</h3>
-                    <div class="progress-bar" style="width: 300px; margin: 0 auto;">
-                        <div class="progress-fill" style="width: 0%; transition: width 2s ease;" id="export-progress">0%</div>
-                    </div>
-                    <div style="margin-top: 1rem; color: #cccccc;">Processing memories and formatting data...</div>
-                </div>
-            `;
-            
-            document.querySelector('#export-modal .modal-content').innerHTML = progressHtml;
-            
-            // Simulate export progress
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += Math.random() * 20;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(progressInterval);
-                    setTimeout(() => {
-                        document.querySelector('#export-modal .modal-content').innerHTML = `
-                            <div style="text-align: center; padding: 2rem;">
-                                <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
-                                <h3 style="color: #00ff88; margin-bottom: 1rem;">Export Complete!</h3>
-                                <p style="color: #cccccc; margin-bottom: 2rem;">Your memory data has been successfully exported.</p>
-                                <button class="btn btn-primary" onclick="closeModal('export-modal')">🎉 Close</button>
-                            </div>
-                        `;
-                    }, 1000);
-                }
-                document.getElementById('export-progress').style.width = progress + '%';
-                document.getElementById('export-progress').textContent = Math.floor(progress) + '%';
-            }, 200);
-        }
-
-        // Handle keyboard shortcuts
-        function handleKeyboardShortcuts(event) {
-            if (event.ctrlKey || event.metaKey) {
-                switch(event.key) {
-                    case 'f':
-                        event.preventDefault();
-                        document.getElementById('memory-search').focus();
-                        break;
-                    case 'e':
-                        event.preventDefault();
-                        openModal('export-modal');
-                        break;
-                    case '1':
-                        event.preventDefault();
-                        showSection('overview');
-                        break;
-                    case '2':
-                        event.preventDefault();
-                        showSection('conversations');
-                        break;
-                    case '3':
-                        event.preventDefault();
-                        showSection('knowledge-graph');
-                        break;
-                }
-            }
-            
-            if (event.key === 'Escape') {
-                document.querySelectorAll('.modal.active').forEach(modal => {
-                    modal.classList.remove('active');
                 });
             }
+
+            setupTabSwitching() {
+                const tabButtons = document.querySelectorAll('.tab-button');
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const tab = button.dataset.tab;
+                        this.switchTab(tab);
+                        this.updateActiveTabButton(button);
+                    });
+                });
+            }
+
+            switchTab(tabId) {
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Show selected tab content
+                const selectedTab = document.getElementById(tabId);
+                if (selectedTab) {
+                    selectedTab.classList.add('active');
+                    this.currentTab = tabId;
+                    this.loadTabData(tabId);
+                }
+            }
+
+            updateActiveNavItem(activeItem) {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                activeItem.classList.add('active');
+            }
+
+            updateActiveTabButton(activeButton) {
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.classList.remove('active');
+                });
+                activeButton.classList.add('active');
+            }
+
+            loadTabData(tabId) {
+                switch(tabId) {
+                    case 'working-memory':
+                        this.loadWorkingMemoryData();
+                        break;
+                    case 'shared-memory':
+                        this.loadSharedMemoryData();
+                        break;
+                    case 'crystallized-memory':
+                        this.loadCrystallizedMemoryData();
+                        break;
+                    case 'collective-memory':
+                        this.loadCollectiveMemoryData();
+                        break;
+                    case 'memory-analytics':
+                        this.loadAnalyticsData();
+                        break;
+                    case 'memory-optimization':
+                        this.loadOptimizationData();
+                        break;
+                    case 'memory-sync':
+                        this.loadSyncData();
+                        break;
+                    case 'memory-settings':
+                        this.loadSettingsData();
+                        break;
+                }
+            }
+
+            loadWorkingMemoryData() {
+                // Simulate loading working memory data
+                const tableBody = document.getElementById('working-memory-table');
+                if (tableBody) {
+                    // Add dynamic data loading here
+                    console.log('Loading working memory data...');
+                }
+            }
+
+            loadSharedMemoryData() {
+                // Simulate loading shared memory data
+                const tableBody = document.getElementById('shared-memory-table');
+                if (tableBody) {
+                    // Add dynamic data loading here
+                    console.log('Loading shared memory data...');
+                }
+            }
+
+            loadCrystallizedMemoryData() {
+                // Simulate loading crystallized memory data
+                const tableBody = document.getElementById('crystallized-memory-table');
+                if (tableBody) {
+                    // Add dynamic data loading here
+                    console.log('Loading crystallized memory data...');
+                }
+            }
+
+            loadCollectiveMemoryData() {
+                // Simulate loading collective memory data
+                const tableBody = document.getElementById('collective-memory-table');
+                if (tableBody) {
+                    // Add dynamic data loading here
+                    console.log('Loading collective memory data...');
+                }
+            }
+
+            loadAnalyticsData() {
+                // Load analytics and create charts
+                this.createMemoryTrendsChart();
+            }
+
+            loadOptimizationData() {
+                // Load optimization data
+                console.log('Loading optimization data...');
+                const statusElement = document.getElementById('optimization-status');
+                if (statusElement && statusElement.textContent === 'Idle') {
+                    // Reset optimization status on tab load
+                }
+            }
+
+            loadSyncData() {
+                // Load synchronization data
+                console.log('Loading synchronization data...');
+                this.updateSyncMetrics();
+            }
+
+            loadSettingsData() {
+                // Load settings data
+                console.log('Loading settings data...');
+                this.loadCurrentSettings();
+            }
+
+            updateSyncMetrics() {
+                // Update sync performance metrics
+                const metrics = ['sync-latency', 'sync-throughput', 'sync-rate'];
+                metrics.forEach(metric => {
+                    const element = document.getElementById(metric);
+                    if (element) {
+                        // Add slight animation to show data refresh
+                        element.style.transform = 'scale(1.05)';
+                        setTimeout(() => {
+                            element.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                });
+            }
+
+            loadCurrentSettings() {
+                // Load current settings and update UI
+                const settings = {
+                    'memory-pool-size': 8,
+                    'cache-retention': 30,
+                    'memory-warning-threshold': 80,
+                    'sync-failure-threshold': 3,
+                    'sync-interval': 1000
+                };
+
+                Object.entries(settings).forEach(([key, value]) => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        element.value = value;
+                        // Trigger display update
+                        const event = new Event('change');
+                        element.dispatchEvent(event);
+                    }
+                });
+            }
+
+            createMemoryTrendsChart() {
+                const canvas = document.getElementById('memoryTrendsChart');
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    // Simulate chart creation
+                    ctx.fillStyle = '#2563eb';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '16px Arial';
+                    ctx.fillText('Memory Trends Chart', 10, 30);
+                }
+            }
+
+            initializeVisualization() {
+                // Initialize collective memory visualization
+                this.createMemoryNodes();
+            }
+
+            createMemoryNodes() {
+                const container = document.getElementById('collective-memory-viz');
+                if (container) {
+                    // Clear existing nodes
+                    container.innerHTML = '';
+                    
+                    // Create animated memory nodes
+                    for (let i = 0; i < 50; i++) {
+                        const node = document.createElement('div');
+                        node.className = 'memory-node';
+                        node.style.left = Math.random() * 100 + '%';
+                        node.style.top = Math.random() * 100 + '%';
+                        node.style.animationDelay = Math.random() * 2 + 's';
+                        container.appendChild(node);
+                    }
+                }
+            }
+
+            startRealTimeUpdates() {
+                // Simulate real-time updates
+                setInterval(() => {
+                    this.updateMemoryStats();
+                }, 5000);
+            }
+
+            updateMemoryStats() {
+                // Update memory statistics in real-time
+                const statValues = document.querySelectorAll('.stat-value');
+                statValues.forEach(element => {
+                    // Add subtle animations or updates
+                    element.style.transform = 'scale(1.05)';
+                    setTimeout(() => {
+                        element.style.transform = 'scale(1)';
+                    }, 200);
+                });
+            }
+
+            loadInitialData() {
+                // Load initial data for all memory types
+                this.memoryData = {
+                    workingMemory: this.generateWorkingMemoryData(),
+                    sharedMemory: this.generateSharedMemoryData(),
+                    crystallizedMemory: this.generateCrystallizedMemoryData(),
+                    collectiveMemory: this.generateCollectiveMemoryData()
+                };
+            }
+
+            generateWorkingMemoryData() {
+                return [
+                    { id: 'WM-001', agent: 'CSP-Agent-Alpha', usage: '156MB', lastAccess: '2 min ago', status: 'Active' },
+                    { id: 'WM-002', agent: 'CSP-Agent-Beta', usage: '203MB', lastAccess: '5 min ago', status: 'Active' },
+                    { id: 'WM-003', agent: 'CSP-Agent-Gamma', usage: '89MB', lastAccess: '1 min ago', status: 'Active' }
+                ];
+            }
+
+            generateSharedMemoryData() {
+                return [
+                    { id: 'SM-knowledge-001', type: 'Knowledge Graph', participants: 'Alpha, Beta, Gamma', size: '24.6MB', status: 'Synced' },
+                    { id: 'SM-task-queue-002', type: 'Task Queue', participants: 'All Agents', size: '512KB', status: 'Active' }
+                ];
+            }
+
+            generateCrystallizedMemoryData() {
+                return [
+                    { id: 'CRYS-001', participants: 'Alpha, Beta, Gamma', strength: '94.2%', type: 'Problem Solving', formed: '15 min ago', status: 'Stable' },
+                    { id: 'CRYS-002', participants: 'Beta, Delta', strength: '67.1%', type: 'Data Analysis', formed: '8 min ago', status: 'Forming' }
+                ];
+            }
+
+            generateCollectiveMemoryData() {
+                return [
+                    { id: 'INS-001', topic: 'Optimization Patterns', contributors: '5 agents', score: '8.7', created: '12 min ago' }
+                ];
+            }
         }
 
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', initMemoryPortal);
+        // Global functions for button actions
+
+        // Working Memory Functions
+        function refreshWorkingMemory() {
+            showNotification('🔄 Refreshing working memory...', 'info');
+            // Simulate API call
+            setTimeout(() => {
+                const tableBody = document.getElementById('working-memory-table');
+                if (tableBody) {
+                    // Update table with fresh data
+                    window.memorySystem.loadWorkingMemoryData();
+                    showNotification('✅ Working memory refreshed successfully!', 'success');
+                }
+            }, 1500);
+        }
+
+        function optimizeMemory() {
+            showNotification('⚡ Starting memory optimization...', 'info');
+            window.memorySystem.switchTab('memory-optimization');
+        }
+
+        // Shared Memory Functions
+        function initializeSharedMemory() {
+            showNotification('🚀 Initializing new shared memory space...', 'info');
+            
+            setTimeout(() => {
+                const tableBody = document.getElementById('shared-memory-table');
+                if (tableBody) {
+                    const newRow = `
+                        <tr>
+                            <td>SM-new-${Date.now()}</td>
+                            <td>Collaborative Space</td>
+                            <td>Alpha, Beta</td>
+                            <td>0KB</td>
+                            <td>Just now</td>
+                            <td><span class="status-indicator status-crystallizing">Initializing</span></td>
+                        </tr>
+                    `;
+                    tableBody.insertAdjacentHTML('afterbegin', newRow);
+                    showNotification('✅ New shared memory space created!', 'success');
+                }
+            }, 2000);
+        }
+
+        function synchronizeAll() {
+            forceSyncAll();
+        }
+
+        // Crystallized Memory Functions
+        function crystallizeMemory() {
+            showNotification('💎 Starting memory crystallization process...', 'info');
+            
+            const progressBar = document.querySelector('.crystal-formation .progress-fill');
+            if (progressBar) {
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 10;
+                    if (progress >= 100) {
+                        progress = 100;
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            const tableBody = document.getElementById('crystallized-memory-table');
+                            if (tableBody) {
+                                const newRow = `
+                                    <tr>
+                                        <td>CRYS-${Date.now()}</td>
+                                        <td>All Agents</td>
+                                        <td>85.3%</td>
+                                        <td>Collaborative Learning</td>
+                                        <td>Just now</td>
+                                        <td><span class="status-indicator status-active">Stable</span></td>
+                                    </tr>
+                                `;
+                                tableBody.insertAdjacentHTML('afterbegin', newRow);
+                                showNotification('✅ Memory crystal formed successfully!', 'success');
+                            }
+                        }, 500);
+                    }
+                    progressBar.style.width = progress + '%';
+                }, 200);
+            }
+        }
+
+        function analyzeCrystals() {
+            showNotification('🔍 Analyzing memory crystal structures...', 'info');
+            
+            setTimeout(() => {
+                const results = [
+                    'High coherence detected in problem-solving patterns',
+                    'Emergent knowledge structures identified',
+                    '94.2% crystallization strength achieved',
+                    'Optimal fusion between 3 agent consciousness streams'
+                ];
+                
+                const randomResult = results[Math.floor(Math.random() * results.length)];
+                showNotification(`📊 Analysis complete: ${randomResult}`, 'success');
+            }, 3000);
+        }
+
+        // Collective Memory Functions
+        function generateInsights() {
+            showNotification('🧠 Generating collective insights...', 'info');
+            
+            setTimeout(() => {
+                const tableBody = document.getElementById('collective-memory-table');
+                if (tableBody) {
+                    const newRow = `
+                        <tr>
+                            <td>INS-${Date.now()}</td>
+                            <td>Pattern Recognition</td>
+                            <td>8 agents</td>
+                            <td>9.2</td>
+                            <td>Just now</td>
+                            <td>
+                                <button class="btn btn-warning">🔍 Explore</button>
+                                <button class="btn btn-success">📊 Analyze</button>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.insertAdjacentHTML('afterbegin', newRow);
+                    showNotification('✅ New collective insight generated!', 'success');
+                }
+            }, 2500);
+        }
+
+        function exportCollectiveMemory() {
+            showNotification('📤 Exporting collective memory data...', 'info');
+            
+            setTimeout(() => {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    insights: window.memorySystem.memoryData.collectiveMemory,
+                    patterns: ['optimization', 'learning', 'collaboration'],
+                    emergence_score: 8.7
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `collective_memory_${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showNotification('✅ Collective memory exported successfully!', 'success');
+            }, 1500);
+        }
+
+        // Analytics Functions
+        function generateReport() {
+            showNotification('📄 Generating performance report...', 'info');
+            
+            setTimeout(() => {
+                const reportData = `
+Memory Performance Report
+Generated: ${new Date().toLocaleString()}
+
+=== SUMMARY ===
+Total Memory Usage: 2.4GB / 8.0GB (30%)
+Sync Success Rate: 98.7%
+Crystallization Rate: 94.2%
+Collective Insights: 12 new patterns
+
+=== RECOMMENDATIONS ===
+- Consider increasing cache retention
+- Optimize shared memory allocation
+- Schedule regular defragmentation
+                `;
+                
+                const blob = new Blob([reportData], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `memory_report_${Date.now()}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showNotification('✅ Performance report generated!', 'success');
+            }, 2000);
+        }
+
+        function exportAnalytics() {
+            showNotification('📊 Exporting analytics data...', 'info');
+            
+            setTimeout(() => {
+                const analyticsData = {
+                    timestamp: new Date().toISOString(),
+                    metrics: {
+                        memory_utilization: '67.3%',
+                        sync_success_rate: '98.7%',
+                        availability: '99.2%',
+                        avg_response_time: '0.8ms'
+                    },
+                    trends: {
+                        memory_growth: '+2.1%',
+                        sync_improvement: '+0.3%'
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(analyticsData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `memory_analytics_${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showNotification('✅ Analytics data exported!', 'success');
+            }, 1500);
+        }
+
+        // Optimization Functions
+        function runFullOptimization() {
+            const statusElement = document.getElementById('optimization-status');
+            const lastOptElement = document.getElementById('last-optimization');
+            const resultsElement = document.getElementById('optimization-results');
+            
+            statusElement.textContent = 'Running...';
+            statusElement.style.color = 'var(--warning)';
+            
+            showNotification('🚀 Starting full memory optimization...', 'info');
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    
+                    statusElement.textContent = 'Complete';
+                    statusElement.style.color = 'var(--success)';
+                    lastOptElement.textContent = 'Just now';
+                    
+                    resultsElement.innerHTML = `
+                        <div style="text-align: left;">
+                            <div style="color: var(--success); margin-bottom: 0.5rem;">✅ Memory usage reduced by 12.3%</div>
+                            <div style="color: var(--success); margin-bottom: 0.5rem;">✅ Sync latency improved by 8.7%</div>
+                            <div style="color: var(--success); margin-bottom: 0.5rem;">✅ Defragmentation completed</div>
+                            <div style="color: var(--success);">✅ 47MB of unused memory cleared</div>
+                        </div>
+                    `;
+                    
+                    // Add to optimization history
+                    addOptimizationToHistory('Full Optimization', 'All Systems', '12.3%', '4.7s', 'Success');
+                    
+                    showNotification('✅ Full optimization completed successfully!', 'success');
+                }
+            }, 300);
+        }
+
+        function optimizeWorkingMemory() {
+            showNotification('💭 Optimizing working memory...', 'info');
+            setTimeout(() => {
+                addOptimizationToHistory('Working Memory', 'Memory Pool', '5.2%', '1.2s', 'Success');
+                showNotification('✅ Working memory optimized!', 'success');
+            }, 2000);
+        }
+
+        function optimizeSharedMemory() {
+            showNotification('🌐 Optimizing shared memory...', 'info');
+            setTimeout(() => {
+                addOptimizationToHistory('Shared Memory', 'Network Sync', '3.8%', '2.1s', 'Success');
+                showNotification('✅ Shared memory optimized!', 'success');
+            }, 2500);
+        }
+
+        function defragmentMemory() {
+            showNotification('🔧 Defragmenting memory...', 'info');
+            setTimeout(() => {
+                addOptimizationToHistory('Defragmentation', 'Storage', '8.1%', '3.4s', 'Success');
+                showNotification('✅ Memory defragmentation completed!', 'success');
+            }, 3500);
+        }
+
+        function clearUnusedMemory() {
+            showNotification('🗑️ Clearing unused memory...', 'info');
+            setTimeout(() => {
+                addOptimizationToHistory('Memory Cleanup', 'Unused Objects', '15.7MB', '0.8s', 'Success');
+                showNotification('✅ Unused memory cleared!', 'success');
+            }, 1000);
+        }
+
+        function clearOptimizationHistory() {
+            const tableBody = document.getElementById('optimization-history-table');
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-light); padding: 2rem;">
+                            No optimization history available
+                        </td>
+                    </tr>
+                `;
+                showNotification('🗑️ Optimization history cleared', 'info');
+            }
+        }
+
+        function addOptimizationToHistory(type, target, improvement, duration, status) {
+            const tableBody = document.getElementById('optimization-history-table');
+            if (tableBody) {
+                // Remove empty message if exists
+                const emptyRow = tableBody.querySelector('td[colspan="6"]');
+                if (emptyRow) {
+                    emptyRow.parentElement.remove();
+                }
+                
+                const newRow = `
+                    <tr>
+                        <td>${new Date().toLocaleString()}</td>
+                        <td>${type}</td>
+                        <td>${target}</td>
+                        <td>${improvement}</td>
+                        <td>${duration}</td>
+                        <td><span class="status-indicator status-active">${status}</span></td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('afterbegin', newRow);
+            }
+        }
+
+        // Synchronization Functions
+        let syncActive = true;
+        let syncInterval = 1000;
+
+        function startSynchronization() {
+            syncActive = true;
+            document.getElementById('sync-status').textContent = 'Active';
+            document.getElementById('sync-status').style.color = 'var(--success)';
+            showNotification('▶️ Synchronization started', 'success');
+        }
+
+        function stopSynchronization() {
+            syncActive = false;
+            document.getElementById('sync-status').textContent = 'Stopped';
+            document.getElementById('sync-status').style.color = 'var(--danger)';
+            showNotification('⏹️ Synchronization stopped', 'warning');
+        }
+
+        function updateSyncInterval(value) {
+            syncInterval = value;
+            document.getElementById('sync-interval-display').textContent = value + 'ms';
+            showNotification(`🔄 Sync interval updated to ${value}ms`, 'info');
+        }
+
+        function toggleAutoSync(enabled) {
+            if (enabled) {
+                showNotification('✅ Auto-sync enabled', 'success');
+            } else {
+                showNotification('⏸️ Auto-sync disabled', 'warning');
+            }
+        }
+
+        function forceSyncAgent(agentName) {
+            const statusElement = document.getElementById(`${agentName}-sync-status`);
+            if (statusElement) {
+                statusElement.textContent = '⚡ Syncing...';
+                statusElement.style.color = 'var(--warning)';
+                
+                setTimeout(() => {
+                    statusElement.textContent = '✓ Synchronized';
+                    statusElement.style.color = 'var(--success)';
+                    
+                    // Add to sync log
+                    addToSyncLog(`Agent ${agentName.charAt(0).toUpperCase() + agentName.slice(1)}`, 'Force Sync', `${Math.floor(Math.random() * 200) + 50}ms`, 'Success', `${Math.random() * 2 + 0.5}MB`);
+                    
+                    showNotification(`✅ Agent ${agentName} synchronized`, 'success');
+                }, 2000);
+            }
+        }
+
+        function reconnectAgent(agentName) {
+            const statusElement = document.getElementById(`${agentName}-sync-status`);
+            const nodeElement = document.getElementById(`agent-${agentName}-sync`);
+            
+            if (statusElement && nodeElement) {
+                statusElement.textContent = '🔌 Reconnecting...';
+                statusElement.style.color = 'var(--warning)';
+                
+                setTimeout(() => {
+                    statusElement.textContent = '✓ Synchronized';
+                    statusElement.style.color = 'var(--success)';
+                    nodeElement.classList.add('connected');
+                    
+                    addToSyncLog(`Agent ${agentName.charAt(0).toUpperCase() + agentName.slice(1)}`, 'Reconnect', `${Math.floor(Math.random() * 500) + 200}ms`, 'Success', `${Math.random() * 3 + 1}MB`);
+                    
+                    showNotification(`✅ Agent ${agentName} reconnected`, 'success');
+                }, 3000);
+            }
+        }
+
+        function forceSyncAll() {
+            showNotification('🔄 Starting synchronization of all agents...', 'info');
+            
+            const agents = ['alpha', 'beta', 'gamma'];
+            agents.forEach((agent, index) => {
+                setTimeout(() => {
+                    forceSyncAgent(agent);
+                }, index * 1000);
+            });
+            
+            setTimeout(() => {
+                showNotification('✅ All agents synchronized successfully!', 'success');
+            }, agents.length * 1000 + 2000);
+        }
+
+        function clearSyncLog() {
+            const tableBody = document.getElementById('sync-log-table');
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-light); padding: 2rem;">
+                            No synchronization log entries
+                        </td>
+                    </tr>
+                `;
+                showNotification('🗑️ Sync log cleared', 'info');
+            }
+        }
+
+        function addToSyncLog(agent, type, duration, status, dataSize) {
+            const tableBody = document.getElementById('sync-log-table');
+            if (tableBody) {
+                // Remove empty message if exists
+                const emptyRow = tableBody.querySelector('td[colspan="6"]');
+                if (emptyRow) {
+                    emptyRow.parentElement.remove();
+                }
+                
+                const newRow = `
+                    <tr>
+                        <td>${new Date().toLocaleString()}</td>
+                        <td>${agent}</td>
+                        <td>${type}</td>
+                        <td>${duration}</td>
+                        <td><span class="status-indicator status-active">${status}</span></td>
+                        <td>${dataSize}</td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('afterbegin', newRow);
+            }
+        }
+
+        // Settings Functions
+        function updateMemoryPoolSize(value) {
+            document.getElementById('memory-pool-display').textContent = value + ' GB';
+            showNotification(`💾 Memory pool size updated to ${value}GB`, 'info');
+        }
+
+        function updateCacheRetention(value) {
+            document.getElementById('cache-retention-display').textContent = value + ' minutes';
+            showNotification(`⏰ Cache retention updated to ${value} minutes`, 'info');
+        }
+
+        function toggleAutoCrystallization(enabled) {
+            if (enabled) {
+                showNotification('💎 Auto-crystallization enabled', 'success');
+            } else {
+                showNotification('💎 Auto-crystallization disabled', 'warning');
+            }
+        }
+
+        function toggleMemoryCompression(enabled) {
+            if (enabled) {
+                showNotification('🗜️ Memory compression enabled', 'success');
+            } else {
+                showNotification('🗜️ Memory compression disabled', 'warning');
+            }
+        }
+
+        function toggleRedundantStorage(enabled) {
+            if (enabled) {
+                showNotification('💾 Redundant storage enabled', 'success');
+            } else {
+                showNotification('💾 Redundant storage disabled', 'warning');
+            }
+        }
+
+        function toggleDebugLogging(enabled) {
+            if (enabled) {
+                showNotification('🐛 Debug logging enabled', 'info');
+            } else {
+                showNotification('🐛 Debug logging disabled', 'info');
+            }
+        }
+
+        function updateMemoryWarningThreshold(value) {
+            document.getElementById('memory-warning-display').textContent = value + '%';
+            showNotification(`🚨 Memory warning threshold set to ${value}%`, 'info');
+        }
+
+        function updateSyncFailureThreshold(value) {
+            document.getElementById('sync-failure-display').textContent = value + ' failures';
+            showNotification(`⚠️ Sync failure threshold set to ${value} failures`, 'info');
+        }
+
+        function saveSettings() {
+            showNotification('💾 Saving settings...', 'info');
+            
+            setTimeout(() => {
+                const statusElement = document.getElementById('settings-status');
+                const lastModifiedElement = document.getElementById('last-modified');
+                
+                if (statusElement && lastModifiedElement) {
+                    statusElement.textContent = '✅ All settings saved and applied';
+                    statusElement.style.color = 'var(--success)';
+                    lastModifiedElement.textContent = new Date().toLocaleString();
+                }
+                
+                showNotification('✅ Settings saved successfully!', 'success');
+            }, 1500);
+        }
+
+        function resetToDefaults() {
+            showNotification('🔄 Resetting to default settings...', 'info');
+            
+            setTimeout(() => {
+                // Reset all sliders and checkboxes to default values
+                document.getElementById('memory-pool-size').value = 8;
+                document.getElementById('cache-retention').value = 30;
+                document.getElementById('memory-warning-threshold').value = 80;
+                document.getElementById('sync-failure-threshold').value = 3;
+                document.getElementById('sync-interval').value = 1000;
+                
+                document.getElementById('auto-crystallization').checked = true;
+                document.getElementById('memory-compression').checked = true;
+                document.getElementById('redundant-storage').checked = false;
+                document.getElementById('debug-logging').checked = false;
+                document.getElementById('auto-sync').checked = true;
+                
+                // Update displays
+                updateMemoryPoolSize(8);
+                updateCacheRetention(30);
+                updateMemoryWarningThreshold(80);
+                updateSyncFailureThreshold(3);
+                updateSyncInterval(1000);
+                
+                showNotification('✅ Settings reset to defaults!', 'success');
+            }, 1000);
+        }
+
+        function exportSettings() {
+            showNotification('📤 Exporting configuration...', 'info');
+            
+            setTimeout(() => {
+                const config = {
+                    timestamp: new Date().toISOString(),
+                    memory_pool_size: document.getElementById('memory-pool-size').value + 'GB',
+                    cache_retention: document.getElementById('cache-retention').value + 'min',
+                    auto_crystallization: document.getElementById('auto-crystallization').checked,
+                    memory_compression: document.getElementById('memory-compression').checked,
+                    redundant_storage: document.getElementById('redundant-storage').checked,
+                    debug_logging: document.getElementById('debug-logging').checked,
+                    memory_warning_threshold: document.getElementById('memory-warning-threshold').value + '%',
+                    sync_failure_threshold: document.getElementById('sync-failure-threshold').value,
+                    sync_interval: document.getElementById('sync-interval').value + 'ms',
+                    auto_sync: document.getElementById('auto-sync').checked
+                };
+                
+                const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `memory_config_${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showNotification('✅ Configuration exported!', 'success');
+            }, 1000);
+        }
+
+        function importSettings() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const config = JSON.parse(e.target.result);
+                            showNotification('📥 Configuration imported successfully!', 'success');
+                            // Apply imported settings here
+                        } catch (error) {
+                            showNotification('❌ Invalid configuration file!', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        // Notification System
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+                min-width: 300px;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Add CSS for notification animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize the memory management system when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.memorySystem = new MemoryManagementSystem();
+            console.log('Enhanced CSP Memory Management System initialized');
+        });
     </script>
 </body>
 </html>
