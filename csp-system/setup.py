@@ -8,8 +8,12 @@ Advanced AI-to-AI Communication Platform
 from setuptools import setup, find_packages
 from pathlib import Path
 
-# Read README
-long_description = (Path(__file__).parent / "README.md").read_text()
+# Read README with error handling
+readme_path = Path(__file__).parent / "README.md"
+if readme_path.exists():
+    long_description = readme_path.read_text()
+else:
+    long_description = "Advanced AI-to-AI Communication Platform using CSP"
 
 # Read requirements
 requirements = [
@@ -80,29 +84,28 @@ setup(
             "csp=cli.csp_cli:main",
             "csp-server=runtime.server:main",
             "csp-dashboard=web_ui.dashboard.app:main",
+            "csp-agent=core.agent:main",
+            "csp-monitor=monitoring.monitor:main",
         ],
     },
+    python_requires=">=3.9",
     classifiers=[
-        "Development Status :: 5 - Production/Stable",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: System :: Distributed Computing",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Operating System :: OS Independent",
     ],
-    python_requires=">=3.8",
-    keywords=[
-        "ai", "communication", "csp", "agents", "distributed-systems", 
-        "process-algebra", "quantum-computing", "formal-verification"
-    ],
+    keywords="ai communication csp distributed-systems multi-agent",
     project_urls={
-        "Documentation": "https://docs.csp-system.org",
-        "Bug Tracker": "https://github.com/csp-system/csp-system/issues",
-        "Source Code": "https://github.com/csp-system/csp-system",
+        "Bug Reports": "https://github.com/csp-system/csp-system/issues",
+        "Source": "https://github.com/csp-system/csp-system",
+        "Documentation": "https://csp-system.readthedocs.io/",
     },
 )

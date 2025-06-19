@@ -4,3 +4,9 @@ csp-agent-network.zip
 /__pycache__/**
 
 
+csp-system/csp_system.egg-info/dependency_links.txt
+csp-system/csp_system.egg-info/entry_points.txt
+csp-system/csp_system.egg-info/PKG-INFO
+csp-system/csp_system.egg-info/requires.txt
+csp-system/csp_system.egg-info/SOURCES.txt
+csp-system/csp_system.egg-info/top_level.txt
