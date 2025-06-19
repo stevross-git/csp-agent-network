@@ -10,3 +10,8 @@ csp-system/csp_system.egg-info/PKG-INFO
 csp-system/csp_system.egg-info/requires.txt
 csp-system/csp_system.egg-info/SOURCES.txt
 csp-system/csp_system.egg-info/top_level.txt
+data/csp_system.db
+enhanced_csp/__pycache__/__init__.cpython-310.pyc
+enhanced_csp/__pycache__/main.cpython-310.pyc
+enhanced_csp/database/__pycache__/__init__.cpython-310.pyc
+enhanced_csp/database/__pycache__/migrate.cpython-310.pyc
