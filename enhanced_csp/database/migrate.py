@@ -11,6 +11,7 @@ import os
 import sys
 import time
 import sqlite3
+import asyncio
 from pathlib import Path
 from typing import Dict, Any
 
@@ -310,6 +311,12 @@ def main():
     else:
         print("\n❌ Database migration failed!")
         return 1
+
+
+async def migrate_main() -> None:
+    """Asynchronous entry point used by the main application."""
+    migrator = DatabaseMigrator()
+    await asyncio.to_thread(migrator.run_migrations)
 
 
 if __name__ == "__main__":

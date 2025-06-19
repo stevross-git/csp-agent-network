@@ -44,13 +44,13 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.syntax import Syntax
 
 # Import all our CSP system components
-from advanced_csp_core import AdvancedCSPEngine
-from csp_ai_extensions import AdvancedCSPEngineWithAI
-from csp_ai_integration import CSPVisualDesigner, CSPDebugger
-from csp_runtime_environment import CSPRuntimeOrchestrator, RuntimeConfig
-from csp_deployment_system import CSPDeploymentOrchestrator, DeploymentConfig
-from csp_dev_tools import CSPDevelopmentTools
-from csp_real_world_showcase import CSPShowcaseRunner
+from core.advanced_csp_core import AdvancedCSPEngine
+from ai_extensions.csp_ai_extensions import AdvancedCSPEngineWithAI
+from ai_integration.csp_ai_integration import CSPVisualDesigner, CSPDebugger
+from runtime.csp_runtime_environment import CSPRuntimeOrchestrator, RuntimeConfig
+from deployment.csp_deployment_system import CSPDeploymentOrchestrator, DeploymentConfig
+from dev_tools.csp_dev_tools import CSPDevelopmentTools
+from applications.csp_real_world_showcase import CSPShowcaseRunner
 
 # ============================================================================
 # INSTALLATION AND SETUP SYSTEM
@@ -363,7 +363,7 @@ class CSPInstaller:
     
     async def _test_channel_communication(self):
         """Test channel communication"""
-        from advanced_csp_core import ChannelType, Event
+        from core.advanced_csp_core import ChannelType, Event
         
         engine = AdvancedCSPEngine()
         channel = engine.create_channel("test_channel", ChannelType.SYNCHRONOUS)
@@ -375,7 +375,7 @@ class CSPInstaller:
     
     async def _test_process_execution(self):
         """Test process execution"""
-        from advanced_csp_core import AtomicProcess
+        from core.advanced_csp_core import AtomicProcess
         
         async def test_action(context):
             return "test_result"
@@ -577,7 +577,7 @@ def create_process(name, template):
     # Generate process code
     if template == 'basic':
         process_code = f'''
-from advanced_csp_core import AtomicProcess
+from core.advanced_csp_core import AtomicProcess
 
 async def {name}_action(context):
     """Action for {name} process"""

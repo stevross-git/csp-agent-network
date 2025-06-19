@@ -94,13 +94,13 @@ try:
         CompositionOperator, ChannelType, Event, ProcessSignature,
         ProcessContext, Channel, ProcessMatcher, ProtocolEvolution
     )
-    from ai_integration.csp_ai_extensions import (
+    from ai_extensions.csp_ai_extensions import (
         AdvancedCSPEngineWithAI, ProtocolSpec, ProtocolTemplate,
-        EmergentBehaviorDetector, CausalityTracker, QuantumCSPChannel
+        EmergentBehaviorDetector, CausalityTracker
     )
     from ai_integration.csp_ai_integration import (
         AIAgent, LLMCapability, CollaborativeAIProcess,
-        MultiAgentReasoningCoordinator, AdvancedAICSPDemo
+        AdvancedAICSPDemo
     )
     from runtime.csp_runtime_environment import (
         CSPRuntimeOrchestrator, RuntimeConfig, ExecutionModel, 
@@ -123,7 +123,7 @@ except ImportError as e:
     logging.error(f"Failed to import CSP components: {e}")
     logging.error("Some features may not be available")# Database migrations are required even if optional components fail to import
 try:
-    from database.migrate import migrate_main as run_migrations
+    from database import migrate_main as run_migrations
 except Exception as e:  # ensure a definition exists
     logging.error(f"Database migration module unavailable: {e}")
 
@@ -267,11 +267,11 @@ system_state = SystemState()
 # ============================================================================
 
 # Prometheus metrics
-REQUEST_COUNT = Counter('csp_requests_total', 'Total requests', ['method', 'endpoint'])
-REQUEST_DURATION = Histogram('csp_request_duration_seconds', 'Request duration')
-ACTIVE_PROCESSES = Gauge('csp_active_processes', 'Number of active CSP processes')
-SYSTEM_HEALTH = Gauge('csp_system_health', 'System health score (0-1)')
-WEBSOCKET_CONNECTIONS = Gauge('csp_websocket_connections', 'Active WebSocket connections')
+REQUEST_COUNT = Counter('csp_requests_total', 'Total requests', ['method', 'endpoint']) if Counter else None
+REQUEST_DURATION = Histogram('csp_request_duration_seconds', 'Request duration') if Histogram else None
+ACTIVE_PROCESSES = Gauge('csp_active_processes', 'Number of active CSP processes') if Gauge else None
+SYSTEM_HEALTH = Gauge('csp_system_health', 'System health score (0-1)') if Gauge else None
+WEBSOCKET_CONNECTIONS = Gauge('csp_websocket_connections', 'Active WebSocket connections') if Gauge else None
 
 class MetricsMiddleware:
     """Middleware for collecting metrics"""
@@ -352,13 +352,7 @@ async def initialize_csp_system():
         
         # 2. Initialize AI-enhanced engine
         if config.ai.enable_llm_integration:
-            system_state.ai_engine = AdvancedCSPEngineWithAI(
-                base_engine=system_state.csp_engine,
-                llm_config={
-                    'model': config.ai.default_model,
-                    'timeout': config.ai.reasoning_timeout
-                }
-            )
+            system_state.ai_engine = AdvancedCSPEngineWithAI()
             logger.info("✅ AI-enhanced CSP engine initialized")
         
         # 3. Initialize runtime orchestrator

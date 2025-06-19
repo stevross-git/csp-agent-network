@@ -41,15 +41,15 @@ import ast
 import inspect
 
 # Import our CSP components
-from advanced_csp_core import (
-    AdvancedCSPEngine, Process, ProcessContext, Channel, Event, 
+from core.advanced_csp_core import (
+    AdvancedCSPEngine, Process, ProcessContext, Channel, Event,
     CompositionOperator, ChannelType, ProcessSignature
 )
-from csp_ai_extensions import (
+from ai_extensions.csp_ai_extensions import (
     AdvancedCSPEngineWithAI, ProtocolSpec, ProtocolTemplate,
     EmergentBehaviorDetector, CausalityTracker
 )
-from csp_runtime_environment import (
+from runtime.csp_runtime_environment import (
     CSPRuntimeOrchestrator, RuntimeConfig, ExecutionModel, SchedulingPolicy
 )
 
@@ -407,7 +407,7 @@ Auto-generated from visual design
 """
 
 import asyncio
-from advanced_csp_core import (
+from core.advanced_csp_core import (
     AdvancedCSPEngine, Process, AtomicProcess, CompositeProcess,
     CompositionOperator, ChannelType, Event, ProcessContext
 )
@@ -1398,7 +1398,7 @@ class CSPРЕPL:
                 print(f"Process {name} executed")
                 return f"Result from {name}"
             
-            from advanced_csp_core import AtomicProcess
+            from core.advanced_csp_core import AtomicProcess
             process = AtomicProcess(name, simple_action)
             
             await self.csp_engine.base_engine.start_process(process)

@@ -18,14 +18,22 @@ Features:
 """
 
 import asyncio
-import uvloop  # High-performance event loop
+try:
+    import uvloop  # High-performance event loop
+except Exception:  # pragma: no cover - optional dependency
+    uvloop = None
 import multiprocessing as mp
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import threading
 import queue
 import time
-import psutil
+try:
+    import psutil
+except Exception:  # pragma: no cover - optional dependency
+    psutil = None
 import logging
+if uvloop is None:
+    logging.warning("uvloop not available; falling back to asyncio loop")
 from typing import Dict, List, Any, Optional, Union, Callable, Tuple
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -36,8 +44,14 @@ import zlib
 import numpy as np
 import networkx as nx
 from abc import ABC, abstractmethod
-import aiohttp
-import websockets
+try:
+    import aiohttp
+except Exception:  # pragma: no cover - optional dependency
+    aiohttp = None
+try:
+    import websockets
+except Exception:  # pragma: no cover - optional dependency
+    websockets = None
 import signal
 import sys
 import os
@@ -46,11 +60,11 @@ import weakref
 import gc
 
 # Import our CSP components
-from advanced_csp_core import (
+from core.advanced_csp_core import (
     AdvancedCSPEngine, Process, ProcessContext, Channel, Event, ProcessState
 )
-from csp_ai_extensions import AdvancedCSPEngineWithAI
-from csp_ai_integration import AIAgent, CollaborativeAIProcess
+from ai_extensions.csp_ai_extensions import AdvancedCSPEngineWithAI
+from ai_integration.csp_ai_integration import AIAgent, CollaborativeAIProcess
 
 # ============================================================================
 # RUNTIME EXECUTION MODELS
