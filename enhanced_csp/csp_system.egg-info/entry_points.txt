@@ -1,0 +1,6 @@
+[console_scripts]
+csp = cli.csp_cli:main
+csp-agent = core.agent:main
+csp-dashboard = web_ui.dashboard.app:main
+csp-monitor = monitoring.monitor:main
+csp-server = runtime.server:main

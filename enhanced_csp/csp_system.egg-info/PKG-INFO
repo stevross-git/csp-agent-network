@@ -1,0 +1,104 @@
+Metadata-Version: 2.4
+Name: csp-system
+Version: 1.0.0
+Summary: Revolutionary AI-to-AI Communication Platform using CSP
+Home-page: https://github.com/csp-system/csp-system
+Author: CSP System Team
+Author-email: team@csp-system.org
+Project-URL: Bug Reports, https://github.com/csp-system/csp-system/issues
+Project-URL: Source, https://github.com/csp-system/csp-system
+Project-URL: Documentation, https://csp-system.readthedocs.io/
+Keywords: ai communication csp distributed-systems multi-agent
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: System :: Distributed Computing
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: asyncio>=3.4.3
+Requires-Dist: aiohttp>=3.8.0
+Requires-Dist: numpy>=1.24.0
+Requires-Dist: networkx>=3.1.0
+Requires-Dist: pydantic>=1.10.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: fastapi>=0.95.0
+Requires-Dist: click>=8.1.0
+Requires-Dist: rich>=13.3.0
+Requires-Dist: websockets>=11.0
+Requires-Dist: redis>=4.5.0
+Requires-Dist: prometheus-client>=0.16.0
+Requires-Dist: kubernetes>=26.0.0
+Requires-Dist: docker>=6.0.0
+Requires-Dist: cryptography>=40.0.0
+Requires-Dist: psutil>=5.9.0
+Requires-Dist: uvicorn>=0.22.0
+Requires-Dist: jinja2>=3.1.0
+Requires-Dist: matplotlib>=3.7.0
+Requires-Dist: plotly>=5.14.0
+Requires-Dist: flask>=2.3.0
+Requires-Dist: flask-cors>=4.0.0
+Requires-Dist: flask-socketio>=5.3.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.3.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: black>=23.3.0; extra == "dev"
+Requires-Dist: flake8>=6.0.0; extra == "dev"
+Requires-Dist: mypy>=1.3.0; extra == "dev"
+Requires-Dist: isort>=5.12.0; extra == "dev"
+Requires-Dist: bandit>=1.7.0; extra == "dev"
+Requires-Dist: pre-commit>=3.3.0; extra == "dev"
+Provides-Extra: full
+Requires-Dist: asyncio>=3.4.3; extra == "full"
+Requires-Dist: aiohttp>=3.8.0; extra == "full"
+Requires-Dist: numpy>=1.24.0; extra == "full"
+Requires-Dist: networkx>=3.1.0; extra == "full"
+Requires-Dist: pydantic>=1.10.0; extra == "full"
+Requires-Dist: pyyaml>=6.0; extra == "full"
+Requires-Dist: fastapi>=0.95.0; extra == "full"
+Requires-Dist: click>=8.1.0; extra == "full"
+Requires-Dist: rich>=13.3.0; extra == "full"
+Requires-Dist: websockets>=11.0; extra == "full"
+Requires-Dist: redis>=4.5.0; extra == "full"
+Requires-Dist: prometheus-client>=0.16.0; extra == "full"
+Requires-Dist: kubernetes>=26.0.0; extra == "full"
+Requires-Dist: docker>=6.0.0; extra == "full"
+Requires-Dist: cryptography>=40.0.0; extra == "full"
+Requires-Dist: psutil>=5.9.0; extra == "full"
+Requires-Dist: uvicorn>=0.22.0; extra == "full"
+Requires-Dist: jinja2>=3.1.0; extra == "full"
+Requires-Dist: matplotlib>=3.7.0; extra == "full"
+Requires-Dist: plotly>=5.14.0; extra == "full"
+Requires-Dist: flask>=2.3.0; extra == "full"
+Requires-Dist: flask-cors>=4.0.0; extra == "full"
+Requires-Dist: flask-socketio>=5.3.0; extra == "full"
+Requires-Dist: pytest>=7.3.0; extra == "full"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "full"
+Requires-Dist: pytest-cov>=4.0.0; extra == "full"
+Requires-Dist: black>=23.3.0; extra == "full"
+Requires-Dist: flake8>=6.0.0; extra == "full"
+Requires-Dist: mypy>=1.3.0; extra == "full"
+Requires-Dist: isort>=5.12.0; extra == "full"
+Requires-Dist: bandit>=1.7.0; extra == "full"
+Requires-Dist: pre-commit>=3.3.0; extra == "full"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: project-url
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+Advanced AI-to-AI Communication Platform using CSP
