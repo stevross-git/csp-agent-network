@@ -116,35 +116,31 @@ class CSPRuntimeExecutor:
         self.performance_monitor = PerformanceMonitor()
         self.resource_manager = ResourceManager(config.memory_limit_gb)
         
+        
+           
+        
+        # --- remove the unnecessary outer try/except pair here ---
+        if config.execution_model in [ExecutionModel.MULTI_THREADED, ExecutionModel.HYBRID]:
+            # Set up event-loop optimisation
+            if uvloop is not None:
+                try:
+                    uvloop.install()
+                    logging.info("Using uvloop for high performance")
+                except Exception as e:
+                    logging.warning(f"Failed to install uvloop: {e}")
+            else:
+                logging.warning("uvloop not available; using default event loop")
+        # ------------------------------------------------------------------
+        
         # Runtime state
         self.is_running = False
         self.shutdown_event = asyncio.Event()
         self.process_queue = asyncio.Queue()
         self.execution_stats = defaultdict(int)
         
-        # Setup event loop optimization
-        if config.execution_model in [ExecutionModel.MULTI_THREADED, ExecutionModel.HYBRID]:
-            try:
-                # Setup event loop optimization
-                # Setup event loop optimization
-                if self.config.execution_model in [ExecutionModel.MULTI_THREADED, ExecutionModel.HYBRID]:
-                    if uvloop is not None:
-                        try:
-                            uvloop.install()
-                            logging.info("Using uvloop for high performance")
-                        except Exception:
-                            logging.warning("Failed to install uvloop")
-                    else:
-                        logging.warning("uvloop not available")
-                    try:
-                        uvloop.install()
-                        logging.info("Using uvloop for high performance")
-                    except Exception as e:
-                        logging.warning(f"Failed to install uvloop: {e}")
-                else:
-                    logging.warning("uvloop not available, using default event loop")
+
     
-async def start(self):
+    async def start(self):
         """Start the CSP runtime executor"""
         if self.is_running:
             return
