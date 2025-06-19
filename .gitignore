@@ -15,3 +15,4 @@ enhanced_csp/__pycache__/__init__.cpython-310.pyc
 enhanced_csp/__pycache__/main.cpython-310.pyc
 enhanced_csp/database/__pycache__/__init__.cpython-310.pyc
 enhanced_csp/database/__pycache__/migrate.cpython-310.pyc
+enhanced_csp/data/csp_system.db
