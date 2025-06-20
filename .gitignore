@@ -40,3 +40,6 @@ enhanced_csp/backend/database/__pycache__/connection.cpython-310.pyc
 enhanced_csp/backend/execution/__pycache__/execution_engine.cpython-310.pyc
 enhanced_csp/backend/models/__pycache__/database_models.cpython-310.pyc
 enhanced_csp/backend/realtime/__pycache__/websocket_manager.cpython-310.pyc
+enhanced_csp/backend/__pycache__/main.cpython-310.pyc
+enhanced_csp/backend/api/endpoints/__pycache__/designs.cpython-310.pyc
+enhanced_csp/backend/schemas/__pycache__/api_schemas.cpython-310.pyc

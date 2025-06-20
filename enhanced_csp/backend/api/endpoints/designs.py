@@ -24,7 +24,7 @@ from backend.schemas.api_schemas import (
     ExecutionConfig, ExecutionResponse, BaseResponse, ErrorResponse
 )
 from backend.database.connection import get_db_session
-from backend.auth.dependencies import get_current_user
+from backend.auth.auth_system import get_current_user
 
 # Create router
 router = APIRouter(prefix="/api/designs", tags=["designs"])

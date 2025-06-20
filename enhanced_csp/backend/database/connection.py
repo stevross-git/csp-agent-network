@@ -17,7 +17,14 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     AsyncEngine
 )
-from sqlalchemy.pool import QueuePool, NullPool
+# Use the async-adapted queue pool for SQLAlchemy async engine
+# Import the async-compatible queue pool. Older SQLAlchemy versions expose it
+# from sqlalchemy.ext.asyncio while newer versions provide it in sqlalchemy.pool
+try:
+    from sqlalchemy.pool import AsyncAdaptedQueuePool, NullPool
+except ImportError:  # pragma: no cover - fallback for older SQLAlchemy
+    from sqlalchemy.ext.asyncio import AsyncAdaptedQueuePool
+    from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import event, text
 import redis.asyncio as redis
