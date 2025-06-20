@@ -91,7 +91,7 @@ class UserSession:
 class ConnectionManager:
     """WebSocket connection manager with Redis pub/sub for scaling"""
     
-    def __init__(self, redis_client: Optional[redis.Redis] = None):
+    def __init__(self, redis_client: Optional[redis.Redis] = None, start_tasks: bool = False):
         self.redis_client = redis_client
         self.active_connections: Dict[str, UserSession] = {}
         self.design_subscribers: Dict[UUID, Set[str]] = defaultdict(set)
@@ -99,9 +99,14 @@ class ConnectionManager:
         self.cleanup_task: Optional[asyncio.Task] = None
         self.heartbeat_interval = 30  # seconds
         self.session_timeout = 300  # 5 minutes
-        
-        # Start background tasks
-        self._start_background_tasks()
+
+        if start_tasks:
+            self._start_background_tasks()
+
+    def start_background_tasks(self):
+        """Public method to start background maintenance tasks"""
+        if not self.cleanup_task:
+            self._start_background_tasks()
     
     def _start_background_tasks(self):
         """Start background maintenance tasks"""
@@ -593,6 +598,7 @@ async def init_websocket_manager(redis_client: redis.Redis):
     """Initialize the WebSocket manager with Redis client"""
     global connection_manager
     connection_manager.redis_client = redis_client
+    connection_manager.start_background_tasks()
     logger.info("✅ WebSocket manager initialized with Redis support")
 
 async def shutdown_websocket_manager():

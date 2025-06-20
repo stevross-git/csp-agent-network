@@ -349,7 +349,7 @@ class MetricsResponse(BaseResponse):
 class UserCreate(BaseModel):
     """Schema for user creation"""
     username: str = Field(..., min_length=3, max_length=100)
-    email: str = Field(..., regex=r'^[\w\.-]+@[\w\.-]+\.\w+$')
+    email: str = Field(..., pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
     password: str = Field(..., min_length=8)
     full_name: Optional[str] = Field(None, max_length=255)
 
