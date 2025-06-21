@@ -216,7 +216,7 @@ pandas-datareader==0.10.0
 
 # Scientific Computing
 sympy
-numba==0.58.1
+numba
 cython==3.0.5
 
 # Web Scraping and Data Collection
