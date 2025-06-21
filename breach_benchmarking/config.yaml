@@ -1,0 +1,33 @@
+# Enhanced CSP Breach Benchmarking Configuration
+system:
+  name: "Enhanced CSP Security Assessment"
+  target_host: "localhost"
+  target_port: 8000
+  
+integration:
+  csp_apis:
+    threat_detection: "http://localhost:8001/api/threat-detection"
+    monitoring: "http://localhost:8002/api/monitoring"
+    alerts: "http://localhost:8004/api/alerts"
+    
+benchmark:
+  scenarios:
+    - "sql_injection"
+    - "brute_force"
+    - "ddos_simulation"
+    - "csp_process_injection"
+    - "lateral_movement"
+    
+  execution:
+    parallel: true
+    max_concurrent: 3
+    timeout: 300
+    
+reporting:
+  formats: ["json", "html", "pdf"]
+  output_dir: "./reports"
+  
+monitoring:
+  real_time: true
+  metrics_interval: 5
+  alert_integration: true

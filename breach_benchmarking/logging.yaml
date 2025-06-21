@@ -1,0 +1,23 @@
+version: 1
+formatters:
+  default:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: default
+  file:
+    class: logging.FileHandler
+    filename: logs/benchmark.log
+    level: DEBUG
+    formatter: default
+loggers:
+  benchmark:
+    level: DEBUG
+    handlers: [console, file]
+  aiohttp:
+    level: WARNING
+root:
+  level: INFO
+  handlers: [console]

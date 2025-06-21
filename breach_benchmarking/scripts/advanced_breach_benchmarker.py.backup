@@ -1,0 +1,728 @@
+"""
+Advanced Breach Benchmarking Framework for Enhanced CSP Network
+Integrates with existing security infrastructure for comprehensive testing
+"""
+
+import asyncio
+import time
+import json
+import numpy as np
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional, Tuple
+from dataclasses import dataclass, asdict
+from enum import Enum
+import aiohttp
+import psutil
+import logging
+from concurrent.futures import ThreadPoolExecutor
+import networkx as nx
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class BreachType(Enum):
+    """Types of breach scenarios to test"""
+    SQL_INJECTION = "sql_injection"
+    XSS_ATTACK = "xss_attack"
+    BRUTE_FORCE = "brute_force"
+    DDOS_SIMULATION = "ddos_simulation"
+    PRIVILEGE_ESCALATION = "privilege_escalation"
+    DATA_EXFILTRATION = "data_exfiltration"
+    LATERAL_MOVEMENT = "lateral_movement"
+    SOCIAL_ENGINEERING = "social_engineering"
+    ZERO_DAY_SIMULATION = "zero_day_simulation"
+    INSIDER_THREAT = "insider_threat"
+
+class SeverityLevel(Enum):
+    """Severity levels for benchmark results"""
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    INFO = "info"
+
+@dataclass
+class BreachScenario:
+    """Defines a specific breach testing scenario"""
+    id: str
+    name: str
+    breach_type: BreachType
+    description: str
+    target_components: List[str]
+    success_criteria: Dict[str, Any]
+    expected_detection_time: float  # seconds
+    impact_level: SeverityLevel
+    prerequisites: List[str]
+    payload: Dict[str, Any]
+
+@dataclass
+class BenchmarkResult:
+    """Results from a breach benchmark test"""
+    scenario_id: str
+    start_time: datetime
+    end_time: datetime
+    duration: float
+    detected: bool
+    detection_time: Optional[float]
+    alerts_generated: List[Dict[str, Any]]
+    system_impact: Dict[str, float]
+    success_rate: float
+    recommendations: List[str]
+    raw_data: Dict[str, Any]
+
+class NetworkTopologyAnalyzer:
+    """Analyzes network topology for vulnerability assessment"""
+    
+    def __init__(self):
+        self.topology_graph = nx.Graph()
+        self.vulnerability_map = {}
+        
+    async def build_topology(self, network_config: Dict[str, Any]) -> nx.Graph:
+        """Build network topology graph from configuration"""
+        
+        # Add nodes (servers, services, databases)
+        for node in network_config.get('nodes', []):
+            self.topology_graph.add_node(
+                node['id'],
+                node_type=node.get('type', 'unknown'),
+                security_level=node.get('security_level', 'medium'),
+                services=node.get('services', []),
+                vulnerabilities=node.get('vulnerabilities', [])
+            )
+        
+        # Add edges (network connections)
+        for edge in network_config.get('edges', []):
+            self.topology_graph.add_edge(
+                edge['source'],
+                edge['target'],
+                connection_type=edge.get('type', 'tcp'),
+                encryption=edge.get('encrypted', False),
+                firewall_rules=edge.get('firewall_rules', [])
+            )
+        
+        return self.topology_graph
+    
+    async def find_attack_paths(self, start_node: str, target_node: str) -> List[List[str]]:
+        """Find potential attack paths between nodes"""
+        
+        try:
+            paths = list(nx.all_simple_paths(
+                self.topology_graph, 
+                start_node, 
+                target_node, 
+                cutoff=5  # Maximum path length
+            ))
+            return paths
+        except nx.NetworkXNoPath:
+            return []
+    
+    async def calculate_risk_score(self, node_id: str) -> float:
+        """Calculate risk score for a network node"""
+        
+        if node_id not in self.topology_graph.nodes:
+            return 0.0
+        
+        node_data = self.topology_graph.nodes[node_id]
+        
+        # Base risk from vulnerabilities
+        vulnerabilities = node_data.get('vulnerabilities', [])
+        vuln_risk = len(vulnerabilities) * 0.2
+        
+        # Risk from connections
+        connections = len(list(self.topology_graph.neighbors(node_id)))
+        connection_risk = min(connections * 0.1, 0.5)
+        
+        # Risk from security level
+        security_levels = {'low': 0.8, 'medium': 0.5, 'high': 0.2, 'critical': 0.1}
+        security_risk = security_levels.get(node_data.get('security_level', 'medium'), 0.5)
+        
+        # Risk from exposed services
+        services = node_data.get('services', [])
+        service_risk = len(services) * 0.1
+        
+        total_risk = min(vuln_risk + connection_risk + security_risk + service_risk, 1.0)
+        return total_risk
+
+class BreachSimulator:
+    """Simulates various types of security breaches"""
+    
+    def __init__(self, target_host: str = "localhost", target_port: int = 8000):
+        self.target_host = target_host
+        self.target_port = target_port
+        self.session = None
+        
+    async def __aenter__(self):
+        self.session = aiohttp.ClientSession()
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.session:
+            await self.session.close()
+    
+    async def simulate_sql_injection(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Simulate SQL injection attack"""
+        
+        injection_payloads = [
+            "' OR '1'='1",
+            "'; DROP TABLE users; --",
+            "' UNION SELECT username, password FROM users --",
+            "1' AND SLEEP(5) --"
+        ]
+        
+        results = []
+        for injection in injection_payloads:
+            try:
+                # Test various endpoints with injection payloads
+                test_data = {
+                    'username': injection,
+                    'password': 'test',
+                    'search': injection
+                }
+                
+                async with self.session.post(
+                    f"http://{self.target_host}:{self.target_port}/api/login",
+                    json=test_data,
+                    timeout=10
+                ) as response:
+                    result = {
+                        'payload': injection,
+                        'status_code': response.status,
+                        'response_time': response.headers.get('X-Response-Time', '0'),
+                        'detected': 'error' in (await response.text()).lower()
+                    }
+                    results.append(result)
+                    
+            except Exception as e:
+                results.append({
+                    'payload': injection,
+                    'error': str(e),
+                    'detected': True
+                })
+        
+        return {'results': results, 'success_rate': len([r for r in results if not r.get('detected', True)]) / len(results)}
+    
+    async def simulate_brute_force(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Simulate brute force attack"""
+        
+        common_passwords = [
+            'password', '123456', 'admin', 'letmein', 'welcome',
+            'password123', 'admin123', 'root', 'guest', 'test'
+        ]
+        
+        target_username = payload.get('username', 'admin')
+        attempts = []
+        start_time = time.time()
+        
+        for password in common_passwords:
+            try:
+                async with self.session.post(
+                    f"http://{self.target_host}:{self.target_port}/api/login",
+                    json={'username': target_username, 'password': password},
+                    timeout=5
+                ) as response:
+                    
+                    attempt = {
+                        'username': target_username,
+                        'password': password,
+                        'status_code': response.status,
+                        'timestamp': time.time(),
+                        'successful': response.status == 200
+                    }
+                    attempts.append(attempt)
+                    
+                    # Small delay to avoid overwhelming the system
+                    await asyncio.sleep(0.1)
+                    
+            except Exception as e:
+                attempts.append({
+                    'username': target_username,
+                    'password': password,
+                    'error': str(e),
+                    'timestamp': time.time(),
+                    'successful': False
+                })
+        
+        duration = time.time() - start_time
+        successful_attempts = [a for a in attempts if a.get('successful', False)]
+        
+        return {
+            'total_attempts': len(attempts),
+            'successful_attempts': len(successful_attempts),
+            'duration': duration,
+            'rate_limited': any('429' in str(a.get('status_code', '')) for a in attempts),
+            'attempts': attempts
+        }
+    
+    async def simulate_ddos(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Simulate DDoS attack"""
+        
+        concurrent_requests = payload.get('concurrent_requests', 100)
+        duration_seconds = payload.get('duration', 30)
+        
+        start_time = time.time()
+        successful_requests = 0
+        failed_requests = 0
+        response_times = []
+        
+        async def make_request():
+            nonlocal successful_requests, failed_requests
+            try:
+                async with self.session.get(
+                    f"http://{self.target_host}:{self.target_port}/",
+                    timeout=10
+                ) as response:
+                    if response.status == 200:
+                        successful_requests += 1
+                    else:
+                        failed_requests += 1
+                    response_times.append(time.time())
+            except:
+                failed_requests += 1
+        
+        # Launch concurrent requests
+        tasks = []
+        end_time = start_time + duration_seconds
+        
+        while time.time() < end_time:
+            # Create batch of concurrent requests
+            batch_tasks = [make_request() for _ in range(min(concurrent_requests, 50))]
+            tasks.extend(batch_tasks)
+            await asyncio.gather(*batch_tasks, return_exceptions=True)
+            await asyncio.sleep(0.1)  # Brief pause between batches
+        
+        total_duration = time.time() - start_time
+        total_requests = successful_requests + failed_requests
+        
+        return {
+            'duration': total_duration,
+            'total_requests': total_requests,
+            'successful_requests': successful_requests,
+            'failed_requests': failed_requests,
+            'requests_per_second': total_requests / total_duration if total_duration > 0 else 0,
+            'success_rate': successful_requests / total_requests if total_requests > 0 else 0,
+            'service_degraded': failed_requests / total_requests > 0.1 if total_requests > 0 else False
+        }
+
+class SystemImpactMonitor:
+    """Monitors system impact during breach simulations"""
+    
+    def __init__(self):
+        self.baseline_metrics = {}
+        self.monitoring = False
+        
+    async def establish_baseline(self, duration: int = 60):
+        """Establish baseline system metrics"""
+        
+        metrics = []
+        start_time = time.time()
+        
+        while time.time() - start_time < duration:
+            metrics.append({
+                'timestamp': time.time(),
+                'cpu_percent': psutil.cpu_percent(interval=1),
+                'memory_percent': psutil.virtual_memory().percent,
+                'disk_io': psutil.disk_io_counters()._asdict() if psutil.disk_io_counters() else {},
+                'network_io': psutil.net_io_counters()._asdict() if psutil.net_io_counters() else {},
+                'process_count': len(psutil.pids())
+            })
+            await asyncio.sleep(1)
+        
+        # Calculate averages
+        self.baseline_metrics = {
+            'cpu_percent': np.mean([m['cpu_percent'] for m in metrics]),
+            'memory_percent': np.mean([m['memory_percent'] for m in metrics]),
+            'process_count': np.mean([m['process_count'] for m in metrics])
+        }
+        
+        logger.info(f"Baseline metrics established: {self.baseline_metrics}")
+    
+    async def monitor_impact(self, duration: int) -> Dict[str, Any]:
+        """Monitor system impact during test"""
+        
+        metrics = []
+        start_time = time.time()
+        
+        while time.time() - start_time < duration:
+            current_metrics = {
+                'timestamp': time.time(),
+                'cpu_percent': psutil.cpu_percent(interval=0.1),
+                'memory_percent': psutil.virtual_memory().percent,
+                'process_count': len(psutil.pids())
+            }
+            metrics.append(current_metrics)
+            await asyncio.sleep(1)
+        
+        # Calculate impact
+        avg_cpu = np.mean([m['cpu_percent'] for m in metrics])
+        avg_memory = np.mean([m['memory_percent'] for m in metrics])
+        avg_processes = np.mean([m['process_count'] for m in metrics])
+        
+        impact = {
+            'cpu_impact': (avg_cpu - self.baseline_metrics.get('cpu_percent', 0)) / self.baseline_metrics.get('cpu_percent', 1),
+            'memory_impact': (avg_memory - self.baseline_metrics.get('memory_percent', 0)) / self.baseline_metrics.get('memory_percent', 1),
+            'process_impact': (avg_processes - self.baseline_metrics.get('process_count', 0)) / self.baseline_metrics.get('process_count', 1),
+            'max_cpu': max([m['cpu_percent'] for m in metrics]),
+            'max_memory': max([m['memory_percent'] for m in metrics]),
+            'raw_metrics': metrics
+        }
+        
+        return impact
+
+class AdvancedBreachBenchmarker:
+    """Main benchmarking orchestrator"""
+    
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
+        self.topology_analyzer = NetworkTopologyAnalyzer()
+        self.impact_monitor = SystemImpactMonitor()
+        self.results: List[BenchmarkResult] = []
+        
+        # Define comprehensive test scenarios
+        self.scenarios = self._initialize_scenarios()
+    
+    def _initialize_scenarios(self) -> List[BreachScenario]:
+        """Initialize comprehensive breach test scenarios"""
+        
+        return [
+            BreachScenario(
+                id="sql_injection_basic",
+                name="Basic SQL Injection Test",
+                breach_type=BreachType.SQL_INJECTION,
+                description="Test basic SQL injection vulnerabilities in web endpoints",
+                target_components=["web_server", "database"],
+                success_criteria={"detection_rate": 0.9, "response_time": 5.0},
+                expected_detection_time=2.0,
+                impact_level=SeverityLevel.HIGH,
+                prerequisites=["web_interface_active"],
+                payload={"target_endpoint": "/api/login", "injection_types": ["basic", "union", "blind"]}
+            ),
+            BreachScenario(
+                id="brute_force_advanced",
+                name="Advanced Brute Force Attack",
+                breach_type=BreachType.BRUTE_FORCE,
+                description="Simulate sophisticated brute force attacks with rate limiting evasion",
+                target_components=["authentication_service"],
+                success_criteria={"detection_rate": 0.95, "block_rate": 0.8},
+                expected_detection_time=10.0,
+                impact_level=SeverityLevel.MEDIUM,
+                prerequisites=["authentication_service_active"],
+                payload={"username": "admin", "password_list": "common", "evasion_techniques": True}
+            ),
+            BreachScenario(
+                id="ddos_simulation",
+                name="Distributed Denial of Service Simulation",
+                breach_type=BreachType.DDOS_SIMULATION,
+                description="Simulate DDoS attack to test system resilience",
+                target_components=["load_balancer", "web_server"],
+                success_criteria={"service_availability": 0.95, "response_time_degradation": 0.3},
+                expected_detection_time=30.0,
+                impact_level=SeverityLevel.CRITICAL,
+                prerequisites=["load_balancer_active"],
+                payload={"concurrent_requests": 200, "duration": 60, "attack_pattern": "volumetric"}
+            ),
+            BreachScenario(
+                id="lateral_movement",
+                name="Lateral Movement Simulation",
+                breach_type=BreachType.LATERAL_MOVEMENT,
+                description="Simulate attacker lateral movement across network segments",
+                target_components=["internal_network", "servers"],
+                success_criteria={"detection_rate": 0.85, "containment_time": 300},
+                expected_detection_time=120.0,
+                impact_level=SeverityLevel.HIGH,
+                prerequisites=["network_segmentation_active"],
+                payload={"start_node": "web_server", "target_nodes": ["database", "file_server"]}
+            ),
+            BreachScenario(
+                id="data_exfiltration",
+                name="Data Exfiltration Test",
+                breach_type=BreachType.DATA_EXFILTRATION,
+                description="Test detection of sensitive data exfiltration attempts",
+                target_components=["database", "file_system", "network_monitoring"],
+                success_criteria={"detection_rate": 0.9, "data_loss_prevention": 0.95},
+                expected_detection_time=60.0,
+                impact_level=SeverityLevel.CRITICAL,
+                prerequisites=["data_classification_active"],
+                payload={"data_types": ["pii", "financial", "intellectual_property"], "exfiltration_methods": ["network", "removable_media"]}
+            )
+        ]
+    
+    async def run_comprehensive_benchmark(self) -> Dict[str, Any]:
+        """Run comprehensive breach benchmarking"""
+        
+        logger.info("Starting comprehensive breach benchmarking...")
+        
+        # Establish baseline
+        await self.impact_monitor.establish_baseline(30)
+        
+        # Build network topology
+        network_config = self.config.get('network', {})
+        await self.topology_analyzer.build_topology(network_config)
+        
+        benchmark_start = datetime.now()
+        total_scenarios = len(self.scenarios)
+        
+        # Run each scenario
+        for i, scenario in enumerate(self.scenarios):
+            logger.info(f"Running scenario {i+1}/{total_scenarios}: {scenario.name}")
+            
+            try:
+                result = await self._run_scenario(scenario)
+                self.results.append(result)
+                
+                # Brief cooldown between scenarios
+                await asyncio.sleep(5)
+                
+            except Exception as e:
+                logger.error(f"Error running scenario {scenario.id}: {e}")
+                continue
+        
+        benchmark_end = datetime.now()
+        
+        # Generate comprehensive report
+        report = await self._generate_benchmark_report(benchmark_start, benchmark_end)
+        
+        logger.info("Comprehensive breach benchmarking completed")
+        return report
+    
+    async def _run_scenario(self, scenario: BreachScenario) -> BenchmarkResult:
+        """Run a single breach scenario"""
+        
+        start_time = datetime.now()
+        detected = False
+        detection_time = None
+        alerts_generated = []
+        
+        # Monitor system impact during test
+        impact_task = asyncio.create_task(
+            self.impact_monitor.monitor_impact(60)
+        )
+        
+        try:
+            async with BreachSimulator(
+                self.config.get('target_host', 'localhost'),
+                self.config.get('target_port', 8000)
+            ) as simulator:
+                
+                # Execute the appropriate simulation based on breach type
+                if scenario.breach_type == BreachType.SQL_INJECTION:
+                    simulation_result = await simulator.simulate_sql_injection(scenario.payload)
+                elif scenario.breach_type == BreachType.BRUTE_FORCE:
+                    simulation_result = await simulator.simulate_brute_force(scenario.payload)
+                elif scenario.breach_type == BreachType.DDOS_SIMULATION:
+                    simulation_result = await simulator.simulate_ddos(scenario.payload)
+                else:
+                    simulation_result = {"message": f"Simulation for {scenario.breach_type.value} not implemented"}
+                
+                # Simulate detection (in real implementation, this would query your security monitoring system)
+                await asyncio.sleep(2)  # Simulate detection delay
+                detected = True
+                detection_time = 2.0
+                
+                # Simulate alert generation
+                alerts_generated = [
+                    {
+                        'timestamp': datetime.now().isoformat(),
+                        'severity': scenario.impact_level.value,
+                        'message': f"Potential {scenario.breach_type.value} detected",
+                        'confidence': 0.85
+                    }
+                ]
+        
+        except Exception as e:
+            simulation_result = {"error": str(e)}
+        
+        # Get system impact data
+        system_impact = await impact_task
+        
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+        
+        # Calculate success rate based on detection and system resilience
+        success_rate = 0.0
+        if detected and detection_time <= scenario.expected_detection_time:
+            success_rate += 0.5
+        if system_impact.get('cpu_impact', 0) < 2.0:  # CPU impact less than 200%
+            success_rate += 0.3
+        if simulation_result.get('success_rate', 0) < 0.1:  # Attack mostly blocked
+            success_rate += 0.2
+        
+        # Generate recommendations
+        recommendations = self._generate_recommendations(scenario, simulation_result, system_impact)
+        
+        return BenchmarkResult(
+            scenario_id=scenario.id,
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            detected=detected,
+            detection_time=detection_time,
+            alerts_generated=alerts_generated,
+            system_impact=system_impact,
+            success_rate=success_rate,
+            recommendations=recommendations,
+            raw_data={
+                'scenario': asdict(scenario),
+                'simulation_result': simulation_result
+            }
+        )
+    
+    def _generate_recommendations(self, scenario: BreachScenario, simulation_result: Dict[str, Any], 
+                                 system_impact: Dict[str, Any]) -> List[str]:
+        """Generate security recommendations based on test results"""
+        
+        recommendations = []
+        
+        # Check detection performance
+        if not simulation_result.get('detected', True):
+            recommendations.append(f"Improve detection capabilities for {scenario.breach_type.value} attacks")
+        
+        # Check system impact
+        if system_impact.get('cpu_impact', 0) > 1.5:
+            recommendations.append("Implement better resource management during high-load scenarios")
+        
+        if system_impact.get('memory_impact', 0) > 1.0:
+            recommendations.append("Consider memory optimization to handle attack loads")
+        
+        # Scenario-specific recommendations
+        if scenario.breach_type == BreachType.SQL_INJECTION:
+            if simulation_result.get('success_rate', 0) > 0.1:
+                recommendations.append("Implement stricter input validation and parameterized queries")
+        
+        elif scenario.breach_type == BreachType.BRUTE_FORCE:
+            if not simulation_result.get('rate_limited', False):
+                recommendations.append("Implement or strengthen rate limiting for authentication endpoints")
+        
+        elif scenario.breach_type == BreachType.DDOS_SIMULATION:
+            if simulation_result.get('service_degraded', False):
+                recommendations.append("Enhance DDoS protection and load balancing capabilities")
+        
+        return recommendations
+    
+    async def _generate_benchmark_report(self, start_time: datetime, end_time: datetime) -> Dict[str, Any]:
+        """Generate comprehensive benchmark report"""
+        
+        total_duration = (end_time - start_time).total_seconds()
+        
+        # Calculate overall metrics
+        total_scenarios = len(self.results)
+        successful_detections = len([r for r in self.results if r.detected])
+        average_detection_time = np.mean([r.detection_time for r in self.results if r.detection_time])
+        overall_success_rate = np.mean([r.success_rate for r in self.results])
+        
+        # Risk assessment
+        high_risk_scenarios = [r for r in self.results if r.success_rate < 0.5]
+        critical_vulnerabilities = [r for r in self.results if r.raw_data['scenario']['impact_level'] == 'critical' and r.success_rate < 0.7]
+        
+        # Generate executive summary
+        executive_summary = {
+            'overall_security_score': min(overall_success_rate * 100, 100),
+            'detection_rate': (successful_detections / total_scenarios) * 100 if total_scenarios > 0 else 0,
+            'average_detection_time': average_detection_time,
+            'high_risk_findings': len(high_risk_scenarios),
+            'critical_vulnerabilities': len(critical_vulnerabilities),
+            'recommendation_count': sum(len(r.recommendations) for r in self.results)
+        }
+        
+        # Detailed findings
+        detailed_findings = []
+        for result in self.results:
+            scenario_data = result.raw_data['scenario']
+            finding = {
+                'scenario_name': scenario_data['name'],
+                'breach_type': scenario_data['breach_type'],
+                'severity': scenario_data['impact_level'],
+                'detected': result.detected,
+                'detection_time': result.detection_time,
+                'success_rate': result.success_rate,
+                'system_impact': result.system_impact,
+                'recommendations': result.recommendations
+            }
+            detailed_findings.append(finding)
+        
+        # Compliance and regulatory notes
+        compliance_notes = {
+            'gdpr_compliance': 'Review data protection measures based on data exfiltration test results',
+            'pci_dss_compliance': 'Ensure payment processing systems meet security requirements',
+            'iso_27001_compliance': 'Document security controls and incident response procedures',
+            'nist_framework': 'Align security measures with NIST Cybersecurity Framework'
+        }
+        
+        report = {
+            'metadata': {
+                'report_generated': datetime.now().isoformat(),
+                'benchmark_duration': total_duration,
+                'total_scenarios_tested': total_scenarios,
+                'benchmarking_framework_version': '1.0.0'
+            },
+            'executive_summary': executive_summary,
+            'detailed_findings': detailed_findings,
+            'risk_assessment': {
+                'high_risk_scenarios': [r.scenario_id for r in high_risk_scenarios],
+                'critical_vulnerabilities': [r.scenario_id for r in critical_vulnerabilities],
+                'overall_risk_level': 'HIGH' if len(critical_vulnerabilities) > 2 else 'MEDIUM' if len(high_risk_scenarios) > 1 else 'LOW'
+            },
+            'recommendations': {
+                'immediate_actions': [r for result in self.results for r in result.recommendations if 'critical' in r.lower() or 'immediate' in r.lower()],
+                'short_term_improvements': [r for result in self.results for r in result.recommendations if 'implement' in r.lower()],
+                'long_term_strategy': [r for result in self.results for r in result.recommendations if 'enhance' in r.lower() or 'strategy' in r.lower()]
+            },
+            'compliance_notes': compliance_notes,
+            'raw_results': [asdict(result) for result in self.results]
+        }
+        
+        return report
+
+# Usage example
+async def main():
+    """Main execution function"""
+    
+    # Configuration for your Enhanced CSP network
+    config = {
+        'target_host': 'localhost',
+        'target_port': 8000,
+        'network': {
+            'nodes': [
+                {'id': 'web_server', 'type': 'web', 'security_level': 'medium', 'services': ['http', 'https']},
+                {'id': 'app_server', 'type': 'application', 'security_level': 'high', 'services': ['api']},
+                {'id': 'database', 'type': 'database', 'security_level': 'critical', 'services': ['postgresql']},
+                {'id': 'load_balancer', 'type': 'network', 'security_level': 'high', 'services': ['proxy']}
+            ],
+            'edges': [
+                {'source': 'load_balancer', 'target': 'web_server', 'type': 'http', 'encrypted': True},
+                {'source': 'web_server', 'target': 'app_server', 'type': 'api', 'encrypted': True},
+                {'source': 'app_server', 'target': 'database', 'type': 'sql', 'encrypted': True}
+            ]
+        }
+    }
+    
+    # Initialize and run benchmarker
+    benchmarker = AdvancedBreachBenchmarker(config)
+    
+    try:
+        report = await benchmarker.run_comprehensive_benchmark()
+        
+        # Save report
+        with open(f'breach_benchmark_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json', 'w') as f:
+            json.dump(report, f, indent=2, default=str)
+        
+        # Display summary
+        print("\n" + "="*80)
+        print("ADVANCED BREACH BENCHMARKING REPORT")
+        print("="*80)
+        print(f"Overall Security Score: {report['executive_summary']['overall_security_score']:.1f}/100")
+        print(f"Detection Rate: {report['executive_summary']['detection_rate']:.1f}%")
+        print(f"Average Detection Time: {report['executive_summary']['average_detection_time']:.2f}s")
+        print(f"High Risk Findings: {report['executive_summary']['high_risk_findings']}")
+        print(f"Critical Vulnerabilities: {report['executive_summary']['critical_vulnerabilities']}")
+        print(f"Overall Risk Level: {report['risk_assessment']['overall_risk_level']}")
+        print("="*80)
+        
+        return report
+        
+    except Exception as e:
+        logger.error(f"Benchmarking failed: {e}")
+        return None
+
+if __name__ == "__main__":
+    asyncio.run(main())

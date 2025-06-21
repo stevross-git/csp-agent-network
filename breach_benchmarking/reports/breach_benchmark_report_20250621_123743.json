@@ -1,0 +1,78 @@
+{
+  "metadata": {
+    "report_generated": "2025-06-21T12:37:43.028726",
+    "benchmark_duration": 8.97,
+    "total_scenarios_tested": 5,
+    "framework_version": "1.0.0"
+  },
+  "executive_summary": {
+    "overall_security_score": 46.9,
+    "detection_rate": 60.0,
+    "critical_vulnerabilities": 1,
+    "recommendation_count": 6
+  },
+  "detailed_findings": [
+    {
+      "scenario": "sql_injection",
+      "name": "SQL Injection Test",
+      "detected": false,
+      "success_rate": 0.0,
+      "recommendations": [
+        "Implement input validation"
+      ]
+    },
+    {
+      "scenario": "brute_force",
+      "name": "Brute Force Test",
+      "detected": true,
+      "success_rate": 1.0,
+      "recommendations": [
+        "Implement rate limiting"
+      ]
+    },
+    {
+      "scenario": "ddos_simulation",
+      "name": "DDoS Simulation",
+      "detected": false,
+      "success_rate": 0,
+      "recommendations": [
+        "Enhance DDoS protection"
+      ]
+    },
+    {
+      "scenario": "csp_process_injection",
+      "name": "CSP Process Injection",
+      "detected": true,
+      "success_rate": 0.6002942650508981,
+      "recommendations": [
+        "CRITICAL: Implement CSP process integrity monitoring",
+        "Add CSP channel authentication"
+      ]
+    },
+    {
+      "scenario": "lateral_movement",
+      "name": "Lateral Movement",
+      "detected": true,
+      "success_rate": 0.7441142172599363,
+      "recommendations": [
+        "Improve network segmentation monitoring"
+      ]
+    }
+  ],
+  "risk_assessment": {
+    "overall_risk_level": "HIGH"
+  },
+  "recommendations": {
+    "immediate_actions": [
+      "CRITICAL: Implement CSP process integrity monitoring"
+    ],
+    "short_term_improvements": [
+      "Implement input validation",
+      "Implement rate limiting"
+    ],
+    "long_term_strategy": [
+      "Regular penetration testing",
+      "Continuous security monitoring"
+    ]
+  }
+}
