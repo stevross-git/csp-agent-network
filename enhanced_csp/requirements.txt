@@ -240,7 +240,7 @@ environs==10.0.0
 # Performance and Profiling
 # cProfile  # smtplib-in
 py-spy==0.3.14
-scalene==1.5.26
+scalene
 
 # Experimental and Research
 gym  # Reinforcement Learning
