@@ -45,7 +45,7 @@ langchain
 langchain-openai
 
 # Quantum Computing
-qiskit==0.44.2
+qiskit
 cirq==1.2.0
 pennylane
 qiskit-aer
