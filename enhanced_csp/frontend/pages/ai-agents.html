@@ -97,89 +97,165 @@
             padding: 0.75rem 1.5rem;
             color: #d1d5db;
             text-decoration: none;
-            transition: all 0.3s ease;
-            border-left: 3px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+            cursor: pointer;
         }
 
-        .nav-item:hover {
-            background: rgba(59, 130, 246, 0.1);
-            color: #60a5fa;
-            border-left-color: var(--primary);
+        .nav-item:hover, .nav-item.active {
+            background: var(--dark-light);
+            color: white;
         }
 
-        .nav-item.active {
-            background: rgba(59, 130, 246, 0.2);
-            color: #60a5fa;
-            border-left-color: var(--primary);
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--primary);
         }
 
         .nav-item i {
-            margin-right: 0.75rem;
             width: 20px;
+            margin-right: 0.75rem;
             text-align: center;
         }
 
         /* Main Content */
         .main-content {
-            flex: 1;
             margin-left: 280px;
-            min-height: 100vh;
-            background: var(--light);
+            flex: 1;
+            transition: all 0.3s ease;
         }
 
-        .header {
-            background: rgba(255, 255, 255, 0.95);
-            border-bottom: 1px solid var(--border);
-            padding: 2rem;
-            backdrop-filter: blur(10px);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
+        .top-bar {
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin: 2rem 2rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .page-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .page-subtitle {
-            color: var(--text-light);
-            font-size: 1.1rem;
+        .status-indicators {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #f3f4f6;
+            border-radius: 20px;
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.warning { background: var(--warning); }
+        .status-dot.danger { background: var(--danger); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Content Area */
+        .content-area {
+            padding: 2rem;
+        }
+
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
             margin-bottom: 2rem;
         }
 
-        /* Stats Cards */
-        .stats-grid {
+        .widget {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .widget-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .widget-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .metrics-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
+            gap: 1rem;
             margin-bottom: 2rem;
         }
 
-        .stat-card {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid var(--border);
-            border-radius: 15px;
+        .metric-card {
+            background: white;
             padding: 1.5rem;
+            border-radius: 12px;
             text-align: center;
-            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
         }
 
-        .stat-card::before {
+        .metric-card::before {
             content: '';
             position: absolute;
             top: 0;
@@ -189,127 +265,145 @@
             background: var(--gradient);
         }
 
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
-            border-color: var(--primary);
-        }
-
-        .stat-number {
+        .metric-value {
             font-size: 2rem;
             font-weight: 700;
             color: var(--primary);
-            display: block;
             margin-bottom: 0.5rem;
         }
 
-        .stat-label {
+        .metric-label {
             color: var(--text-light);
             font-size: 0.9rem;
         }
 
-        /* Content Container */
-        .content {
-            padding: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* Section Styling */
-        .content-section {
-            margin-bottom: 4rem;
-        }
-
-        .section-header {
+        /* Tabs */
+        .tabs-container {
+            background: white;
+            border-radius: 12px;
             margin-bottom: 2rem;
-            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        .section-title {
-            font-size: 2.25rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 1rem;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            overflow-x: auto;
         }
 
-        .section-subtitle {
+        .tab {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
             color: var(--text-light);
-            font-size: 1.1rem;
-            max-width: 800px;
-            margin: 0 auto;
+            transition: all 0.2s;
+            white-space: nowrap;
+            position: relative;
         }
 
-        /* Agent Types Grid */
-        .agent-types-grid {
+        .tab:hover {
+            color: var(--primary);
+        }
+
+        .tab.active {
+            color: var(--primary);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary);
+        }
+
+        .tab-content {
+            padding: 2rem;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Agent Cards */
+        .agent-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .agent-card {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-        }
-
-        .agent-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--gradient);
+            border-left: 4px solid var(--primary);
         }
 
         .agent-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.2);
-            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
-        .agent-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
         }
 
         .agent-title {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--primary);
+            color: var(--text);
+        }
+
+        .agent-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-idle {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-offline {
+            background: #fee2e2;
+            color: #991b1b;
         }
 
         .agent-description {
             color: var(--text-light);
-            margin-bottom: 1.5rem;
-            line-height: 1.6;
+            margin-bottom: 1rem;
+            line-height: 1.5;
         }
 
         .capabilities-list {
             list-style: none;
+            padding: 0;
         }
 
         .capabilities-list li {
             padding: 0.25rem 0;
-            color: var(--text-light);
+            color: var(--text);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
             font-size: 0.9rem;
         }
 
@@ -317,277 +411,66 @@
             content: '✓';
             color: var(--success);
             font-weight: bold;
-            width: 16px;
+            margin-right: 0.5rem;
         }
 
-        /* Architecture Section */
-        .architecture-section {
-            background: var(--card-gradient);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 3rem;
-            margin: 3rem 0;
-            backdrop-filter: blur(10px);
+        /* Interactive Elements */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
         }
 
-        .architecture-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
+        .btn-primary {
+            background: var(--primary);
+            color: white;
         }
 
-        .architecture-node {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+        .btn-primary:hover {
+            background: var(--primary-dark);
         }
 
-        .architecture-node:hover {
-            transform: scale(1.05);
-            border-color: var(--primary);
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
         }
 
-        .node-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: var(--primary);
+        .btn-success {
+            background: var(--success);
+            color: white;
         }
 
-        .node-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--primary);
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
         }
 
-        .node-description {
-            color: var(--text-light);
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-
-        /* Use Cases Grid */
-        .use-cases-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 2rem;
-            margin: 3rem 0;
-        }
-
-        .use-case-card {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            padding: 2rem;
-            transition: all 0.3s ease;
-            position: relative;
-            backdrop-filter: blur(10px);
-        }
-
-        .use-case-card::before {
+        .loading::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 4px;
-            background: var(--gradient);
-        }
-
-        .use-case-card:hover {
-            transform: translateX(10px);
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
-            border-color: var(--primary);
-        }
-
-        .use-case-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--primary);
-        }
-
-        .use-case-scenario {
-            color: var(--text-light);
-            margin-bottom: 1rem;
-            font-style: italic;
-            background: var(--card-gradient);
-            padding: 1rem;
-            border-radius: 8px;
-            border-left: 3px solid var(--primary);
-        }
-
-        .use-case-benefits {
-            list-style: none;
-        }
-
-        .use-case-benefits li {
-            padding: 0.3rem 0;
-            color: var(--text-light);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .use-case-benefits li::before {
-            content: '→';
-            color: var(--primary);
-            font-weight: bold;
-            width: 16px;
-        }
-
-        /* Demo Section */
-        .demo-section {
-            background: var(--card-gradient);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 3rem;
-            margin: 4rem 0;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-
-        .demo-controls {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin: 2rem 0;
-            flex-wrap: wrap;
-        }
-
-        .demo-button {
-            background: var(--gradient);
-            color: white;
-            border: none;
-            padding: 1rem 2rem;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .demo-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
-        }
-
-        .demo-output {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            padding: 2rem;
-            margin: 2rem 0;
-            min-height: 200px;
-            text-align: left;
-            font-family: 'JetBrains Mono', 'Monaco', 'Consolas', monospace;
-            font-size: 0.9rem;
-            overflow-y: auto;
-            backdrop-filter: blur(10px);
-        }
-
-        /* Footer */
-        .footer {
-            background: var(--dark);
-            color: white;
-            padding: 3rem 0;
-            margin-top: 4rem;
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            text-align: center;
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: #9ca3af;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .footer-links a:hover {
-            color: var(--primary);
-        }
-
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .animate-on-scroll {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.6s ease;
-        }
-
-        .animate-on-scroll.animated {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Status indicators */
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid var(--primary);
             border-radius: 50%;
-            margin-right: 8px;
+            animation: spin 1s linear infinite;
+            transform: translate(-50%, -50%);
         }
 
-        .status-running {
-            background-color: var(--success);
-            animation: pulse 2s infinite;
-        }
-
-        .status-warning {
-            background-color: var(--warning);
-        }
-
-        .status-error {
-            background-color: var(--danger);
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        /* Page sections */
-        .page-section {
-            display: none;
-        }
-
-        .page-section.active {
-            display: block;
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
 
         /* Responsive Design */
@@ -607,61 +490,42 @@
         }
 
         @media (max-width: 768px) {
-            .page-title {
-                font-size: 2rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .agent-types-grid,
-            .use-cases-grid {
+            .dashboard-grid {
                 grid-template-columns: 1fr;
             }
-            
-            .demo-controls {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .content {
-                padding: 1rem;
-            }
-        }
 
-        @media (max-width: 480px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
             }
-            
-            .header {
-                padding: 1rem;
+
+            .agent-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Sidebar Navigation -->
+        <!-- Sidebar -->
         <nav class="sidebar">
             <div class="sidebar-header">
-                <h1><i class="fas fa-robot"></i> Enhanced CSP</h1>
+                <h1><i class="fas fa-network-wired"></i> Enhanced CSP</h1>
                 <p>AI-to-AI Communication Platform</p>
             </div>
             
             <div class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-section-title">Main</div>
-                    <a href="javascript:void(0)" class="nav-item" data-section="dashboard">
+                    <a href="#dashboard" class="nav-item" data-page="dashboard">
                         <i class="fas fa-tachometer-alt"></i>
                         Dashboard
                     </a>
-                    <a href="javascript:void(0)" class="nav-item" data-section="processes">
+                    <a href="#processes" class="nav-item" data-page="processes">
                         <i class="fas fa-cogs"></i>
                         CSP Processes
                     </a>
-                    <a href="javascript:void(0)" class="nav-item active" data-section="agents">
+                    <a href="#agents" class="nav-item active" data-page="agents">
                         <i class="fas fa-robot"></i>
                         AI Agents
                     </a>
@@ -669,19 +533,19 @@
                 
                 <div class="nav-section">
                     <div class="nav-section-title">Advanced</div>
-                    <a href="javascript:void(0)" class="nav-item" data-section="quantum">
+                    <a href="#quantum" class="nav-item" data-page="quantum">
                         <i class="fas fa-atom"></i>
                         Quantum Computing
                     </a>
-                    <a href="javascript:void(0)" class="nav-item" data-section="blockchain">
+                    <a href="#blockchain" class="nav-item" data-page="blockchain">
                         <i class="fas fa-link"></i>
                         Blockchain Network
                     </a>
-                    <a href="javascript:void(0)" class="nav-item" data-section="neural">
+                    <a href="#neural" class="nav-item" data-page="neural">
                         <i class="fas fa-brain"></i>
                         Neural Optimizer
                     </a>
-                    <a href="javascript:void(0)" class="nav-item" data-section="security">
+                    <a href="#security" class="nav-item" data-page="security">
                         <i class="fas fa-shield-alt"></i>
                         Security Engine
                     </a>
@@ -689,15 +553,15 @@
                 
                 <div class="nav-section">
                     <div class="nav-section-title">System</div>
-                    <a href="javascript:void(0)" class="nav-item" data-section="monitoring">
+                    <a href="#monitoring" class="nav-item" data-page="monitoring">
                         <i class="fas fa-chart-line"></i>
                         Monitoring
                     </a>
-                    <a href="javascript:void(0)" class="nav-item" data-section="logs">
+                    <a href="#logs" class="nav-item" data-page="logs">
                         <i class="fas fa-file-alt"></i>
                         System Logs
                     </a>
-                    <a href="javascript:void(0)" class="nav-item" data-section="settings">
+                    <a href="#settings" class="nav-item" data-page="settings">
                         <i class="fas fa-cog"></i>
                         Settings
                     </a>
@@ -707,432 +571,1422 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Dynamic Header -->
-            <header class="header" id="dynamicHeader">
-                <div class="header-content">
-                    <h1 class="page-title" id="pageTitle">AI Agents</h1>
-                    <p class="page-subtitle" id="pageSubtitle">
-                        Intelligent autonomous agents that communicate through CSP protocols, 
-                        enabling sophisticated AI-to-AI collaboration and multimodal processing
-                    </p>
-                    
-                    <div class="stats-grid" id="statsGrid">
-                        <div class="stat-card">
-                            <span class="stat-number">47</span>
-                            <div class="stat-label">Active AI Agents</div>
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h2 class="page-title" id="pageTitle">
+                    <i class="fas fa-robot"></i>
+                    AI Agents
+                </h2>
+                <div class="status-indicators">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        47 Active Agents
+                    </div>
+                    <div class="status-indicator">
+                        <div class="status-dot warning"></div>
+                        2 Maintenance
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- Dashboard Page -->
+                <div id="dashboard-page" class="page-section">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">23</div>
+                            <div class="metric-label">Active Processes</div>
                         </div>
-                        <div class="stat-card">
-                            <span class="stat-number">12.3M</span>
-                            <div class="stat-label">Messages Processed</div>
+                        <div class="metric-card">
+                            <div class="metric-value">156</div>
+                            <div class="metric-label">Connected Users</div>
                         </div>
-                        <div class="stat-card">
-                            <span class="stat-number">99.8%</span>
-                            <div class="stat-label">Uptime</div>
+                        <div class="metric-card">
+                            <div class="metric-value">99.9%</div>
+                            <div class="metric-label">System Uptime</div>
                         </div>
-                        <div class="stat-card">
-                            <span class="stat-number">156ms</span>
-                            <div class="stat-label">Avg Response Time</div>
+                        <div class="metric-card">
+                            <div class="metric-value">2.1TB</div>
+                            <div class="metric-label">Data Processed</div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="widget">
+                            <div class="widget-header">
+                                <h3 class="widget-title">System Overview</h3>
+                                <div class="widget-icon" style="background: var(--gradient);">
+                                    <i class="fas fa-chart-area"></i>
+                                </div>
+                            </div>
+                            <p>Enhanced CSP platform running with all systems operational. Real-time monitoring and AI-to-AI communication functioning optimally.</p>
+                        </div>
+
+                        <div class="widget">
+                            <div class="widget-header">
+                                <h3 class="widget-title">Recent Activity</h3>
+                                <div class="widget-icon" style="background: var(--success);">
+                                    <i class="fas fa-activity"></i>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.9rem; color: var(--text-light);">
+                                <div style="padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+                                    <div style="font-weight: 500;">New AI agent deployed</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-light);">2 minutes ago</div>
+                                </div>
+                                <div style="padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+                                    <div style="font-weight: 500;">Quantum channel established</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-light);">5 minutes ago</div>
+                                </div>
+                                <div style="padding: 0.5rem 0;">
+                                    <div style="font-weight: 500;">Blockchain sync completed</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-light);">8 minutes ago</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </header>
-            <div class="content">
-                <!-- What Are AI Agents Section -->
-                <section class="content-section animate-on-scroll">
-                    <div class="section-header">
-                        <h2 class="section-title">What Are AI Agents?</h2>
-                        <p class="section-subtitle">
-                            AI Agents in our Enhanced CSP platform are autonomous intelligent entities that can perceive their environment, 
-                            make decisions, and take actions to achieve specific goals through structured communication protocols.
-                        </p>
-                    </div>
-                    
-                    <div class="agent-types-grid">
-                        <div class="agent-card">
-                            <div class="agent-icon">
-                                <i class="fas fa-brain"></i>
-                            </div>
-                            <h3 class="agent-title">Cognitive Agents</h3>
-                            <p class="agent-description">
-                                Advanced reasoning agents that can understand context, learn from interactions, 
-                                and make complex decisions based on multimodal input data.
-                            </p>
-                            <ul class="capabilities-list">
-                                <li>Natural language understanding</li>
-                                <li>Contextual reasoning</li>
-                                <li>Knowledge synthesis</li>
-                                <li>Decision optimization</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="agent-card">
-                            <div class="agent-icon">
-                                <i class="fas fa-eye"></i>
-                            </div>
-                            <h3 class="agent-title">Perceptual Agents</h3>
-                            <p class="agent-description">
-                                Specialized agents that process visual, audio, and sensor data to extract 
-                                meaningful insights and patterns from the environment.
-                            </p>
-                            <ul class="capabilities-list">
-                                <li>Computer vision processing</li>
-                                <li>Audio signal analysis</li>
-                                <li>Pattern recognition</li>
-                                <li>Multimodal data fusion</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="agent-card">
-                            <div class="agent-icon">
-                                <i class="fas fa-cogs"></i>
-                            </div>
-                            <h3 class="agent-title">Task Agents</h3>
-                            <p class="agent-description">
-                                Goal-oriented agents designed to execute specific tasks efficiently 
-                                through coordinated actions and resource management.
-                            </p>
-                            <ul class="capabilities-list">
-                                <li>Workflow automation</li>
-                                <li>Resource allocation</li>
-                                <li>Task scheduling</li>
-                                <li>Performance optimization</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="agent-card">
-                            <div class="agent-icon">
-                                <i class="fas fa-network-wired"></i>
-                            </div>
-                            <h3 class="agent-title">Communication Agents</h3>
-                            <p class="agent-description">
-                                Specialized agents that facilitate inter-agent communication, 
-                                protocol translation, and message routing across the CSP network.
-                            </p>
-                            <ul class="capabilities-list">
-                                <li>Protocol translation</li>
-                                <li>Message routing</li>
-                                <li>Network coordination</li>
-                                <li>Conflict resolution</li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
 
-                <!-- Architecture Section -->
-                <section class="content-section animate-on-scroll">
-                    <div class="architecture-section">
-                        <div class="section-header">
-                            <h2 class="section-title">AI Agent Architecture</h2>
-                            <p class="section-subtitle">
-                                Our AI agents operate within a sophisticated CSP-based architecture that enables 
-                                seamless communication and coordination between multiple intelligent entities.
-                            </p>
+                <!-- AI Agents Page -->
+                <div id="agents-page" class="page-section active">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">47</div>
+                            <div class="metric-label">Active AI Agents</div>
                         </div>
-                        
-                        <div class="architecture-grid">
-                            <div class="architecture-node">
-                                <div class="node-icon">
-                                    <i class="fas fa-robot"></i>
-                                </div>
-                                <h4 class="node-title">Agent Core</h4>
-                                <p class="node-description">
-                                    Central processing unit with AI model integration, 
-                                    decision-making logic, and state management
-                                </p>
-                            </div>
-                            
-                            <div class="architecture-node">
-                                <div class="node-icon">
-                                    <i class="fas fa-exchange-alt"></i>
-                                </div>
-                                <h4 class="node-title">CSP Interface</h4>
-                                <p class="node-description">
-                                    Communication protocol handler for message 
-                                    passing and synchronization with other agents
-                                </p>
-                            </div>
-                            
-                            <div class="architecture-node">
-                                <div class="node-icon">
-                                    <i class="fas fa-database"></i>
-                                </div>
-                                <h4 class="node-title">Knowledge Base</h4>
-                                <p class="node-description">
-                                    Persistent storage for learned information, 
-                                    context, and historical interaction data
-                                </p>
-                            </div>
-                            
-                            <div class="architecture-node">
-                                <div class="node-icon">
-                                    <i class="fas fa-chart-line"></i>
-                                </div>
-                                <h4 class="node-title">Monitoring</h4>
-                                <p class="node-description">
-                                    Real-time performance tracking, health monitoring, 
-                                    and behavioral analysis systems
-                                </p>
-                            </div>
+                        <div class="metric-card">
+                            <div class="metric-value">12.3M</div>
+                            <div class="metric-label">Messages Processed</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">99.8%</div>
+                            <div class="metric-label">Success Rate</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">156ms</div>
+                            <div class="metric-label">Avg Response Time</div>
                         </div>
                     </div>
-                </section>
 
-                <!-- Use Cases Section -->
-                <section class="content-section animate-on-scroll">
-                    <div class="section-header">
-                        <h2 class="section-title">Real-World Applications</h2>
-                        <p class="section-subtitle">
-                            Discover how AI agents are transforming industries through intelligent automation and collaboration
-                        </p>
-                    </div>
-                    
-                    <div class="use-cases-grid">
-                        <div class="use-case-card">
-                            <h3 class="use-case-title">Autonomous Data Processing</h3>
-                            <p class="use-case-scenario">
-                                "Multiple AI agents collaborate to process, analyze, and extract insights from vast datasets in real-time."
-                            </p>
-                            <ul class="use-case-benefits">
-                                <li>Automated data quality assessment</li>
-                                <li>Intelligent feature extraction</li>
-                                <li>Pattern recognition and anomaly detection</li>
-                                <li>Real-time reporting and visualization</li>
-                            </ul>
+                    <!-- AI Agents Tabs -->
+                    <div class="tabs-container">
+                        <div class="tabs">
+                            <button class="tab active" data-tab="overview">📋 What Are AI Agents?</button>
+                            <button class="tab" data-tab="types">🧠 Agent Types</button>
+                            <button class="tab" data-tab="communication">📡 Communication</button>
+                            <button class="tab" data-tab="architecture">🏗️ Architecture</button>
+                            <button class="tab" data-tab="management">⚙️ Management</button>
+                            <button class="tab" data-tab="security">🔐 Security</button>
                         </div>
-                        
-                        <div class="use-case-card">
-                            <h3 class="use-case-title">Smart Manufacturing</h3>
-                            <p class="use-case-scenario">
-                                "AI agents coordinate production lines, optimize resource allocation, and predict maintenance needs."
-                            </p>
-                            <ul class="use-case-benefits">
-                                <li>Predictive maintenance scheduling</li>
-                                <li>Quality control automation</li>
-                                <li>Supply chain optimization</li>
-                                <li>Energy efficiency management</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="use-case-card">
-                            <h3 class="use-case-title">Financial Trading</h3>
-                            <p class="use-case-scenario">
-                                "Intelligent trading agents analyze market conditions, execute trades, and manage risk in real-time."
-                            </p>
-                            <ul class="use-case-benefits">
-                                <li>Algorithmic trading optimization</li>
-                                <li>Risk assessment and management</li>
-                                <li>Market sentiment analysis</li>
-                                <li>Portfolio rebalancing</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="use-case-card">
-                            <h3 class="use-case-title">Healthcare Diagnostics</h3>
-                            <p class="use-case-scenario">
-                                "Medical AI agents assist in diagnosis, treatment planning, and patient monitoring through collaborative analysis."
-                            </p>
-                            <ul class="use-case-benefits">
-                                <li>Medical image analysis</li>
-                                <li>Treatment recommendation</li>
-                                <li>Drug interaction checking</li>
-                                <li>Patient monitoring automation</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="use-case-card">
-                            <h3 class="use-case-title">Cybersecurity</h3>
-                            <p class="use-case-scenario">
-                                "Security agents work together to detect threats, analyze attack patterns, and respond to incidents automatically."
-                            </p>
-                            <ul class="use-case-benefits">
-                                <li>Threat detection and analysis</li>
-                                <li>Incident response automation</li>
-                                <li>Network traffic monitoring</li>
-                                <li>Vulnerability assessment</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="use-case-card">
-                            <h3 class="use-case-title">Smart City Management</h3>
-                            <p class="use-case-scenario">
-                                "Urban AI agents optimize traffic flow, manage energy distribution, and coordinate emergency services."
-                            </p>
-                            <ul class="use-case-benefits">
-                                <li>Traffic optimization</li>
-                                <li>Energy grid management</li>
-                                <li>Emergency response coordination</li>
-                                <li>Environmental monitoring</li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
 
-                <!-- Interactive Demo Section -->
-                <section class="content-section animate-on-scroll">
-                    <div class="demo-section">
-                        <div class="section-header">
-                            <h2 class="section-title">Interactive Agent Demo</h2>
-                            <p class="section-subtitle">
-                                Experience our AI agents in action with real-time demonstrations
+                        <!-- Overview Tab -->
+                        <div class="tab-content active" id="overview">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">What Are AI Agents in Enhanced CSP?</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                AI Agents in our Enhanced CSP platform are autonomous intelligent entities that can perceive their environment, 
+                                make decisions, and take actions to achieve specific goals through structured communication protocols. 
+                                They represent a revolutionary approach to AI-to-AI collaboration.
                             </p>
+
+                            <div class="agent-grid">
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🧠 Autonomous Intelligence</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Our AI agents operate independently, making decisions based on their environment, 
+                                        goals, and learned experiences. They adapt behavior dynamically and pursue complex 
+                                        objectives without constant human supervision.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Goal-oriented decision making</li>
+                                        <li>Environmental perception</li>
+                                        <li>Adaptive learning systems</li>
+                                        <li>Autonomous task execution</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">📡 CSP Communication</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Built on Communicating Sequential Processes (CSP) theory, our agents communicate 
+                                        through formal protocols that ensure reliable, deadlock-free interactions and 
+                                        enable complex multi-agent coordination.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Formal protocol adherence</li>
+                                        <li>Deadlock prevention</li>
+                                        <li>Message ordering guarantees</li>
+                                        <li>Distributed coordination</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">⚛️ Quantum Enhanced</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Leveraging quantum computing principles for enhanced processing capabilities, 
+                                        including quantum entanglement for secure communication and superposition 
+                                        for parallel problem-solving approaches.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Quantum state processing</li>
+                                        <li>Entanglement-based security</li>
+                                        <li>Superposition algorithms</li>
+                                        <li>Quantum error correction</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="demo-controls">
-                            <button class="demo-button" onclick="simulateTextAnalysis()">
-                                <i class="fas fa-file-text"></i> Text Analysis
-                            </button>
-                            <button class="demo-button" onclick="simulateImageProcessing()">
-                                <i class="fas fa-image"></i> Image Processing
-                            </button>
-                            <button class="demo-button" onclick="simulateAgentCollab()">
-                                <i class="fas fa-users"></i> Agent Collaboration
-                            </button>
-                            <button class="demo-button" onclick="simulateRealTime()">
-                                <i class="fas fa-bolt"></i> Real-time Processing
-                            </button>
+
+                        <!-- Agent Types Tab -->
+                        <div class="tab-content" id="types">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">AI Agent Classifications</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                Our Enhanced CSP platform supports multiple categories of AI agents, each specialized 
+                                for different types of tasks and environments, yet all capable of seamless collaboration.
+                            </p>
+
+                            <div class="agent-grid">
+                                <div class="agent-card" style="border-left-color: #667eea;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🧠 Cognitive Agents</h4>
+                                        <span class="agent-status status-active">15 Active</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Advanced reasoning agents that understand context, learn from interactions, 
+                                        and make complex decisions based on multimodal input data.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Natural language processing</li>
+                                        <li>Contextual reasoning</li>
+                                        <li>Knowledge synthesis</li>
+                                        <li>Decision optimization</li>
+                                        <li>Causal inference</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card" style="border-left-color: #f093fb;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">👁️ Perceptual Agents</h4>
+                                        <span class="agent-status status-active">12 Active</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Specialized agents that process visual, audio, and sensor data to extract 
+                                        meaningful insights and patterns from complex environmental information.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Computer vision processing</li>
+                                        <li>Audio signal analysis</li>
+                                        <li>Pattern recognition</li>
+                                        <li>Multimodal data fusion</li>
+                                        <li>Real-time processing</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card" style="border-left-color: #4facfe;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">⚙️ Task Agents</h4>
+                                        <span class="agent-status status-active">20 Active</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Goal-oriented agents designed to execute specific tasks efficiently 
+                                        through coordinated actions and intelligent resource management.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Workflow automation</li>
+                                        <li>Resource optimization</li>
+                                        <li>Process coordination</li>
+                                        <li>Error handling</li>
+                                        <li>Performance monitoring</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="demo-output" id="demoOutput">
-                            <div style="color: var(--text-light); text-align: center; padding: 2rem;">
-                                <span class="status-indicator status-running"></span>
-                                Select a demo above to see AI agents in action...
+
+                        <!-- Communication Tab -->
+                        <div class="tab-content" id="communication">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">Communication Protocols</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                Our agents communicate through sophisticated CSP-based protocols that ensure 
+                                reliable, secure, and efficient message passing between autonomous entities.
+                            </p>
+
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-value">12.3M</div>
+                                    <div class="metric-label">Messages/Day</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">156ms</div>
+                                    <div class="metric-label">Avg Latency</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">99.97%</div>
+                                    <div class="metric-label">Delivery Rate</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">847</div>
+                                    <div class="metric-label">Active Channels</div>
+                                </div>
+                            </div>
+
+                            <div class="widget">
+                                <h4 style="margin-bottom: 1rem;">Protocol Features</h4>
+                                <div class="agent-grid" style="grid-template-columns: 1fr;">
+                                    <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                            <span style="font-weight: 500;">🔄 Synchronous Communication</span>
+                                            <span style="color: var(--text-light);">CSP-based message passing</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                            <span style="font-weight: 500;">🚫 Deadlock Prevention</span>
+                                            <span style="color: var(--text-light);">Formal verification algorithms</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                            <span style="font-weight: 500;">🔐 Quantum Encryption</span>
+                                            <span style="color: var(--text-light);">Entanglement-based security</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span style="font-weight: 500;">📊 Message Ordering</span>
+                                            <span style="color: var(--text-light);">Causal consistency guarantees</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Architecture Tab -->
+                        <div class="tab-content" id="architecture">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">System Architecture</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                The Enhanced CSP AI Agent architecture is built on distributed computing principles 
+                                with quantum-enhanced communication and blockchain-verified transactions.
+                            </p>
+
+                            <div class="agent-grid">
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🏗️ Core Engine</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        The foundational CSP runtime that manages agent lifecycles, message routing, 
+                                        and process coordination across the distributed system.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Agent lifecycle management</li>
+                                        <li>Message routing optimization</li>
+                                        <li>Process coordination</li>
+                                        <li>Resource allocation</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🌐 Communication Layer</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        High-performance message passing infrastructure with quantum-enhanced 
+                                        encryption and adaptive routing algorithms.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Quantum encryption protocols</li>
+                                        <li>Adaptive routing</li>
+                                        <li>Load balancing</li>
+                                        <li>Fault tolerance</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">💾 Knowledge Base</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Distributed knowledge storage with blockchain verification and 
+                                        AI-optimized indexing for rapid information retrieval.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Blockchain verification</li>
+                                        <li>AI-optimized indexing</li>
+                                        <li>Distributed storage</li>
+                                        <li>Real-time synchronization</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Management Tab -->
+                        <div class="tab-content" id="management">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">Agent Management</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                Comprehensive tools for deploying, monitoring, and managing AI agents 
+                                across the Enhanced CSP platform ecosystem.
+                            </p>
+
+                            <div class="agent-grid">
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🚀 Deployment Pipeline</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Automated CI/CD pipeline for agent deployment with version control, 
+                                        testing, and rollback capabilities.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Automated testing</li>
+                                        <li>Canary deployments</li>
+                                        <li>Version management</li>
+                                        <li>Rollback mechanisms</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">💓 Health Monitoring</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Real-time monitoring of agent health, performance metrics, 
+                                        and behavioral patterns with automated alerting.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Real-time health checks</li>
+                                        <li>Performance profiling</li>
+                                        <li>Behavioral analysis</li>
+                                        <li>Automated alerts</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">⚙️ Configuration</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Dynamic configuration management with live updates, 
+                                        A/B testing, and environment-specific settings.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Dynamic updates</li>
+                                        <li>Environment management</li>
+                                        <li>A/B testing framework</li>
+                                        <li>Policy enforcement</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Tab -->
+                        <div class="tab-content" id="security">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">Security Framework</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                Multi-layered security architecture with quantum encryption, 
+                                blockchain verification, and AI-powered threat detection.
+                            </p>
+
+                            <div class="agent-grid">
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🔐 Quantum Encryption</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Quantum-enhanced encryption using entanglement-based key distribution 
+                                        for unbreakable agent-to-agent communication security.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Quantum key distribution</li>
+                                        <li>Entanglement security</li>
+                                        <li>Post-quantum cryptography</li>
+                                        <li>Perfect forward secrecy</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🛡️ Threat Detection</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        AI-powered threat detection system that identifies anomalies, 
+                                        malicious behavior, and potential security breaches in real-time.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Behavioral anomaly detection</li>
+                                        <li>Pattern recognition</li>
+                                        <li>Real-time analysis</li>
+                                        <li>Automated response</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🔍 Identity Verification</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Blockchain-based identity management with zero-trust architecture 
+                                        ensuring only authenticated agents can participate in the network.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Blockchain identity ledger</li>
+                                        <li>Zero-trust verification</li>
+                                        <li>Multi-factor authentication</li>
+                                        <li>Certificate management</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </section>
+                </div>
+
+                <!-- CSP Processes Management Page -->
+                <div id="processes-page" class="page-section">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">23</div>
+                            <div class="metric-label">Active Processes</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">47</div>
+                            <div class="metric-label">Message Channels</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">156/s</div>
+                            <div class="metric-label">Messages/Second</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">12ms</div>
+                            <div class="metric-label">Avg Latency</div>
+                        </div>
+                    </div>
+
+                    <!-- CSP Processes Tabs -->
+                    <div class="tabs-container">
+                        <div class="tabs">
+                            <button class="tab active" data-tab="csp-overview">📋 Process Overview</button>
+                            <button class="tab" data-tab="csp-algebra">🧮 Process Algebra</button>
+                            <button class="tab" data-tab="csp-channels">📡 Channel Management</button>
+                            <button class="tab" data-tab="csp-composition">🔗 Composition</button>
+                            <button class="tab" data-tab="csp-lifecycle">🔄 Lifecycle</button>
+                            <button class="tab" data-tab="csp-monitoring">📊 Monitoring</button>
+                            <button class="tab" data-tab="csp-deployment">🚀 Deployment</button>
+                        </div>
+
+                        <!-- Process Overview Tab -->
+                        <div class="tab-content active" id="csp-overview">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">CSP Processes in Enhanced Platform</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                Communicating Sequential Processes (CSP) form the core mathematical foundation of our platform. 
+                                CSP is a formal process algebra that provides mathematical rigor to concurrent communication 
+                                and enables provably correct distributed systems with deadlock prevention and formal verification.
+                            </p>
+
+                            <div class="agent-grid">
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🧮 Formal Process Algebra</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Mathematical foundation based on Tony Hoare's CSP theory, providing formal semantics 
+                                        for concurrent processes with composition operators and provable properties.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Sequential composition (P ; Q)</li>
+                                        <li>Parallel composition (P || Q)</li>
+                                        <li>Choice composition (P [] Q)</li>
+                                        <li>Interleaving (P ||| Q)</li>
+                                        <li>Hiding and renaming operations</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">📡 Channel Communication</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Type-safe, synchronous communication channels that ensure message ordering, 
+                                        prevent race conditions, and provide causal consistency across distributed processes.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Synchronous message passing</li>
+                                        <li>Type-safe communication</li>
+                                        <li>Causal consistency guarantees</li>
+                                        <li>Deadlock prevention</li>
+                                        <li>Message ordering preservation</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🔄 Event Synchronization</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Sophisticated event-based coordination with synchronization sets, priority handling, 
+                                        and distributed consensus mechanisms for complex multi-process coordination.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Event-based coordination</li>
+                                        <li>Synchronization sets</li>
+                                        <li>Priority event handling</li>
+                                        <li>Distributed consensus</li>
+                                        <li>Temporal logic verification</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="widget">
+                                <h4 style="margin-bottom: 1rem;">Current Process Status</h4>
+                                <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 500;">🟢 Running Processes</span>
+                                        <span style="color: var(--success);">15 processes</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 500;">🟡 Blocked Processes</span>
+                                        <span style="color: var(--warning);">3 processes</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 500;">🔄 Composition Operations</span>
+                                        <span style="color: var(--primary);">8 active</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-weight: 500;">📊 Channel Utilization</span>
+                                        <span style="color: var(--text-light);">73% average</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Process Algebra Tab -->
+                        <div class="tab-content" id="csp-algebra">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">CSP Process Algebra Operations</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                The Enhanced CSP platform implements complete process algebra with all fundamental 
+                                CSP operators, enabling complex process compositions with mathematical guarantees.
+                            </p>
+
+                            <div class="agent-grid">
+                                <div class="agent-card" style="border-left-color: #667eea;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">Sequential (P ; Q)</h4>
+                                        <span class="agent-status status-active">47 Operations</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Process P executes first, then process Q executes after P terminates successfully. 
+                                        Provides sequential workflow execution with error propagation.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Sequential execution order</li>
+                                        <li>Result value passing</li>
+                                        <li>Error propagation</li>
+                                        <li>State preservation</li>
+                                        <li>Resource cleanup</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card" style="border-left-color: #f093fb;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">Parallel (P || Q)</h4>
+                                        <span class="agent-status status-active">23 Operations</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Processes P and Q execute concurrently, synchronizing on shared events. 
+                                        Enables true parallel execution with controlled synchronization points.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Concurrent execution</li>
+                                        <li>Shared event synchronization</li>
+                                        <li>Resource isolation</li>
+                                        <li>Parallel result aggregation</li>
+                                        <li>Load balancing</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card" style="border-left-color: #4facfe;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">Choice (P [] Q)</h4>
+                                        <span class="agent-status status-active">15 Operations</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        External choice where the environment determines which process executes. 
+                                        First available event determines the execution path.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>External choice resolution</li>
+                                        <li>Event-driven selection</li>
+                                        <li>Deterministic behavior</li>
+                                        <li>Resource optimization</li>
+                                        <li>Timeout handling</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card" style="border-left-color: #10b981;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">Interleaving (P ||| Q)</h4>
+                                        <span class="agent-status status-active">12 Operations</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Independent parallel execution without synchronization. Processes execute 
+                                        concurrently with arbitrary interleaving of their events.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Independent execution</li>
+                                        <li>No synchronization overhead</li>
+                                        <li>Maximum concurrency</li>
+                                        <li>Event interleaving</li>
+                                        <li>Resource independence</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card" style="border-left-color: #f59e0b;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">Hiding (P \ A)</h4>
+                                        <span class="agent-status status-active">8 Operations</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Hides internal events from external observation, creating abstraction 
+                                        barriers and encapsulation for complex process hierarchies.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Event abstraction</li>
+                                        <li>Interface encapsulation</li>
+                                        <li>Internal event hiding</li>
+                                        <li>Compositional abstraction</li>
+                                        <li>Behavioral equivalence</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card" style="border-left-color: #8b5cf6;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">Renaming (P[R])</h4>
+                                        <span class="agent-status status-active">5 Operations</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Renames events according to renaming function R, enabling process 
+                                        adaptation and interface compatibility across different contexts.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Event renaming</li>
+                                        <li>Interface adaptation</li>
+                                        <li>Protocol translation</li>
+                                        <li>Namespace management</li>
+                                        <li>Component reusability</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Channel Management Tab -->
+                        <div class="tab-content" id="csp-channels">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">Communication Channel Management</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                Advanced channel management with multiple communication semantics, ensuring type safety, 
+                                message ordering, and optimal performance across distributed process networks.
+                            </p>
+
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-value">47</div>
+                                    <div class="metric-label">Active Channels</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">2.4K</div>
+                                    <div class="metric-label">Messages/Min</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">12ms</div>
+                                    <div class="metric-label">Avg Latency</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">99.7%</div>
+                                    <div class="metric-label">Delivery Rate</div>
+                                </div>
+                            </div>
+
+                            <div class="agent-grid">
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🔄 Synchronous Channels</h4>
+                                        <span class="agent-status status-active">28 Active</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Classic CSP synchronous communication where sender and receiver must be 
+                                        ready simultaneously. Ensures tight coordination and message ordering.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Synchronized send/receive</li>
+                                        <li>Zero message buffering</li>
+                                        <li>Tight process coordination</li>
+                                        <li>Deterministic behavior</li>
+                                        <li>Flow control inherent</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">📨 Asynchronous Channels</h4>
+                                        <span class="agent-status status-active">12 Active</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Buffered communication allowing decoupled sender and receiver execution. 
+                                        Provides higher throughput with configurable buffer management.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Message buffering</li>
+                                        <li>Decoupled execution</li>
+                                        <li>Higher throughput</li>
+                                        <li>Back-pressure handling</li>
+                                        <li>Buffer overflow protection</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">📡 Broadcast Channels</h4>
+                                        <span class="agent-status status-active">5 Active</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        One-to-many communication supporting event distribution to multiple 
+                                        subscribers with ordering guarantees and subscription management.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>One-to-many delivery</li>
+                                        <li>Subscription management</li>
+                                        <li>Event ordering</li>
+                                        <li>Fan-out optimization</li>
+                                        <li>Dynamic subscription</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🌊 Streaming Channels</h4>
+                                        <span class="agent-status status-active">2 Active</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Continuous data flow channels optimized for high-volume, real-time 
+                                        data streaming with flow control and quality of service guarantees.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Continuous data flow</li>
+                                        <li>Real-time processing</li>
+                                        <li>QoS guarantees</li>
+                                        <li>Adaptive flow control</li>
+                                        <li>Stream processing</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="widget">
+                                <h4 style="margin-bottom: 1rem;">Channel Performance Analytics</h4>
+                                <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 500;">📊 Total Throughput</span>
+                                        <span style="color: var(--success);">2,847 msg/sec</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 500;">⏱️ Average Latency</span>
+                                        <span style="color: var(--primary);">12.3ms</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 500;">🔄 Active Connections</span>
+                                        <span style="color: var(--text);">156 connections</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-weight: 500;">💾 Buffer Utilization</span>
+                                        <span style="color: var(--warning);">67% average</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Process Composition Tab -->
+                        <div class="tab-content" id="csp-composition">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">Advanced Process Composition</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                Create complex process hierarchies through composition operations, enabling sophisticated 
+                                workflows with formal verification and automatic optimization.
+                            </p>
+
+                            <div class="agent-grid">
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🔗 Composite Processes</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Build complex processes from simpler components using formal composition operators. 
+                                        Maintains mathematical properties and enables hierarchical verification.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Hierarchical composition</li>
+                                        <li>Property preservation</li>
+                                        <li>Compositional verification</li>
+                                        <li>Modular design</li>
+                                        <li>Reusable components</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🧬 Process Templates</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Pre-defined process patterns and templates for common coordination patterns, 
+                                        including producer-consumer, leader-election, and consensus algorithms.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Common patterns library</li>
+                                        <li>Parameterized templates</li>
+                                        <li>Best practice implementations</li>
+                                        <li>Instant deployment</li>
+                                        <li>Customizable parameters</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🔍 Formal Verification</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Automatic verification of process compositions using model checking and 
+                                        temporal logic to ensure correctness, deadlock-freedom, and liveness properties.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Model checking</li>
+                                        <li>Temporal logic verification</li>
+                                        <li>Deadlock detection</li>
+                                        <li>Liveness verification</li>
+                                        <li>Safety property checking</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">⚡ Dynamic Optimization</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Runtime optimization of process compositions based on performance metrics, 
+                                        resource utilization, and communication patterns.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Runtime optimization</li>
+                                        <li>Performance-based adaptation</li>
+                                        <li>Resource efficiency</li>
+                                        <li>Communication optimization</li>
+                                        <li>Load balancing</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="widget">
+                                <h4 style="margin-bottom: 1rem;">Active Compositions</h4>
+                                <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.9rem;">
+                                    <div style="margin-bottom: 0.5rem;">
+                                        <strong>workflow_1:</strong> (auth_service ; validation_service) || logging_service
+                                    </div>
+                                    <div style="margin-bottom: 0.5rem;">
+                                        <strong>consensus_cluster:</strong> leader_election [] (node_1 ||| node_2 ||| node_3)
+                                    </div>
+                                    <div style="margin-bottom: 0.5rem;">
+                                        <strong>data_pipeline:</strong> (ingestion ; processing ; storage) \ {internal_events}
+                                    </div>
+                                    <div>
+                                        <strong>load_balancer:</strong> (frontend_1 [] frontend_2 [] frontend_3) ; backend_pool
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Process Lifecycle Tab -->
+                        <div class="tab-content" id="csp-lifecycle">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">Process Lifecycle Management</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                Complete lifecycle management from process creation through termination, including 
+                                state management, resource allocation, and graceful shutdown procedures.
+                            </p>
+
+                            <div class="agent-grid">
+                                <div class="agent-card" style="border-left-color: #10b981;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🆕 Process Creation</h4>
+                                        <span class="agent-status status-active">Creation Phase</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Dynamic process instantiation with parameter binding, resource allocation, 
+                                        and dependency resolution in distributed environments.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Dynamic instantiation</li>
+                                        <li>Parameter binding</li>
+                                        <li>Resource allocation</li>
+                                        <li>Dependency resolution</li>
+                                        <li>Initial state setup</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card" style="border-left-color: #3b82f6;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">▶️ Process Execution</h4>
+                                        <span class="agent-status status-active">Running Phase</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Runtime execution management with state transitions, event handling, 
+                                        communication coordination, and performance monitoring.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>State transition management</li>
+                                        <li>Event-driven execution</li>
+                                        <li>Communication handling</li>
+                                        <li>Performance monitoring</li>
+                                        <li>Error recovery</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card" style="border-left-color: #f59e0b;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">⏸️ Process Suspension</h4>
+                                        <span class="agent-status status-idle">Blocked Phase</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Temporary suspension for communication blocking, resource waiting, 
+                                        or coordination synchronization with automatic resumption.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Communication blocking</li>
+                                        <li>Resource waiting</li>
+                                        <li>Synchronization points</li>
+                                        <li>State preservation</li>
+                                        <li>Automatic resumption</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card" style="border-left-color: #ef4444;">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🛑 Process Termination</h4>
+                                        <span class="agent-status status-offline">Cleanup Phase</span>
+                                    </div>
+                                    <p class="agent-description">
+                                        Graceful termination with resource cleanup, notification propagation, 
+                                        and dependent process coordination.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Graceful shutdown</li>
+                                        <li>Resource cleanup</li>
+                                        <li>Notification propagation</li>
+                                        <li>Dependent coordination</li>
+                                        <li>Final state persistence</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="widget">
+                                <h4 style="margin-bottom: 1rem;">Process State Distribution</h4>
+                                <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                        <span style="font-weight: 500;">🟢 Running</span>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <div style="width: 100px; height: 8px; background: #e5e7eb; border-radius: 4px;">
+                                                <div style="width: 65%; height: 100%; background: var(--success); border-radius: 4px;"></div>
+                                            </div>
+                                            <span style="color: var(--success);">15 (65%)</span>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                        <span style="font-weight: 500;">🟡 Blocked</span>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <div style="width: 100px; height: 8px; background: #e5e7eb; border-radius: 4px;">
+                                                <div style="width: 20%; height: 100%; background: var(--warning); border-radius: 4px;"></div>
+                                            </div>
+                                            <span style="color: var(--warning);">5 (20%)</span>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                        <span style="font-weight: 500;">🔵 Ready</span>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <div style="width: 100px; height: 8px; background: #e5e7eb; border-radius: 4px;">
+                                                <div style="width: 10%; height: 100%; background: var(--primary); border-radius: 4px;"></div>
+                                            </div>
+                                            <span style="color: var(--primary);">2 (10%)</span>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-weight: 500;">⚫ Terminated</span>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <div style="width: 100px; height: 8px; background: #e5e7eb; border-radius: 4px;">
+                                                <div style="width: 5%; height: 100%; background: var(--text-light); border-radius: 4px;"></div>
+                                            </div>
+                                            <span style="color: var(--text-light);">1 (5%)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monitoring Tab -->
+                        <div class="tab-content" id="csp-monitoring">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">Process Monitoring & Analytics</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                Real-time monitoring of process performance, communication patterns, and system health 
+                                with advanced analytics and predictive insights.
+                            </p>
+
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-value">99.7%</div>
+                                    <div class="metric-label">Process Uptime</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">8.3ms</div>
+                                    <div class="metric-label">Avg Response Time</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">2,847</div>
+                                    <div class="metric-label">Events/Second</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">67%</div>
+                                    <div class="metric-label">Resource Utilization</div>
+                                </div>
+                            </div>
+
+                            <div class="agent-grid">
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">📊 Performance Metrics</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Comprehensive performance monitoring including execution times, memory usage, 
+                                        CPU utilization, and communication latencies.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Execution time tracking</li>
+                                        <li>Memory usage monitoring</li>
+                                        <li>CPU utilization analysis</li>
+                                        <li>Communication latency</li>
+                                        <li>Throughput measurement</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🔍 Behavioral Analysis</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Advanced pattern recognition and behavioral analysis to detect anomalies, 
+                                        optimize communication patterns, and predict system behavior.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Pattern recognition</li>
+                                        <li>Anomaly detection</li>
+                                        <li>Communication analysis</li>
+                                        <li>Behavioral prediction</li>
+                                        <li>Optimization insights</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">⚠️ Health Monitoring</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Continuous health assessment with automatic alerting, failure prediction, 
+                                        and proactive maintenance recommendations.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Health assessment</li>
+                                        <li>Automatic alerting</li>
+                                        <li>Failure prediction</li>
+                                        <li>Maintenance recommendations</li>
+                                        <li>Recovery planning</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">📈 Trend Analysis</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Historical trend analysis and capacity planning with machine learning-based 
+                                        forecasting for resource planning and optimization.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Historical analysis</li>
+                                        <li>Capacity planning</li>
+                                        <li>ML-based forecasting</li>
+                                        <li>Resource optimization</li>
+                                        <li>Growth predictions</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deployment Tab -->
+                        <div class="tab-content" id="csp-deployment">
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">Process Deployment & Orchestration</h3>
+                            <p style="margin-bottom: 2rem; color: var(--text-light); line-height: 1.6;">
+                                Enterprise-grade deployment and orchestration with Kubernetes integration, 
+                                auto-scaling, and multi-environment management for production-ready CSP processes.
+                            </p>
+
+                            <div class="agent-grid">
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">☸️ Kubernetes Integration</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Native Kubernetes deployment with custom operators, automatic scaling, 
+                                        and cloud-native orchestration for enterprise environments.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Kubernetes operators</li>
+                                        <li>Pod auto-scaling</li>
+                                        <li>Service mesh integration</li>
+                                        <li>Resource quotas</li>
+                                        <li>Rolling deployments</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🐳 Container Orchestration</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Docker containerization with multi-stage builds, security scanning, 
+                                        and optimized runtime environments for CSP processes.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Multi-stage builds</li>
+                                        <li>Security scanning</li>
+                                        <li>Runtime optimization</li>
+                                        <li>Image versioning</li>
+                                        <li>Registry management</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🌍 Multi-Cloud Deployment</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Cross-cloud deployment capabilities with AWS, GCP, and Azure support, 
+                                        including edge deployment and hybrid cloud configurations.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Multi-cloud support</li>
+                                        <li>Edge deployment</li>
+                                        <li>Hybrid configurations</li>
+                                        <li>Cloud-native services</li>
+                                        <li>Geographic distribution</li>
+                                    </ul>
+                                </div>
+
+                                <div class="agent-card">
+                                    <div class="agent-header">
+                                        <h4 class="agent-title">🔄 CI/CD Pipeline</h4>
+                                    </div>
+                                    <p class="agent-description">
+                                        Continuous integration and deployment with automated testing, 
+                                        validation, and progressive rollouts for CSP process updates.
+                                    </p>
+                                    <ul class="capabilities-list">
+                                        <li>Automated testing</li>
+                                        <li>Process validation</li>
+                                        <li>Progressive rollouts</li>
+                                        <li>Rollback capabilities</li>
+                                        <li>Quality gates</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="widget">
+                                <h4 style="margin-bottom: 1rem;">Deployment Status</h4>
+                                <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 500;">🚀 Production Deployments</span>
+                                        <span style="color: var(--success);">12 active</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 500;">🧪 Staging Environment</span>
+                                        <span style="color: var(--primary);">3 active</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 500;">⚡ Auto-Scaling Events</span>
+                                        <span style="color: var(--warning);">5 today</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-weight: 500;">📊 Resource Efficiency</span>
+                                        <span style="color: var(--success);">94% optimal</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="quantum-page" class="page-section">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">8</div>
+                            <div class="metric-label">Quantum Channels</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">99.7%</div>
+                            <div class="metric-label">Entanglement Fidelity</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">847</div>
+                            <div class="metric-label">Quantum Operations</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">156μs</div>
+                            <div class="metric-label">Gate Time</div>
+                        </div>
+                    </div>
+                    <div class="widget">
+                        <h3>Quantum Computing Interface</h3>
+                        <p>Quantum-enhanced CSP processing and quantum communication protocols.</p>
+                    </div>
+                </div>
+
+                <div id="blockchain-page" class="page-section">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">12,847</div>
+                            <div class="metric-label">Block Height</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">5.2s</div>
+                            <div class="metric-label">Block Time</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">99.9%</div>
+                            <div class="metric-label">Network Health</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">1,247</div>
+                            <div class="metric-label">Validators</div>
+                        </div>
+                    </div>
+                    <div class="widget">
+                        <h3>Blockchain Network Management</h3>
+                        <p>Distributed ledger for AI agent transactions and smart contracts.</p>
+                    </div>
+                </div>
+
+                <div id="neural-page" class="page-section">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">15</div>
+                            <div class="metric-label">Neural Networks</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">89.7%</div>
+                            <div class="metric-label">Optimization Rate</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">2.1TB</div>
+                            <div class="metric-label">Training Data</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">156ms</div>
+                            <div class="metric-label">Inference Time</div>
+                        </div>
+                    </div>
+                    <div class="widget">
+                        <h3>Neural Network Optimizer</h3>
+                        <p>AI model optimization and neural architecture search platform.</p>
+                    </div>
+                </div>
+
+                <div id="security-page" class="page-section">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">0</div>
+                            <div class="metric-label">Active Threats</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">99.9%</div>
+                            <div class="metric-label">Security Score</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">1,247</div>
+                            <div class="metric-label">Blocked Attempts</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">24/7</div>
+                            <div class="metric-label">Monitoring</div>
+                        </div>
+                    </div>
+                    <div class="widget">
+                        <h3>Security Engine</h3>
+                        <p>Advanced threat detection and security monitoring for the CSP platform.</p>
+                    </div>
+                </div>
+
+                <div id="monitoring-page" class="page-section">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">99.9%</div>
+                            <div class="metric-label">System Uptime</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">45%</div>
+                            <div class="metric-label">CPU Usage</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">78%</div>
+                            <div class="metric-label">Memory Usage</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">156MB/s</div>
+                            <div class="metric-label">Network I/O</div>
+                        </div>
+                    </div>
+                    <div class="widget">
+                        <h3>System Monitoring</h3>
+                        <p>Real-time system performance monitoring and analytics.</p>
+                    </div>
+                </div>
+
+                <div id="logs-page" class="page-section">
+                    <div class="widget">
+                        <h3>System Logs</h3>
+                        <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.9rem;">
+                            <div>[2024-01-15 14:35:22] INFO: CSP Engine initialized successfully</div>
+                            <div>[2024-01-15 14:35:18] WARN: Memory usage above 80%</div>
+                            <div>[2024-01-15 14:35:15] INFO: AI Agent deployed: cognitive-agent-47</div>
+                            <div>[2024-01-15 14:35:12] INFO: Quantum channel established</div>
+                            <div>[2024-01-15 14:35:08] INFO: Blockchain sync completed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="settings-page" class="page-section">
+                    <div class="widget">
+                        <h3>System Settings</h3>
+                        <p>Configure Enhanced CSP system parameters and preferences.</p>
+                        <div style="margin-top: 1rem;">
+                            <button class="btn btn-primary">Save Settings</button>
+                            <button class="btn btn-secondary">Reset to Defaults</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-links">
-                <a href="#documentation">Documentation</a>
-                <a href="#api">API Reference</a>
-                <a href="#tutorials">Tutorials</a>
-                <a href="#community">Community</a>
-                <a href="#support">Support</a>
-            </div>
-            <p style="color: #9ca3af;">
-                &copy; 2025 Enhanced CSP Platform. Advancing AI-to-AI Communication.
-            </p>
-        </div>
-    </footer>
-
     <script>
-        // Navigation functionality
-        class CSPDashboard {
+        // Enhanced CSP Dashboard JavaScript
+        class EnhancedCSPDashboard {
             constructor() {
-                this.currentSection = 'agents';
-                this.sections = {
-                    'dashboard': {
-                        title: 'Dashboard',
-                        subtitle: 'Real-time monitoring and control center for the Enhanced CSP platform',
-                        stats: [
-                            { number: '23', label: 'Active Processes' },
-                            { number: '156', label: 'Connected Users' },
-                            { number: '99.9%', label: 'System Uptime' },
-                            { number: '2.1TB', label: 'Data Processed' }
-                        ]
-                    },
-                    'processes': {
-                        title: 'CSP Processes',
-                        subtitle: 'Communicating Sequential Processes management and coordination',
-                        stats: [
-                            { number: '23', label: 'Active Processes' },
-                            { number: '47', label: 'Message Channels' },
-                            { number: '156/s', label: 'Messages/Second' },
-                            { number: '12ms', label: 'Avg Latency' }
-                        ]
-                    },
-                    'agents': {
-                        title: 'AI Agents',
-                        subtitle: 'Intelligent autonomous agents that communicate through CSP protocols, enabling sophisticated AI-to-AI collaboration and multimodal processing',
-                        stats: [
-                            { number: '47', label: 'Active AI Agents' },
-                            { number: '12.3M', label: 'Messages Processed' },
-                            { number: '99.8%', label: 'Uptime' },
-                            { number: '156ms', label: 'Avg Response Time' }
-                        ]
-                    },
-                    'quantum': {
-                        title: 'Quantum Computing',
-                        subtitle: 'Quantum-enhanced CSP processing and quantum communication protocols',
-                        stats: [
-                            { number: '8', label: 'Quantum Channels' },
-                            { number: '99.7%', label: 'Quantum Fidelity' },
-                            { number: '0.1ms', label: 'Entanglement Time' },
-                            { number: '256', label: 'Qubits Available' }
-                        ]
-                    },
-                    'blockchain': {
-                        title: 'Blockchain Network',
-                        subtitle: 'Decentralized CSP coordination and consensus mechanisms',
-                        stats: [
-                            { number: '47', label: 'Network Nodes' },
-                            { number: '12', label: 'Consensus Rounds' },
-                            { number: '99.9%', label: 'Network Uptime' },
-                            { number: '156', label: 'Transactions/Min' }
-                        ]
-                    },
-                    'neural': {
-                        title: 'Neural Optimizer',
-                        subtitle: 'Neural network optimization for CSP performance enhancement',
-                        stats: [
-                            { number: '12', label: 'Neural Networks' },
-                            { number: '94.7%', label: 'Optimization Rate' },
-                            { number: '2.3x', label: 'Performance Gain' },
-                            { number: '156ms', label: 'Inference Time' }
-                        ]
-                    },
-                    'security': {
-                        title: 'Security Engine',
-                        subtitle: 'Advanced security monitoring and threat detection',
-                        stats: [
-                            { number: '0', label: 'Active Threats' },
-                            { number: '47', label: 'Security Policies' },
-                            { number: '99.9%', label: 'Protection Rate' },
-                            { number: '5min', label: 'Last Scan' }
-                        ]
-                    },
-                    'monitoring': {
-                        title: 'System Monitoring',
-                        subtitle: 'Real-time system performance and health monitoring',
-                        stats: [
-                            { number: '34%', label: 'CPU Usage' },
-                            { number: '2.1GB', label: 'Memory Used' },
-                            { number: '156Mbps', label: 'Network Speed' },
-                            { number: '23°C', label: 'System Temp' }
-                        ]
-                    },
-                    'logs': {
-                        title: 'System Logs',
-                        subtitle: 'Comprehensive system logging and audit trails',
-                        stats: [
-                            { number: '12.3K', label: 'Log Entries' },
-                            { number: '47', label: 'Log Sources' },
-                            { number: '0', label: 'Error Count' },
-                            { number: '5min', label: 'Last Update' }
-                        ]
-                    },
-                    'settings': {
-                        title: 'System Settings',
-                        subtitle: 'Configuration and system preferences',
-                        stats: [
-                            { number: '23', label: 'Config Files' },
-                            { number: '156', label: 'Parameters' },
-                            { number: '5min', label: 'Last Modified' },
-                            { number: '3', label: 'Pending Changes' }
-                        ]
-                    }
-                };
+                this.currentPage = 'agents';
+                this.currentTab = 'overview';
                 this.init();
             }
 
             init() {
                 this.setupNavigation();
-                this.setupAnimations();
+                this.setupTabs();
+                this.startRealTimeUpdates();
             }
 
             setupNavigation() {
@@ -1140,258 +1994,232 @@
                 navItems.forEach(item => {
                     item.addEventListener('click', (e) => {
                         e.preventDefault();
-                        const section = item.dataset.section;
-                        if (section) {
-                            this.navigateToSection(section);
-                        }
+                        const page = item.dataset.page;
+                        this.navigateToPage(page);
                     });
                 });
             }
 
-            navigateToSection(sectionName) {
+            setupTabs() {
+                const tabs = document.querySelectorAll('.tab');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        const tabId = tab.dataset.tab;
+                        this.switchTab(tabId, tab.closest('.tabs-container'));
+                    });
+                });
+            }
+
+            navigateToPage(page) {
                 // Update active nav item
                 document.querySelectorAll('.nav-item').forEach(item => {
                     item.classList.remove('active');
                 });
-                
-                const activeNavItem = document.querySelector(`[data-section="${sectionName}"]`);
-                if (activeNavItem) {
-                    activeNavItem.classList.add('active');
-                }
+                document.querySelector(`[data-page="${page}"]`).classList.add('active');
 
-                // Hide all page sections
+                // Hide all pages
                 document.querySelectorAll('.page-section').forEach(section => {
                     section.classList.remove('active');
                 });
 
-                // Show target section
-                const targetSection = document.getElementById(`${sectionName}-content`);
-                if (targetSection) {
-                    targetSection.classList.add('active');
-                }
+                // Show selected page
+                document.getElementById(`${page}-page`).classList.add('active');
 
-                // Update header content
-                this.updateHeader(sectionName);
-                
-                // Update current section
-                this.currentSection = sectionName;
-
-                // Trigger animations
-                this.animateContentChange();
-            }
-
-            updateHeader(sectionName) {
-                const sectionData = this.sections[sectionName];
-                if (!sectionData) return;
-
-                const pageTitle = document.getElementById('pageTitle');
-                const pageSubtitle = document.getElementById('pageSubtitle');
-                const statsGrid = document.getElementById('statsGrid');
-
-                if (pageTitle) {
-                    pageTitle.textContent = sectionData.title;
-                }
-
-                if (pageSubtitle) {
-                    pageSubtitle.textContent = sectionData.subtitle;
-                }
-
-                if (statsGrid && sectionData.stats) {
-                    statsGrid.innerHTML = sectionData.stats.map(stat => `
-                        <div class="stat-card">
-                            <span class="stat-number">${stat.number}</span>
-                            <div class="stat-label">${stat.label}</div>
-                        </div>
-                    `).join('');
-                }
-            }
-
-            animateContentChange() {
-                const activeSection = document.querySelector('.page-section.active');
-                if (activeSection) {
-                    activeSection.style.opacity = '0';
-                    activeSection.style.transform = 'translateY(20px)';
-                    
-                    setTimeout(() => {
-                        activeSection.style.transition = 'all 0.3s ease';
-                        activeSection.style.opacity = '1';
-                        activeSection.style.transform = 'translateY(0)';
-                    }, 50);
-                }
-            }
-
-            setupAnimations() {
-                // Animation on scroll
-                const observerOptions = {
-                    threshold: 0.1,
-                    rootMargin: '0px 0px -50px 0px'
+                // Update page title
+                const titles = {
+                    'dashboard': '📊 Dashboard',
+                    'agents': '🤖 AI Agents',
+                    'processes': '⚙️ CSP Processes',
+                    'quantum': '⚛️ Quantum Computing',
+                    'blockchain': '🔗 Blockchain Network',
+                    'neural': '🧠 Neural Optimizer',
+                    'security': '🛡️ Security Engine',
+                    'monitoring': '📊 Monitoring',
+                    'logs': '📄 System Logs',
+                    'settings': '⚙️ Settings'
                 };
 
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add('animated');
-                        }
-                    });
-                }, observerOptions);
+                document.getElementById('pageTitle').innerHTML = `<i class="fas fa-${this.getIconClass(page)}"></i> ${titles[page] || page}`;
 
-                document.querySelectorAll('.animate-on-scroll').forEach(el => {
-                    observer.observe(el);
+                // Update status indicators based on page
+                this.updateStatusIndicators(page);
+
+                this.currentPage = page;
+                
+                // If navigating to processes page, show notification about CSP capabilities
+                if (page === 'processes') {
+                    this.showNotification(`Switched to CSP Processes Management - Full process algebra implementation`);
+                } else {
+                    this.showNotification(`Navigated to ${titles[page] || page}`);
+                }
+            }
+
+            switchTab(tabId, container = null) {
+                // If no container specified, find the container that has this tab
+                if (!container) {
+                    container = document.querySelector(`[data-tab="${tabId}"]`).closest('.tabs-container');
+                }
+
+                // Remove active class from all tabs and content in this container
+                container.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.remove('active');
                 });
+
+                container.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Add active class to selected tab and content
+                container.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+                container.querySelector(`#${tabId}`).classList.add('active');
+
+                this.currentTab = tabId;
+            }
+
+            updateStatusIndicators(page) {
+                const statusContainer = document.querySelector('.status-indicators');
+                
+                // Define status indicators for each page
+                const pageIndicators = {
+                    'dashboard': [
+                        { label: '23 Active Processes', class: '' },
+                        { label: '156 Connected Users', class: '' }
+                    ],
+                    'agents': [
+                        { label: '47 Active Agents', class: '' },
+                        { label: '2 Maintenance', class: 'warning' }
+                    ],
+                    'processes': [
+                        { label: '23 Running Processes', class: '' },
+                        { label: '3 Blocked', class: 'warning' },
+                        { label: '8 Compositions', class: '' }
+                    ],
+                    'quantum': [
+                        { label: '8 Quantum Channels', class: '' },
+                        { label: '99.7% Fidelity', class: '' }
+                    ],
+                    'blockchain': [
+                        { label: '1,247 Validators', class: '' },
+                        { label: '99.9% Network Health', class: '' }
+                    ],
+                    'neural': [
+                        { label: '15 Neural Networks', class: '' },
+                        { label: '89.7% Optimization', class: '' }
+                    ],
+                    'security': [
+                        { label: '0 Active Threats', class: '' },
+                        { label: '99.9% Security Score', class: '' }
+                    ],
+                    'monitoring': [
+                        { label: '99.9% Uptime', class: '' },
+                        { label: '45% CPU Usage', class: 'warning' }
+                    ],
+                    'logs': [
+                        { label: 'Real-time Logging', class: '' },
+                        { label: '2.1GB Log Data', class: '' }
+                    ],
+                    'settings': [
+                        { label: 'Configuration Mode', class: 'warning' },
+                        { label: 'Auto-Save Enabled', class: '' }
+                    ]
+                };
+
+                const indicators = pageIndicators[page] || [];
+                
+                statusContainer.innerHTML = indicators.map(indicator => `
+                    <div class="status-indicator">
+                        <div class="status-dot ${indicator.class}"></div>
+                        ${indicator.label}
+                    </div>
+                `).join('');
+            }
+
+            getIconClass(page) {
+                const iconMap = {
+                    'dashboard': 'tachometer-alt',
+                    'agents': 'robot',
+                    'processes': 'cogs',
+                    'quantum': 'atom',
+                    'blockchain': 'link',
+                    'neural': 'brain',
+                    'security': 'shield-alt',
+                    'monitoring': 'chart-line',
+                    'logs': 'file-alt',
+                    'settings': 'cog'
+                };
+                return iconMap[page] || 'circle';
+            }
+
+            startRealTimeUpdates() {
+                // Simulate real-time data updates
+                setInterval(() => {
+                    this.updateMetrics();
+                }, 10000); // Update every 10 seconds
+            }
+
+            updateMetrics() {
+                // Simulate metric updates
+                const metricCards = document.querySelectorAll('.metric-value');
+                metricCards.forEach(card => {
+                    const currentValue = card.textContent;
+                    if (currentValue.includes('%')) {
+                        const baseValue = parseFloat(currentValue);
+                        const variation = (Math.random() - 0.5) * 0.2;
+                        const newValue = Math.max(0, Math.min(100, baseValue + variation));
+                        card.textContent = newValue.toFixed(1) + '%';
+                    }
+                });
+            }
+
+            showNotification(message) {
+                // Create and show notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: var(--gradient);
+                    color: white;
+                    padding: 1rem 1.5rem;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    z-index: 10000;
+                    animation: slideIn 0.3s ease-out;
+                `;
+                
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                // Remove notification after 3 seconds
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease-in';
+                    setTimeout(() => {
+                        if (document.body.contains(notification)) {
+                            document.body.removeChild(notification);
+                        }
+                    }, 300);
+                }, 3000);
             }
         }
 
-        // Mobile sidebar toggle
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('open');
-        }
-
-        // Demo Functions
-        function simulateTextAnalysis() {
-            const output = document.getElementById('demoOutput');
-            output.innerHTML = `
-                <div style="color: var(--success); margin-bottom: 1rem;">
-                    <span class="status-indicator status-running"></span>
-                    <strong>Starting Text Analysis Agent...</strong>
-                </div>
-                <div style="margin-bottom: 1rem; line-height: 1.6;">
-                    <strong>Agent: TextAnalyzer-01</strong><br>
-                    Status: Processing natural language input...<br>
-                    Entities detected: 7 persons, 3 organizations, 5 locations<br>
-                    Sentiment: Positive (0.82 confidence)<br>
-                    Topics: Technology, Innovation, AI Development<br>
-                </div>
-                <div style="color: var(--text-light); background: var(--card-gradient); padding: 1rem; border-radius: 8px;">
-                    Processing time: 156ms | Tokens processed: 1,247<br>
-                    Next: Routing to semantic analysis agent...
-                </div>
-            `;
-        }
-
-        function simulateImageProcessing() {
-            const output = document.getElementById('demoOutput');
-            output.innerHTML = `
-                <div style="color: var(--success); margin-bottom: 1rem;">
-                    <span class="status-indicator status-running"></span>
-                    <strong>Starting Image Processing Agent...</strong>
-                </div>
-                <div style="margin-bottom: 1rem; line-height: 1.6;">
-                    <strong>Agent: VisionProcessor-03</strong><br>
-                    Status: Analyzing visual content...<br>
-                    Objects detected: 12 (person, car, building, tree, sign)<br>
-                    Scene classification: Urban street scene<br>
-                    Quality score: 0.94/1.0<br>
-                    Resolution: 1920x1080 | Format: JPEG<br>
-                </div>
-                <div style="color: var(--text-light); background: var(--card-gradient); padding: 1rem; border-radius: 8px;">
-                    Processing time: 342ms | GPU utilization: 78%<br>
-                    Next: Sending to feature extraction agent...
-                </div>
-            `;
-        }
-
-        function simulateAgentCollab() {
-            const output = document.getElementById('demoOutput');
-            output.innerHTML = `
-                <div style="color: var(--success); margin-bottom: 1rem;">
-                    <span class="status-indicator status-running"></span>
-                    <strong>Initiating Multi-Agent Collaboration...</strong>
-                </div>
-                <div style="margin-bottom: 1rem; line-height: 1.6;">
-                    <strong>Coordinator Agent:</strong> Orchestrating task distribution<br>
-                    <strong>Agent-A:</strong> Data preprocessing (Progress: 85%)<br>
-                    <strong>Agent-B:</strong> Pattern analysis (Progress: 67%)<br>
-                    <strong>Agent-C:</strong> Result validation (Queued)<br>
-                    <strong>Agent-D:</strong> Report generation (Standby)<br>
-                </div>
-                <div style="color: var(--primary); margin-bottom: 1rem; background: var(--card-gradient); padding: 1rem; border-radius: 8px;">
-                    CSP Messages: 47 sent, 43 acknowledged<br>
-                    Synchronization: All agents aligned<br>
-                </div>
-                <div style="color: var(--text-light);">
-                    Total processing time: 2.3s | Efficiency: 94.2%
-                </div>
-            `;
-        }
-
-        function simulateRealTime() {
-            const output = document.getElementById('demoOutput');
-            let counter = 0;
+        // Add CSS for animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
             
-            const updateData = () => {
-                counter++;
-                const timestamp = new Date().toLocaleTimeString();
-                const randomMetric = (Math.random() * 100).toFixed(1);
-                const randomLatency = (Math.random() * 50 + 100).toFixed(0);
-                
-                output.innerHTML = `
-                    <div style="color: var(--success); margin-bottom: 1rem;">
-                        <span class="status-indicator status-running"></span>
-                        <strong>Real-time Processing Active...</strong>
-                    </div>
-                    <div style="margin-bottom: 1rem; line-height: 1.6;">
-                        <strong>Timestamp:</strong> ${timestamp}<br>
-                        <strong>Active Agents:</strong> 12/15<br>
-                        <strong>Messages/sec:</strong> ${randomMetric}<br>
-                        <strong>Avg Latency:</strong> ${randomLatency}ms<br>
-                        <strong>Processing Queue:</strong> ${Math.floor(Math.random() * 20)} items<br>
-                    </div>
-                    <div style="color: var(--text-light); background: var(--card-gradient); padding: 1rem; border-radius: 8px;">
-                        Update #${counter} | System load: ${(Math.random() * 30 + 40).toFixed(1)}%<br>
-                        All systems operational ✓
-                    </div>
-                `;
-            };
-            
-            updateData();
-            const interval = setInterval(updateData, 1500);
-            
-            // Stop after 10 updates
-            setTimeout(() => {
-                clearInterval(interval);
-                output.innerHTML += `
-                    <div style="color: var(--warning); margin-top: 1rem; padding: 1rem; background: var(--card-gradient); border-radius: 8px;">
-                        <span class="status-indicator status-warning"></span>
-                        Real-time demo completed.
-                    </div>
-                `;
-            }, 15000);
-        }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
 
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            const dashboard = new CSPDashboard();
-            
-            // Add mobile menu button for responsive design
-            if (window.innerWidth <= 1024) {
-                const header = document.querySelector('.header-content');
-                const menuButton = document.createElement('button');
-                menuButton.innerHTML = '<i class="fas fa-bars"></i>';
-                menuButton.style.cssText = `
-                    position: absolute;
-                    top: 1rem;
-                    left: 1rem;
-                    background: var(--primary);
-                    color: white;
-                    border: none;
-                    padding: 0.75rem;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 1.2rem;
-                    z-index: 1001;
-                `;
-                menuButton.onclick = toggleSidebar;
-                document.body.appendChild(menuButton);
-            }
-
-            // Add scroll animation trigger
-            setTimeout(() => {
-                document.querySelectorAll('.animate-on-scroll').forEach(el => {
-                    el.style.opacity = '1';
-                    el.style.transform = 'translateY(0)';
-                });
-            }, 500);
+            const dashboard = new EnhancedCSPDashboard();
         });
     </script>
 </body>
