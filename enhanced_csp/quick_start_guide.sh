@@ -19,54 +19,7 @@ echo "🐍 Setting up Python virtual environment..."
 python3 -m venv venv
 source venv/bin/activate
 
-# Step 3: Create requirements.txt (abbreviated for quick start)
-cat > requirements.txt << 'EOF'
-# Core Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.4.2
 
-# Database
-sqlalchemy==2.0.23
-alembic==1.12.1
-asyncpg==0.29.0
-aiosqlite==0.19.0
-
-# Caching & Sessions
-redis==5.0.1
-aioredis==2.0.1
-
-# Authentication
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.0.1
-
-# HTTP & WebSocket
-httpx==0.25.1
-websockets==12.0
-
-# AI Integration
-openai==1.3.5
-anthropic==0.7.7
-
-# Monitoring
-prometheus-client==0.19.0
-psutil==5.9.6
-
-# Configuration
-python-dotenv==1.0.0
-pydantic-settings==2.0.3
-pyyaml==6.0.1
-
-# CLI Tools
-click==8.1.7
-rich==13.7.0
-
-# Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.1
-EOF
 
 # Step 4: Install dependencies
 echo "📦 Installing dependencies..."
@@ -170,112 +123,6 @@ format = %(levelname)-5.5s [%(name)s] %(message)s
 datefmt = %H:%M:%S
 EOF
 
-# Step 8: Create placeholder files for the artifacts we created
-echo "📝 Creating backend structure..."
-
-# Create the main FastAPI app file
-mkdir -p backend
-cat > backend/__init__.py << 'EOF'
-"""CSP Visual Designer Backend"""
-__version__ = "2.0.0"
-EOF
-
-cat > backend/main.py << 'EOF'
-"""
-CSP Visual Designer Backend - Minimal FastAPI Application
-========================================================
-"""
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI(
-    title="CSP Visual Designer API",
-    description="Advanced AI-Powered CSP Process Designer Backend",
-    version="2.0.0"
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
-async def root():
-    return {
-        "message": "CSP Visual Designer API",
-        "version": "2.0.0",
-        "status": "running"
-    }
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "service": "csp-visual-designer-api"}
-
-# Add your artifact code here!
-# Copy the database models, API endpoints, auth system, etc.
-# from the artifacts created in our conversation.
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-EOF
-
-# Step 9: Create a simple test
-mkdir -p tests
-cat > tests/test_basic.py << 'EOF'
-import pytest
-from fastapi.testclient import TestClient
-from backend.main import app
-
-client = TestClient(app)
-
-def test_root():
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "CSP Visual Designer API" in response.json()["message"]
-
-def test_health():
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
-EOF
-
-# Step 10: Create CLI entry point
-mkdir -p cli
-cat > cli/manage.py << 'EOF'
-#!/usr/bin/env python3
-"""
-CSP Visual Designer Management CLI
-"""
-
-import click
-
-@click.group()
-def cli():
-    """CSP Visual Designer Management CLI"""
-    pass
-
-@cli.command()
-def start():
-    """Start the development server"""
-    import uvicorn
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
-
-@cli.command()
-def test():
-    """Run tests"""
-    import subprocess
-    subprocess.run(["python", "-m", "pytest", "tests/", "-v"])
-
-if __name__ == "__main__":
-    cli()
-EOF
-
-chmod +x cli/manage.py
 
 # Step 11: Start databases
 echo "🗄️ Starting databases..."
@@ -291,7 +138,7 @@ python -m pytest tests/ -v
 
 # Step 13: Start the development server in background for testing
 echo "🚀 Starting development server..."
-python backend/main.py &
+python main.py &
 SERVER_PID=$!
 
 # Wait a moment for server to start
