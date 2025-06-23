@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agents - Enhanced CSP Platform</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --dark-light: #374151;
+            --light: #f8fafc;
+            --border: #e5e7eb;
+            --text: #374151;
+            --text-light: #6b7280;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-gradient: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--dark);
+            color: white;
+            padding: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--dark-light);
+            background: var(--gradient);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sidebar-header p {
+            opacity: 0.9;
+            font-size: 0.875rem;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1.5rem 0.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #9ca3af;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: #d1d5db;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border-left-color: var(--primary);
+        }
+
+        .nav-item.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border-left-color: var(--primary);
+        }
+
+        .nav-item i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            min-height: 100vh;
+            background: var(--light);
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+            border-color: var(--primary);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        /* Content Container */
+        .content {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Section Styling */
+        .content-section {
+            margin-bottom: 4rem;
+        }
+
+        .section-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .section-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Agent Types Grid */
+        .agent-types-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .agent-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .agent-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient);
+        }
+
+        .agent-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.2);
+            border-color: var(--primary);
+        }
+
+        .agent-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .agent-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .agent-description {
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .capabilities-list {
+            list-style: none;
+        }
+
+        .capabilities-list li {
+            padding: 0.25rem 0;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .capabilities-list li::before {
+            content: '✓';
+            color: var(--success);
+            font-weight: bold;
+            width: 16px;
+        }
+
+        /* Architecture Section */
+        .architecture-section {
+            background: var(--card-gradient);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 3rem 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .architecture-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .architecture-node {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .architecture-node:hover {
+            transform: scale(1.05);
+            border-color: var(--primary);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+        }
+
+        .node-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .node-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .node-description {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Use Cases Grid */
+        .use-cases-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .use-case-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        .use-case-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--gradient);
+        }
+
+        .use-case-card:hover {
+            transform: translateX(10px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+            border-color: var(--primary);
+        }
+
+        .use-case-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .use-case-scenario {
+            color: var(--text-light);
+            margin-bottom: 1rem;
+            font-style: italic;
+            background: var(--card-gradient);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .use-case-benefits {
+            list-style: none;
+        }
+
+        .use-case-benefits li {
+            padding: 0.3rem 0;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .use-case-benefits li::before {
+            content: '→';
+            color: var(--primary);
+            font-weight: bold;
+            width: 16px;
+        }
+
+        /* Demo Section */
+        .demo-section {
+            background: var(--card-gradient);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 4rem 0;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .demo-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .demo-button {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .demo-output {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            min-height: 200px;
+            text-align: left;
+            font-family: 'JetBrains Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.9rem;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark);
+            color: white;
+            padding: 3rem 0;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: #9ca3af;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .animate-on-scroll.animated {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-running {
+            background-color: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .status-warning {
+            background-color: var(--warning);
+        }
+
+        .status-error {
+            background-color: var(--danger);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Page sections */
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .agent-types-grid,
+            .use-cases-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .demo-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-robot"></i> Enhanced CSP</h1>
+                <p>AI-to-AI Communication Platform</p>
+            </div>
+            
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Main</div>
+                    <a href="javascript:void(0)" class="nav-item" data-section="dashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </a>
+                    <a href="javascript:void(0)" class="nav-item" data-section="processes">
+                        <i class="fas fa-cogs"></i>
+                        CSP Processes
+                    </a>
+                    <a href="javascript:void(0)" class="nav-item active" data-section="agents">
+                        <i class="fas fa-robot"></i>
+                        AI Agents
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Advanced</div>
+                    <a href="javascript:void(0)" class="nav-item" data-section="quantum">
+                        <i class="fas fa-atom"></i>
+                        Quantum Computing
+                    </a>
+                    <a href="javascript:void(0)" class="nav-item" data-section="blockchain">
+                        <i class="fas fa-link"></i>
+                        Blockchain Network
+                    </a>
+                    <a href="javascript:void(0)" class="nav-item" data-section="neural">
+                        <i class="fas fa-brain"></i>
+                        Neural Optimizer
+                    </a>
+                    <a href="javascript:void(0)" class="nav-item" data-section="security">
+                        <i class="fas fa-shield-alt"></i>
+                        Security Engine
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">System</div>
+                    <a href="javascript:void(0)" class="nav-item" data-section="monitoring">
+                        <i class="fas fa-chart-line"></i>
+                        Monitoring
+                    </a>
+                    <a href="javascript:void(0)" class="nav-item" data-section="logs">
+                        <i class="fas fa-file-alt"></i>
+                        System Logs
+                    </a>
+                    <a href="javascript:void(0)" class="nav-item" data-section="settings">
+                        <i class="fas fa-cog"></i>
+                        Settings
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dynamic Header -->
+            <header class="header" id="dynamicHeader">
+                <div class="header-content">
+                    <h1 class="page-title" id="pageTitle">AI Agents</h1>
+                    <p class="page-subtitle" id="pageSubtitle">
+                        Intelligent autonomous agents that communicate through CSP protocols, 
+                        enabling sophisticated AI-to-AI collaboration and multimodal processing
+                    </p>
+                    
+                    <div class="stats-grid" id="statsGrid">
+                        <div class="stat-card">
+                            <span class="stat-number">47</span>
+                            <div class="stat-label">Active AI Agents</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">12.3M</span>
+                            <div class="stat-label">Messages Processed</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">99.8%</span>
+                            <div class="stat-label">Uptime</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">156ms</span>
+                            <div class="stat-label">Avg Response Time</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <div class="content">
+                <!-- What Are AI Agents Section -->
+                <section class="content-section animate-on-scroll">
+                    <div class="section-header">
+                        <h2 class="section-title">What Are AI Agents?</h2>
+                        <p class="section-subtitle">
+                            AI Agents in our Enhanced CSP platform are autonomous intelligent entities that can perceive their environment, 
+                            make decisions, and take actions to achieve specific goals through structured communication protocols.
+                        </p>
+                    </div>
+                    
+                    <div class="agent-types-grid">
+                        <div class="agent-card">
+                            <div class="agent-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <h3 class="agent-title">Cognitive Agents</h3>
+                            <p class="agent-description">
+                                Advanced reasoning agents that can understand context, learn from interactions, 
+                                and make complex decisions based on multimodal input data.
+                            </p>
+                            <ul class="capabilities-list">
+                                <li>Natural language understanding</li>
+                                <li>Contextual reasoning</li>
+                                <li>Knowledge synthesis</li>
+                                <li>Decision optimization</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="agent-card">
+                            <div class="agent-icon">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <h3 class="agent-title">Perceptual Agents</h3>
+                            <p class="agent-description">
+                                Specialized agents that process visual, audio, and sensor data to extract 
+                                meaningful insights and patterns from the environment.
+                            </p>
+                            <ul class="capabilities-list">
+                                <li>Computer vision processing</li>
+                                <li>Audio signal analysis</li>
+                                <li>Pattern recognition</li>
+                                <li>Multimodal data fusion</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="agent-card">
+                            <div class="agent-icon">
+                                <i class="fas fa-cogs"></i>
+                            </div>
+                            <h3 class="agent-title">Task Agents</h3>
+                            <p class="agent-description">
+                                Goal-oriented agents designed to execute specific tasks efficiently 
+                                through coordinated actions and resource management.
+                            </p>
+                            <ul class="capabilities-list">
+                                <li>Workflow automation</li>
+                                <li>Resource allocation</li>
+                                <li>Task scheduling</li>
+                                <li>Performance optimization</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="agent-card">
+                            <div class="agent-icon">
+                                <i class="fas fa-network-wired"></i>
+                            </div>
+                            <h3 class="agent-title">Communication Agents</h3>
+                            <p class="agent-description">
+                                Specialized agents that facilitate inter-agent communication, 
+                                protocol translation, and message routing across the CSP network.
+                            </p>
+                            <ul class="capabilities-list">
+                                <li>Protocol translation</li>
+                                <li>Message routing</li>
+                                <li>Network coordination</li>
+                                <li>Conflict resolution</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Architecture Section -->
+                <section class="content-section animate-on-scroll">
+                    <div class="architecture-section">
+                        <div class="section-header">
+                            <h2 class="section-title">AI Agent Architecture</h2>
+                            <p class="section-subtitle">
+                                Our AI agents operate within a sophisticated CSP-based architecture that enables 
+                                seamless communication and coordination between multiple intelligent entities.
+                            </p>
+                        </div>
+                        
+                        <div class="architecture-grid">
+                            <div class="architecture-node">
+                                <div class="node-icon">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <h4 class="node-title">Agent Core</h4>
+                                <p class="node-description">
+                                    Central processing unit with AI model integration, 
+                                    decision-making logic, and state management
+                                </p>
+                            </div>
+                            
+                            <div class="architecture-node">
+                                <div class="node-icon">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </div>
+                                <h4 class="node-title">CSP Interface</h4>
+                                <p class="node-description">
+                                    Communication protocol handler for message 
+                                    passing and synchronization with other agents
+                                </p>
+                            </div>
+                            
+                            <div class="architecture-node">
+                                <div class="node-icon">
+                                    <i class="fas fa-database"></i>
+                                </div>
+                                <h4 class="node-title">Knowledge Base</h4>
+                                <p class="node-description">
+                                    Persistent storage for learned information, 
+                                    context, and historical interaction data
+                                </p>
+                            </div>
+                            
+                            <div class="architecture-node">
+                                <div class="node-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <h4 class="node-title">Monitoring</h4>
+                                <p class="node-description">
+                                    Real-time performance tracking, health monitoring, 
+                                    and behavioral analysis systems
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Use Cases Section -->
+                <section class="content-section animate-on-scroll">
+                    <div class="section-header">
+                        <h2 class="section-title">Real-World Applications</h2>
+                        <p class="section-subtitle">
+                            Discover how AI agents are transforming industries through intelligent automation and collaboration
+                        </p>
+                    </div>
+                    
+                    <div class="use-cases-grid">
+                        <div class="use-case-card">
+                            <h3 class="use-case-title">Autonomous Data Processing</h3>
+                            <p class="use-case-scenario">
+                                "Multiple AI agents collaborate to process, analyze, and extract insights from vast datasets in real-time."
+                            </p>
+                            <ul class="use-case-benefits">
+                                <li>Automated data quality assessment</li>
+                                <li>Intelligent feature extraction</li>
+                                <li>Pattern recognition and anomaly detection</li>
+                                <li>Real-time reporting and visualization</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="use-case-card">
+                            <h3 class="use-case-title">Smart Manufacturing</h3>
+                            <p class="use-case-scenario">
+                                "AI agents coordinate production lines, optimize resource allocation, and predict maintenance needs."
+                            </p>
+                            <ul class="use-case-benefits">
+                                <li>Predictive maintenance scheduling</li>
+                                <li>Quality control automation</li>
+                                <li>Supply chain optimization</li>
+                                <li>Energy efficiency management</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="use-case-card">
+                            <h3 class="use-case-title">Financial Trading</h3>
+                            <p class="use-case-scenario">
+                                "Intelligent trading agents analyze market conditions, execute trades, and manage risk in real-time."
+                            </p>
+                            <ul class="use-case-benefits">
+                                <li>Algorithmic trading optimization</li>
+                                <li>Risk assessment and management</li>
+                                <li>Market sentiment analysis</li>
+                                <li>Portfolio rebalancing</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="use-case-card">
+                            <h3 class="use-case-title">Healthcare Diagnostics</h3>
+                            <p class="use-case-scenario">
+                                "Medical AI agents assist in diagnosis, treatment planning, and patient monitoring through collaborative analysis."
+                            </p>
+                            <ul class="use-case-benefits">
+                                <li>Medical image analysis</li>
+                                <li>Treatment recommendation</li>
+                                <li>Drug interaction checking</li>
+                                <li>Patient monitoring automation</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="use-case-card">
+                            <h3 class="use-case-title">Cybersecurity</h3>
+                            <p class="use-case-scenario">
+                                "Security agents work together to detect threats, analyze attack patterns, and respond to incidents automatically."
+                            </p>
+                            <ul class="use-case-benefits">
+                                <li>Threat detection and analysis</li>
+                                <li>Incident response automation</li>
+                                <li>Network traffic monitoring</li>
+                                <li>Vulnerability assessment</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="use-case-card">
+                            <h3 class="use-case-title">Smart City Management</h3>
+                            <p class="use-case-scenario">
+                                "Urban AI agents optimize traffic flow, manage energy distribution, and coordinate emergency services."
+                            </p>
+                            <ul class="use-case-benefits">
+                                <li>Traffic optimization</li>
+                                <li>Energy grid management</li>
+                                <li>Emergency response coordination</li>
+                                <li>Environmental monitoring</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Interactive Demo Section -->
+                <section class="content-section animate-on-scroll">
+                    <div class="demo-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Interactive Agent Demo</h2>
+                            <p class="section-subtitle">
+                                Experience our AI agents in action with real-time demonstrations
+                            </p>
+                        </div>
+                        
+                        <div class="demo-controls">
+                            <button class="demo-button" onclick="simulateTextAnalysis()">
+                                <i class="fas fa-file-text"></i> Text Analysis
+                            </button>
+                            <button class="demo-button" onclick="simulateImageProcessing()">
+                                <i class="fas fa-image"></i> Image Processing
+                            </button>
+                            <button class="demo-button" onclick="simulateAgentCollab()">
+                                <i class="fas fa-users"></i> Agent Collaboration
+                            </button>
+                            <button class="demo-button" onclick="simulateRealTime()">
+                                <i class="fas fa-bolt"></i> Real-time Processing
+                            </button>
+                        </div>
+                        
+                        <div class="demo-output" id="demoOutput">
+                            <div style="color: var(--text-light); text-align: center; padding: 2rem;">
+                                <span class="status-indicator status-running"></span>
+                                Select a demo above to see AI agents in action...
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="#documentation">Documentation</a>
+                <a href="#api">API Reference</a>
+                <a href="#tutorials">Tutorials</a>
+                <a href="#community">Community</a>
+                <a href="#support">Support</a>
+            </div>
+            <p style="color: #9ca3af;">
+                &copy; 2025 Enhanced CSP Platform. Advancing AI-to-AI Communication.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Navigation functionality
+        class CSPDashboard {
+            constructor() {
+                this.currentSection = 'agents';
+                this.sections = {
+                    'dashboard': {
+                        title: 'Dashboard',
+                        subtitle: 'Real-time monitoring and control center for the Enhanced CSP platform',
+                        stats: [
+                            { number: '23', label: 'Active Processes' },
+                            { number: '156', label: 'Connected Users' },
+                            { number: '99.9%', label: 'System Uptime' },
+                            { number: '2.1TB', label: 'Data Processed' }
+                        ]
+                    },
+                    'processes': {
+                        title: 'CSP Processes',
+                        subtitle: 'Communicating Sequential Processes management and coordination',
+                        stats: [
+                            { number: '23', label: 'Active Processes' },
+                            { number: '47', label: 'Message Channels' },
+                            { number: '156/s', label: 'Messages/Second' },
+                            { number: '12ms', label: 'Avg Latency' }
+                        ]
+                    },
+                    'agents': {
+                        title: 'AI Agents',
+                        subtitle: 'Intelligent autonomous agents that communicate through CSP protocols, enabling sophisticated AI-to-AI collaboration and multimodal processing',
+                        stats: [
+                            { number: '47', label: 'Active AI Agents' },
+                            { number: '12.3M', label: 'Messages Processed' },
+                            { number: '99.8%', label: 'Uptime' },
+                            { number: '156ms', label: 'Avg Response Time' }
+                        ]
+                    },
+                    'quantum': {
+                        title: 'Quantum Computing',
+                        subtitle: 'Quantum-enhanced CSP processing and quantum communication protocols',
+                        stats: [
+                            { number: '8', label: 'Quantum Channels' },
+                            { number: '99.7%', label: 'Quantum Fidelity' },
+                            { number: '0.1ms', label: 'Entanglement Time' },
+                            { number: '256', label: 'Qubits Available' }
+                        ]
+                    },
+                    'blockchain': {
+                        title: 'Blockchain Network',
+                        subtitle: 'Decentralized CSP coordination and consensus mechanisms',
+                        stats: [
+                            { number: '47', label: 'Network Nodes' },
+                            { number: '12', label: 'Consensus Rounds' },
+                            { number: '99.9%', label: 'Network Uptime' },
+                            { number: '156', label: 'Transactions/Min' }
+                        ]
+                    },
+                    'neural': {
+                        title: 'Neural Optimizer',
+                        subtitle: 'Neural network optimization for CSP performance enhancement',
+                        stats: [
+                            { number: '12', label: 'Neural Networks' },
+                            { number: '94.7%', label: 'Optimization Rate' },
+                            { number: '2.3x', label: 'Performance Gain' },
+                            { number: '156ms', label: 'Inference Time' }
+                        ]
+                    },
+                    'security': {
+                        title: 'Security Engine',
+                        subtitle: 'Advanced security monitoring and threat detection',
+                        stats: [
+                            { number: '0', label: 'Active Threats' },
+                            { number: '47', label: 'Security Policies' },
+                            { number: '99.9%', label: 'Protection Rate' },
+                            { number: '5min', label: 'Last Scan' }
+                        ]
+                    },
+                    'monitoring': {
+                        title: 'System Monitoring',
+                        subtitle: 'Real-time system performance and health monitoring',
+                        stats: [
+                            { number: '34%', label: 'CPU Usage' },
+                            { number: '2.1GB', label: 'Memory Used' },
+                            { number: '156Mbps', label: 'Network Speed' },
+                            { number: '23°C', label: 'System Temp' }
+                        ]
+                    },
+                    'logs': {
+                        title: 'System Logs',
+                        subtitle: 'Comprehensive system logging and audit trails',
+                        stats: [
+                            { number: '12.3K', label: 'Log Entries' },
+                            { number: '47', label: 'Log Sources' },
+                            { number: '0', label: 'Error Count' },
+                            { number: '5min', label: 'Last Update' }
+                        ]
+                    },
+                    'settings': {
+                        title: 'System Settings',
+                        subtitle: 'Configuration and system preferences',
+                        stats: [
+                            { number: '23', label: 'Config Files' },
+                            { number: '156', label: 'Parameters' },
+                            { number: '5min', label: 'Last Modified' },
+                            { number: '3', label: 'Pending Changes' }
+                        ]
+                    }
+                };
+                this.init();
+            }
+
+            init() {
+                this.setupNavigation();
+                this.setupAnimations();
+            }
+
+            setupNavigation() {
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const section = item.dataset.section;
+                        if (section) {
+                            this.navigateToSection(section);
+                        }
+                    });
+                });
+            }
+
+            navigateToSection(sectionName) {
+                // Update active nav item
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                const activeNavItem = document.querySelector(`[data-section="${sectionName}"]`);
+                if (activeNavItem) {
+                    activeNavItem.classList.add('active');
+                }
+
+                // Hide all page sections
+                document.querySelectorAll('.page-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+
+                // Show target section
+                const targetSection = document.getElementById(`${sectionName}-content`);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                }
+
+                // Update header content
+                this.updateHeader(sectionName);
+                
+                // Update current section
+                this.currentSection = sectionName;
+
+                // Trigger animations
+                this.animateContentChange();
+            }
+
+            updateHeader(sectionName) {
+                const sectionData = this.sections[sectionName];
+                if (!sectionData) return;
+
+                const pageTitle = document.getElementById('pageTitle');
+                const pageSubtitle = document.getElementById('pageSubtitle');
+                const statsGrid = document.getElementById('statsGrid');
+
+                if (pageTitle) {
+                    pageTitle.textContent = sectionData.title;
+                }
+
+                if (pageSubtitle) {
+                    pageSubtitle.textContent = sectionData.subtitle;
+                }
+
+                if (statsGrid && sectionData.stats) {
+                    statsGrid.innerHTML = sectionData.stats.map(stat => `
+                        <div class="stat-card">
+                            <span class="stat-number">${stat.number}</span>
+                            <div class="stat-label">${stat.label}</div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            animateContentChange() {
+                const activeSection = document.querySelector('.page-section.active');
+                if (activeSection) {
+                    activeSection.style.opacity = '0';
+                    activeSection.style.transform = 'translateY(20px)';
+                    
+                    setTimeout(() => {
+                        activeSection.style.transition = 'all 0.3s ease';
+                        activeSection.style.opacity = '1';
+                        activeSection.style.transform = 'translateY(0)';
+                    }, 50);
+                }
+            }
+
+            setupAnimations() {
+                // Animation on scroll
+                const observerOptions = {
+                    threshold: 0.1,
+                    rootMargin: '0px 0px -50px 0px'
+                };
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('animated');
+                        }
+                    });
+                }, observerOptions);
+
+                document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                    observer.observe(el);
+                });
+            }
+        }
+
+        // Mobile sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Demo Functions
+        function simulateTextAnalysis() {
+            const output = document.getElementById('demoOutput');
+            output.innerHTML = `
+                <div style="color: var(--success); margin-bottom: 1rem;">
+                    <span class="status-indicator status-running"></span>
+                    <strong>Starting Text Analysis Agent...</strong>
+                </div>
+                <div style="margin-bottom: 1rem; line-height: 1.6;">
+                    <strong>Agent: TextAnalyzer-01</strong><br>
+                    Status: Processing natural language input...<br>
+                    Entities detected: 7 persons, 3 organizations, 5 locations<br>
+                    Sentiment: Positive (0.82 confidence)<br>
+                    Topics: Technology, Innovation, AI Development<br>
+                </div>
+                <div style="color: var(--text-light); background: var(--card-gradient); padding: 1rem; border-radius: 8px;">
+                    Processing time: 156ms | Tokens processed: 1,247<br>
+                    Next: Routing to semantic analysis agent...
+                </div>
+            `;
+        }
+
+        function simulateImageProcessing() {
+            const output = document.getElementById('demoOutput');
+            output.innerHTML = `
+                <div style="color: var(--success); margin-bottom: 1rem;">
+                    <span class="status-indicator status-running"></span>
+                    <strong>Starting Image Processing Agent...</strong>
+                </div>
+                <div style="margin-bottom: 1rem; line-height: 1.6;">
+                    <strong>Agent: VisionProcessor-03</strong><br>
+                    Status: Analyzing visual content...<br>
+                    Objects detected: 12 (person, car, building, tree, sign)<br>
+                    Scene classification: Urban street scene<br>
+                    Quality score: 0.94/1.0<br>
+                    Resolution: 1920x1080 | Format: JPEG<br>
+                </div>
+                <div style="color: var(--text-light); background: var(--card-gradient); padding: 1rem; border-radius: 8px;">
+                    Processing time: 342ms | GPU utilization: 78%<br>
+                    Next: Sending to feature extraction agent...
+                </div>
+            `;
+        }
+
+        function simulateAgentCollab() {
+            const output = document.getElementById('demoOutput');
+            output.innerHTML = `
+                <div style="color: var(--success); margin-bottom: 1rem;">
+                    <span class="status-indicator status-running"></span>
+                    <strong>Initiating Multi-Agent Collaboration...</strong>
+                </div>
+                <div style="margin-bottom: 1rem; line-height: 1.6;">
+                    <strong>Coordinator Agent:</strong> Orchestrating task distribution<br>
+                    <strong>Agent-A:</strong> Data preprocessing (Progress: 85%)<br>
+                    <strong>Agent-B:</strong> Pattern analysis (Progress: 67%)<br>
+                    <strong>Agent-C:</strong> Result validation (Queued)<br>
+                    <strong>Agent-D:</strong> Report generation (Standby)<br>
+                </div>
+                <div style="color: var(--primary); margin-bottom: 1rem; background: var(--card-gradient); padding: 1rem; border-radius: 8px;">
+                    CSP Messages: 47 sent, 43 acknowledged<br>
+                    Synchronization: All agents aligned<br>
+                </div>
+                <div style="color: var(--text-light);">
+                    Total processing time: 2.3s | Efficiency: 94.2%
+                </div>
+            `;
+        }
+
+        function simulateRealTime() {
+            const output = document.getElementById('demoOutput');
+            let counter = 0;
+            
+            const updateData = () => {
+                counter++;
+                const timestamp = new Date().toLocaleTimeString();
+                const randomMetric = (Math.random() * 100).toFixed(1);
+                const randomLatency = (Math.random() * 50 + 100).toFixed(0);
+                
+                output.innerHTML = `
+                    <div style="color: var(--success); margin-bottom: 1rem;">
+                        <span class="status-indicator status-running"></span>
+                        <strong>Real-time Processing Active...</strong>
+                    </div>
+                    <div style="margin-bottom: 1rem; line-height: 1.6;">
+                        <strong>Timestamp:</strong> ${timestamp}<br>
+                        <strong>Active Agents:</strong> 12/15<br>
+                        <strong>Messages/sec:</strong> ${randomMetric}<br>
+                        <strong>Avg Latency:</strong> ${randomLatency}ms<br>
+                        <strong>Processing Queue:</strong> ${Math.floor(Math.random() * 20)} items<br>
+                    </div>
+                    <div style="color: var(--text-light); background: var(--card-gradient); padding: 1rem; border-radius: 8px;">
+                        Update #${counter} | System load: ${(Math.random() * 30 + 40).toFixed(1)}%<br>
+                        All systems operational ✓
+                    </div>
+                `;
+            };
+            
+            updateData();
+            const interval = setInterval(updateData, 1500);
+            
+            // Stop after 10 updates
+            setTimeout(() => {
+                clearInterval(interval);
+                output.innerHTML += `
+                    <div style="color: var(--warning); margin-top: 1rem; padding: 1rem; background: var(--card-gradient); border-radius: 8px;">
+                        <span class="status-indicator status-warning"></span>
+                        Real-time demo completed.
+                    </div>
+                `;
+            }, 15000);
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const dashboard = new CSPDashboard();
+            
+            // Add mobile menu button for responsive design
+            if (window.innerWidth <= 1024) {
+                const header = document.querySelector('.header-content');
+                const menuButton = document.createElement('button');
+                menuButton.innerHTML = '<i class="fas fa-bars"></i>';
+                menuButton.style.cssText = `
+                    position: absolute;
+                    top: 1rem;
+                    left: 1rem;
+                    background: var(--primary);
+                    color: white;
+                    border: none;
+                    padding: 0.75rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 1.2rem;
+                    z-index: 1001;
+                `;
+                menuButton.onclick = toggleSidebar;
+                document.body.appendChild(menuButton);
+            }
+
+            // Add scroll animation trigger
+            setTimeout(() => {
+                document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                });
+            }, 500);
+        });
+    </script>
+</body>
+</html>
