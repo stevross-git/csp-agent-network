@@ -1300,6 +1300,12 @@ async def performance_page():
     """Performance monitoring"""
     return serve_html_page("performance", "⚡ Performance Monitor")
 
+# Memory Management Page
+@app.get("/memory", response_class=HTMLResponse)
+async def memory_page():
+    """Memory management dashboard"""
+    return serve_html_page("memory", "🧠 Memory Management")
+
 # Security and Management Pages
 @app.get("/security", response_class=HTMLResponse)
 async def security_page():
