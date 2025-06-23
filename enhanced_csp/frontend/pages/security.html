@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CSP System - Security Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --dark-light: #374151;
+            --light: #f8fafc;
+            --border: #e5e7eb;
+            --text: #374151;
+            --text-light: #6b7280;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --quantum-gradient: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--dark);
+            color: white;
+            padding: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--dark-light);
+            background: var(--gradient);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-header p {
+            opacity: 0.9;
+            font-size: 0.875rem;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1.5rem 0.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #9ca3af;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: #d1d5db;
+            text-decoration: none;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: var(--dark-light);
+            color: white;
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--primary);
+        }
+
+        .nav-item i {
+            width: 20px;
+            margin-right: 0.75rem;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .top-bar {
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-bar h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #f3f4f6;
+            border-radius: 20px;
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.warning { background: var(--warning); }
+        .status-dot.danger { background: var(--danger); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .widget {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .widget-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .widget-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        /* Metrics Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary);
+        }
+
+        .metric-card.security::before { background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%); }
+        .metric-card.threat::before { background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card.compliance::before { background: var(--quantum-gradient); }
+        .metric-card.blocked::before { background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%); }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-light);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-change {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .metric-change.positive { color: var(--success); }
+        .metric-change.negative { color: var(--danger); }
+
+        /* Security Events */
+        .security-events {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+
+        .event-item:hover {
+            background: #f9fafb;
+            border-color: var(--primary);
+        }
+
+        .event-severity {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .event-severity.critical { background: var(--danger); }
+        .event-severity.high { background: var(--warning); }
+        .event-severity.medium { background: var(--primary); }
+        .event-severity.low { background: var(--success); }
+
+        .event-content {
+            flex: 1;
+        }
+
+        .event-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .event-details {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        .event-time {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            flex-shrink: 0;
+        }
+
+        /* Network Status Grid */
+        .network-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .network-node {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .network-node:hover {
+            background: white;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .node-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin: 0 auto 0.5rem;
+        }
+
+        .node-status.online { background: var(--success); }
+        .node-status.warning { background: var(--warning); }
+        .node-status.offline { background: var(--danger); }
+
+        /* Charts */
+        .chart-container {
+            height: 300px;
+            background: #f8fafc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        /* Controls */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                overflow: hidden;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1>🛡️ Enhanced CSP</h1>
+                <p>Security Dashboard</p>
+            </div>
+            
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Security</div>
+                    <a href="#" class="nav-item active">
+                        <i class="fas fa-shield-alt"></i>
+                        Overview
+                    </a>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Threats
+                    </a>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-ban"></i>
+                        Blocked IPs
+                    </a>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-eye"></i>
+                        Monitoring
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Analytics</div>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-chart-line"></i>
+                        Reports
+                    </a>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-history"></i>
+                        Audit Logs
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Management</div>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-cog"></i>
+                        Settings
+                    </a>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-users"></i>
+                        Access Control
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h2>Security Dashboard</h2>
+                <div class="status-indicators">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        System Secure
+                    </div>
+                    <div class="status-indicator">
+                        <div class="status-dot warning"></div>
+                        3 Alerts
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card security">
+                    <div class="metric-value" style="color: var(--success);">SECURE</div>
+                    <div class="metric-label">Security Level</div>
+                    <div class="metric-change positive">
+                        <i class="fas fa-arrow-down"></i>
+                        Improved from High Alert
+                    </div>
+                </div>
+
+                <div class="metric-card threat">
+                    <div class="metric-value" style="color: var(--danger);">23</div>
+                    <div class="metric-label">Active Threats</div>
+                    <div class="metric-change negative">
+                        <i class="fas fa-arrow-up"></i>
+                        +5 in last hour
+                    </div>
+                </div>
+
+                <div class="metric-card blocked">
+                    <div class="metric-value" style="color: var(--success);">1,247</div>
+                    <div class="metric-label">Blocked Attacks</div>
+                    <div class="metric-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        +127 today
+                    </div>
+                </div>
+
+                <div class="metric-card compliance">
+                    <div class="metric-value" style="color: var(--success);">98.7%</div>
+                    <div class="metric-label">Compliance Score</div>
+                    <div class="metric-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        +0.3% this week
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Security Events Widget -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <div class="widget-title">Recent Security Events</div>
+                        <div class="widget-icon" style="background: var(--danger);">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="security-events">
+                        <div class="event-item">
+                            <div class="event-severity critical"></div>
+                            <div class="event-content">
+                                <div class="event-title">DDoS Attack Detected</div>
+                                <div class="event-details">Source: 192.168.1.100 - Auto-mitigated</div>
+                            </div>
+                            <div class="event-time">2m ago</div>
+                        </div>
+
+                        <div class="event-item">
+                            <div class="event-severity high"></div>
+                            <div class="event-content">
+                                <div class="event-title">Brute Force Attempt</div>
+                                <div class="event-details">Admin login from unknown IP</div>
+                            </div>
+                            <div class="event-time">5m ago</div>
+                        </div>
+
+                        <div class="event-item">
+                            <div class="event-severity medium"></div>
+                            <div class="event-content">
+                                <div class="event-title">Suspicious API Usage</div>
+                                <div class="event-details">Rate limit exceeded by user_123</div>
+                            </div>
+                            <div class="event-time">8m ago</div>
+                        </div>
+
+                        <div class="event-item">
+                            <div class="event-severity low"></div>
+                            <div class="event-content">
+                                <div class="event-title">Security Scan Completed</div>
+                                <div class="event-details">No vulnerabilities detected</div>
+                            </div>
+                            <div class="event-time">12m ago</div>
+                        </div>
+
+                        <div class="event-item">
+                            <div class="event-severity high"></div>
+                            <div class="event-content">
+                                <div class="event-title">Malware Signature Found</div>
+                                <div class="event-details">File quarantined automatically</div>
+                            </div>
+                            <div class="event-time">15m ago</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Threat Analytics Widget -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <div class="widget-title">Threat Analytics</div>
+                        <div class="widget-icon" style="background: var(--warning);">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <div style="text-align: center; color: var(--text-light);">
+                            <i class="fas fa-chart-area" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <div>Interactive threat analytics chart</div>
+                            <div style="font-size: 0.875rem; margin-top: 0.5rem;">
+                                Real-time threat detection metrics
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Security Status -->
+            <div class="widget" style="margin-bottom: 2rem;">
+                <div class="widget-header">
+                    <div class="widget-title">Network Security Components</div>
+                    <div class="widget-icon" style="background: var(--primary);">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                </div>
+                
+                <div class="network-grid">
+                    <div class="network-node">
+                        <div class="node-status online"></div>
+                        <h4>Firewall</h4>
+                        <p style="color: var(--text-light); font-size: 0.875rem;">Primary Gateway</p>
+                        <div style="margin-top: 0.5rem; color: var(--success); font-weight: 500;">✓ Operational</div>
+                    </div>
+
+                    <div class="network-node">
+                        <div class="node-status online"></div>
+                        <h4>IDS/IPS</h4>
+                        <p style="color: var(--text-light); font-size: 0.875rem;">Intrusion Detection</p>
+                        <div style="margin-top: 0.5rem; color: var(--success); font-weight: 500;">✓ Active</div>
+                    </div>
+
+                    <div class="network-node">
+                        <div class="node-status warning"></div>
+                        <h4>VPN Gateway</h4>
+                        <p style="color: var(--text-light); font-size: 0.875rem;">Remote Access</p>
+                        <div style="margin-top: 0.5rem; color: var(--warning); font-weight: 500;">⚠ High Load</div>
+                    </div>
+
+                    <div class="network-node">
+                        <div class="node-status online"></div>
+                        <h4>WAF</h4>
+                        <p style="color: var(--text-light); font-size: 0.875rem;">Web Application</p>
+                        <div style="margin-top: 0.5rem; color: var(--success); font-weight: 500;">✓ Protected</div>
+                    </div>
+
+                    <div class="network-node">
+                        <div class="node-status online"></div>
+                        <h4>SIEM</h4>
+                        <p style="color: var(--text-light); font-size: 0.875rem;">Event Management</p>
+                        <div style="margin-top: 0.5rem; color: var(--success); font-weight: 500;">✓ Monitoring</div>
+                    </div>
+
+                    <div class="network-node">
+                        <div class="node-status offline"></div>
+                        <h4>Backup System</h4>
+                        <p style="color: var(--text-light); font-size: 0.875rem;">Data Recovery</p>
+                        <div style="margin-top: 0.5rem; color: var(--danger); font-weight: 500;">✗ Maintenance</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Actions -->
+            <div class="widget">
+                <div class="widget-header">
+                    <div class="widget-title">Security Actions</div>
+                    <div class="widget-icon" style="background: var(--secondary);">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                </div>
+                
+                <div class="control-buttons">
+                    <button class="btn btn-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Emergency Lockdown
+                    </button>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Run Security Scan
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-file-alt"></i>
+                        Generate Report
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-sync"></i>
+                        Update Signatures
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-cog"></i>
+                        Configure Rules
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Navigation interaction
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Simulate real-time updates
+        function updateMetrics() {
+            const threatCountEl = document.querySelector('.metric-card.threat .metric-value');
+            if (threatCountEl) {
+                const currentValue = parseInt(threatCountEl.textContent);
+                const newValue = currentValue + Math.floor(Math.random() * 3) - 1;
+                if (newValue >= 0) {
+                    threatCountEl.textContent = Math.max(0, newValue);
+                }
+            }
+        }
+
+        // Add new security events
+        function addSecurityEvent() {
+            const eventTypes = [
+                { severity: 'medium', title: 'Port Scan Detected', details: 'Automated scan from external IP' },
+                { severity: 'low', title: 'System Update Applied', details: 'Security patches installed' },
+                { severity: 'high', title: 'Privilege Escalation Attempt', details: 'Blocked unauthorized access' },
+                { severity: 'critical', title: 'Zero-Day Exploit Detected', details: 'Advanced persistent threat' }
+            ];
+
+            const eventContainer = document.querySelector('.security-events');
+            const randomEvent = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+            
+            const eventItem = document.createElement('div');
+            eventItem.className = 'event-item';
+            eventItem.innerHTML = `
+                <div class="event-severity ${randomEvent.severity}"></div>
+                <div class="event-content">
+                    <div class="event-title">${randomEvent.title}</div>
+                    <div class="event-details">${randomEvent.details}</div>
+                </div>
+                <div class="event-time">now</div>
+            `;
+            
+            eventContainer.insertBefore(eventItem, eventContainer.firstChild);
+            
+            // Remove old events (keep max 8)
+            if (eventContainer.children.length > 8) {
+                eventContainer.removeChild(eventContainer.lastChild);
+            }
+        }
+
+        // Button click handlers
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const action = this.textContent.trim();
+                alert(`Security Action: ${action}\n\nThis would trigger the corresponding security protocol in the Enhanced CSP system.`);
+            });
+        });
+
+        // Update timestamps
+        function updateTimestamps() {
+            document.querySelectorAll('.event-time').forEach((timeEl, index) => {
+                if (timeEl.textContent !== 'now') {
+                    const minutes = (index + 1) * 3;
+                    timeEl.textContent = `${minutes}m ago`;
+                }
+            });
+        }
+
+        // Initialize real-time updates
+        setInterval(updateMetrics, 8000);
+        setInterval(addSecurityEvent, 15000);
+        setInterval(updateTimestamps, 60000);
+
+        console.log('Enhanced CSP Security Dashboard initialized');
+        console.log('🛡️ Security monitoring active');
+    </script>
+</body>
+</html>
