@@ -44,3 +44,4 @@ enhanced_csp/backend/__pycache__/main.cpython-310.pyc
 enhanced_csp/backend/api/endpoints/__pycache__/designs.cpython-310.pyc
 enhanced_csp/backend/schemas/__pycache__/api_schemas.cpython-310.pyc
 enhanced_csp/dev_tools/__pycache__/csp_dev_tools.cpython-310.pyc
+enhanced_csp/csp_users_2025-06-23.csv

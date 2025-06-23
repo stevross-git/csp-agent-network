@@ -855,6 +855,12 @@ async def metrics():
         return PlainTextResponse(generate_latest(), media_type=CONTENT_TYPE_LATEST)
     return PlainTextResponse("metrics unavailable", media_type=CONTENT_TYPE_LATEST)
 
+
+@app.get("/security_dashboard", response_class=HTMLResponse)
+async def security_dashboard_page():
+    """Security dashboard"""
+    return serve_html_page("security", "🔐 Security Dashboard")
+
 # CSP Process Management
 @app.post("/api/processes")
 async def create_process(

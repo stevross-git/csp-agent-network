@@ -1,0 +1,20 @@
+{
+  "name": "enhanced-csp-frontend",
+  "version": "2.1.0",
+  "description": "Enhanced CSP System Frontend with Azure AD Authentication",
+  "main": "pages/login.html",
+  "scripts": {
+    "start": "python3 test-server.py",
+    "dev": "python3 test-server.py",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "^2.38.3"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "keywords": ["csp", "azure-ad", "authentication", "ai", "dashboard"],
+  "author": "CSP Development Team",
+  "license": "MIT"
+}
