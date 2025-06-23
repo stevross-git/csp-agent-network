@@ -6,24 +6,23 @@ from pathlib import Path
 import logging
 
 def create_dashboard_app():
+    """Create a simple dashboard sub-application"""
+    from fastapi import FastAPI
+    
     dashboard = FastAPI(title="CSP Dashboard", version="2.0.0")
     
-    # Setup templates
-    templates_dir = Path("templates")
-    if templates_dir.exists():
-        templates = Jinja2Templates(directory=str(templates_dir))
-    else:
-        templates = None
+    @dashboard.get("/")
+    async def dashboard_home():
+        """Dashboard home redirects to main dashboard page"""
+        return {
+            "message": "CSP Dashboard", 
+            "status": "running",
+            "redirect": "/dashboard"
+        }
     
-    @dashboard.get("/", response_class=HTMLResponse)
-    async def dashboard_home(request: Request):
-        if templates:
-            return templates.TemplateResponse(
-                "web_ui/developer_tools.html", 
-                {"request": request, "title": "Enhanced CSP System", "version": "2.0.0", "status": "running"}
-            )
-        else:
-            return HTMLResponse("<h1>🚀 CSP Dashboard</h1><p>Dashboard is running!</p>")
+    @dashboard.get("/health")
+    async def dashboard_health():
+        """Dashboard health check"""
+        return {"status": "healthy", "service": "csp-dashboard"}
     
-    logging.getLogger(__name__).info("✅ Dashboard created - loads developer_tools.html")
     return dashboard
