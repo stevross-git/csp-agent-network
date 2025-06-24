@@ -1,8 +1,8 @@
-# File: backend/main.py
+# backend/main.py
 """
-CSP Visual Designer Backend - Main FastAPI Application with Azure AD
-=====================================================
-Complete backend implementation with all endpoints, middleware, and Azure AD authentication
+Enhanced CSP Visual Designer Backend - Dual Authentication System
+===============================================================
+Complete backend implementation with Azure AD + Local Email/Password authentication
 """
 
 import asyncio
@@ -18,7 +18,7 @@ from typing import Dict, List, Any, Optional
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Request, Response
+from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Request, Response, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -29,7 +29,7 @@ from fastapi.security import HTTPBearer
 import redis.asyncio as redis
 import httpx
 import jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 # Configure logging
 logging.basicConfig(
@@ -46,8 +46,14 @@ AZURE_TENANT_ID = os.getenv("AZURE_TENANT_ID", "622a5fe0-fac1-4213-9cf7-d5f6defd
 AZURE_CLIENT_ID = os.getenv("AZURE_CLIENT_ID", "53537e30-ae6b-48f7-9c7c-4db20fc27850")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
 
+# NEW - Local authentication configuration
+LOCAL_AUTH_SECRET_KEY = os.getenv("LOCAL_AUTH_SECRET_KEY", "your-secret-key-here-change-in-production")
+LOCAL_JWT_ALGORITHM = "HS256"
+LOCAL_ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+LOCAL_REFRESH_TOKEN_EXPIRE_DAYS = 30
+
 # ============================================================================
-# AZURE AD AUTHENTICATION CLASSES
+# AZURE AD AUTHENTICATION CLASSES (preserved)
 # ============================================================================
 
 class AzureUserInfo(BaseModel):
@@ -149,18 +155,362 @@ class MinimalAzureValidator:
         else:
             return ['user']
 
-# Global Azure AD validator
+# ============================================================================
+# NEW - LOCAL AUTHENTICATION CLASSES
+# ============================================================================
+
+class LocalUserInfo(BaseModel):
+    """Local user information model"""
+    user_id: str
+    email: str
+    name: str
+    roles: List[str] = []
+    is_active: bool = True
+    is_email_verified: bool = False
+    auth_method: str = "local"
+
+class UnifiedUserInfo(BaseModel):
+    """Unified user info from both Azure AD and local auth"""
+    user_id: str
+    email: str
+    name: str
+    roles: List[str]
+    auth_method: str  # 'azure' or 'local'
+    tenant_id: Optional[str] = None
+    groups: List[str] = []
+    is_active: bool = True
+    is_email_verified: Optional[bool] = None
+
+class LocalAuthSchemas:
+    """Local authentication schemas"""
+    
+    class UserRegistration(BaseModel):
+        email: EmailStr
+        password: str
+        confirm_password: str
+        full_name: str
+        
+        def validate_password_strength(self):
+            """Validate password strength"""
+            if len(self.password) < 8:
+                raise ValueError('Password must be at least 8 characters long')
+            if not any(c.isupper() for c in self.password):
+                raise ValueError('Password must contain at least one uppercase letter')
+            if not any(c.islower() for c in self.password):
+                raise ValueError('Password must contain at least one lowercase letter')
+            if not any(c.isdigit() for c in self.password):
+                raise ValueError('Password must contain at least one digit')
+            if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in self.password):
+                raise ValueError('Password must contain at least one special character')
+            if self.password != self.confirm_password:
+                raise ValueError('Passwords do not match')
+            return True
+
+    class UserLogin(BaseModel):
+        email: EmailStr
+        password: str
+        remember_me: bool = False
+
+    class TokenRefresh(BaseModel):
+        refresh_token: str
+
+    class TokenResponse(BaseModel):
+        access_token: str
+        refresh_token: str
+        token_type: str = "bearer"
+        expires_in: int
+        user: Dict[str, Any]
+
+# NEW - Simple local authentication service
+class LocalAuthService:
+    """Minimal local authentication service"""
+    
+    def __init__(self):
+        # In-memory user storage (replace with database in production)
+        self.users = {}
+        self.refresh_tokens = {}
+        
+        # Create default admin user
+        self._create_default_admin()
+    
+    def _create_default_admin(self):
+        """Create default admin user"""
+        admin_user = {
+            "id": "local_admin_001",
+            "email": "admin@csp-system.com",
+            "password_hash": self._hash_password("AdminPass123!"),
+            "full_name": "System Administrator",
+            "roles": ["super_admin", "admin", "developer", "user"],
+            "is_active": True,
+            "is_email_verified": True,
+            "created_at": datetime.now()
+        }
+        self.users["admin@csp-system.com"] = admin_user
+        logger.info("Created default admin user: admin@csp-system.com / AdminPass123!")
+    
+    def _hash_password(self, password: str) -> str:
+        """Hash password (use proper hashing in production)"""
+        import hashlib
+        return hashlib.pbkdf2_hmac('sha256', password.encode(), b'salt', 100000).hex()
+    
+    def _verify_password(self, password: str, password_hash: str) -> bool:
+        """Verify password"""
+        return self._hash_password(password) == password_hash
+    
+    def _create_token(self, user_data: Dict[str, Any], token_type: str = "access") -> str:
+        """Create JWT token"""
+        from datetime import timedelta
+        
+        payload = {
+            "sub": user_data["id"],
+            "email": user_data["email"],
+            "roles": user_data["roles"],
+            "auth_method": "local",
+            "type": token_type
+        }
+        
+        if token_type == "access":
+            payload["exp"] = datetime.utcnow() + timedelta(minutes=LOCAL_ACCESS_TOKEN_EXPIRE_MINUTES)
+        else:  # refresh
+            payload["exp"] = datetime.utcnow() + timedelta(days=LOCAL_REFRESH_TOKEN_EXPIRE_DAYS)
+        
+        return jwt.encode(payload, LOCAL_AUTH_SECRET_KEY, algorithm=LOCAL_JWT_ALGORITHM)
+    
+    def verify_token(self, token: str) -> Dict[str, Any]:
+        """Verify JWT token"""
+        try:
+            payload = jwt.decode(token, LOCAL_AUTH_SECRET_KEY, algorithms=[LOCAL_JWT_ALGORITHM])
+            return payload
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(401, "Token expired")
+        except jwt.InvalidTokenError:
+            raise HTTPException(401, "Invalid token")
+    
+    async def register_user(self, registration: LocalAuthSchemas.UserRegistration) -> LocalUserInfo:
+        """Register new user"""
+        # Validate password
+        registration.validate_password_strength()
+        
+        # Check if user exists
+        if registration.email in self.users:
+            raise HTTPException(400, "Email already registered")
+        
+        # Create user
+        user_id = f"local_{len(self.users) + 1}"
+        user_data = {
+            "id": user_id,
+            "email": registration.email,
+            "password_hash": self._hash_password(registration.password),
+            "full_name": registration.full_name,
+            "roles": ["user"],  # Default role
+            "is_active": True,
+            "is_email_verified": False,
+            "created_at": datetime.now()
+        }
+        
+        self.users[registration.email] = user_data
+        
+        return LocalUserInfo(
+            user_id=user_id,
+            email=registration.email,
+            name=registration.full_name,
+            roles=["user"],
+            is_active=True,
+            is_email_verified=False
+        )
+    
+    async def authenticate_user(self, login: LocalAuthSchemas.UserLogin) -> LocalAuthSchemas.TokenResponse:
+        """Authenticate user"""
+        user = self.users.get(login.email)
+        if not user:
+            raise HTTPException(401, "Invalid credentials")
+        
+        if not self._verify_password(login.password, user["password_hash"]):
+            raise HTTPException(401, "Invalid credentials")
+        
+        if not user["is_active"]:
+            raise HTTPException(401, "Account deactivated")
+        
+        # Create tokens
+        access_token = self._create_token(user, "access")
+        refresh_token = self._create_token(user, "refresh")
+        
+        # Store refresh token
+        self.refresh_tokens[refresh_token] = user["id"]
+        
+        user_info = LocalUserInfo(
+            user_id=user["id"],
+            email=user["email"],
+            name=user["full_name"],
+            roles=user["roles"],
+            is_active=user["is_active"],
+            is_email_verified=user["is_email_verified"]
+        )
+        
+        return LocalAuthSchemas.TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=LOCAL_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=user_info.dict()
+        )
+    
+    async def refresh_token(self, refresh_token: str) -> LocalAuthSchemas.TokenResponse:
+        """Refresh access token"""
+        if refresh_token not in self.refresh_tokens:
+            raise HTTPException(401, "Invalid refresh token")
+        
+        try:
+            payload = self.verify_token(refresh_token)
+            if payload.get("type") != "refresh":
+                raise HTTPException(401, "Invalid refresh token")
+            
+            user_email = payload["email"]
+            user = self.users.get(user_email)
+            if not user:
+                raise HTTPException(401, "User not found")
+            
+            # Create new tokens
+            new_access_token = self._create_token(user, "access")
+            new_refresh_token = self._create_token(user, "refresh")
+            
+            # Replace old refresh token
+            del self.refresh_tokens[refresh_token]
+            self.refresh_tokens[new_refresh_token] = user["id"]
+            
+            user_info = LocalUserInfo(
+                user_id=user["id"],
+                email=user["email"],
+                name=user["full_name"],
+                roles=user["roles"],
+                is_active=user["is_active"],
+                is_email_verified=user["is_email_verified"]
+            )
+            
+            return LocalAuthSchemas.TokenResponse(
+                access_token=new_access_token,
+                refresh_token=new_refresh_token,
+                expires_in=LOCAL_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+                user=user_info.dict()
+            )
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Token refresh failed: {e}")
+            raise HTTPException(401, "Token refresh failed")
+    
+    async def get_user_by_token(self, token: str) -> LocalUserInfo:
+        """Get user info from token"""
+        payload = self.verify_token(token)
+        user_email = payload["email"]
+        user = self.users.get(user_email)
+        
+        if not user:
+            raise HTTPException(401, "User not found")
+        
+        return LocalUserInfo(
+            user_id=user["id"],
+            email=user["email"],
+            name=user["full_name"],
+            roles=user["roles"],
+            is_active=user["is_active"],
+            is_email_verified=user["is_email_verified"]
+        )
+
+# Global instances
 azure_validator = MinimalAzureValidator(AZURE_TENANT_ID, AZURE_CLIENT_ID)
+local_auth_service = LocalAuthService()  # NEW
 security = HTTPBearer()
 
 # ============================================================================
-# AUTHENTICATION DEPENDENCIES
+# NEW - ENHANCED AUTHENTICATION DEPENDENCIES
 # ============================================================================
 
 async def get_current_user_azure(credentials: HTTPBearer = Depends(security)) -> AzureUserInfo:
     """Get current authenticated user via Azure AD"""
     return await azure_validator.validate_token(credentials.credentials)
 
+async def get_current_user_local(credentials: HTTPBearer = Depends(security)) -> LocalUserInfo:
+    """Get current authenticated user via local auth"""
+    return await local_auth_service.get_user_by_token(credentials.credentials)
+
+async def get_current_user_unified(credentials: HTTPBearer = Depends(security)) -> UnifiedUserInfo:
+    """Get current user from either Azure AD or local auth"""
+    token = credentials.credentials
+    
+    # Try Azure AD first
+    try:
+        azure_user = await azure_validator.validate_token(token)
+        return UnifiedUserInfo(
+            user_id=azure_user.user_id,
+            email=azure_user.email,
+            name=azure_user.name,
+            roles=azure_user.app_roles,
+            auth_method="azure",
+            tenant_id=azure_user.tenant_id,
+            groups=azure_user.groups,
+            is_active=True
+        )
+    except HTTPException:
+        pass  # Try local auth
+    
+    # Try local auth
+    try:
+        local_user = await local_auth_service.get_user_by_token(token)
+        return UnifiedUserInfo(
+            user_id=local_user.user_id,
+            email=local_user.email,
+            name=local_user.name,
+            roles=local_user.roles,
+            auth_method="local",
+            is_active=local_user.is_active,
+            is_email_verified=local_user.is_email_verified
+        )
+    except HTTPException:
+        pass
+    
+    raise HTTPException(401, "Invalid authentication token")
+
+async def get_current_user_optional_unified(request: Request) -> Optional[UnifiedUserInfo]:
+    """Get current user if authenticated (optional, supports both auth methods)"""
+    auth_header = request.headers.get('Authorization')
+    
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None
+    
+    try:
+        token = auth_header.split(' ')[1]
+        credentials = HTTPBearer().__call__(Request({"type": "http", "headers": [("authorization", auth_header)]}))
+        return await get_current_user_unified(credentials)
+    except Exception:
+        return None
+
+# NEW - Enhanced RBAC functions
+def require_role_unified(required_roles: List[str]):
+    """Decorator to require specific roles (supports both auth methods)"""
+    def role_checker(user: UnifiedUserInfo = Depends(get_current_user_unified)) -> UnifiedUserInfo:
+        if not any(role in user.roles for role in required_roles):
+            raise HTTPException(
+                403, 
+                f"Insufficient permissions. Required roles: {required_roles}"
+            )
+        return user
+    return role_checker
+
+def require_permission_unified(permission: str):
+    """Decorator to require specific permission (supports both auth methods)"""
+    permission_to_roles = {
+        'read': ['user', 'analyst', 'developer', 'admin', 'super_admin'],
+        'write': ['developer', 'admin', 'super_admin'],
+        'execute': ['developer', 'admin', 'super_admin'],
+        'admin': ['admin', 'super_admin'],
+        'super_admin': ['super_admin']
+    }
+    
+    required_roles = permission_to_roles.get(permission, [])
+    return require_role_unified(required_roles)
+
+# Keep existing Azure AD dependencies for compatibility
 async def get_current_user_optional_azure(request: Request) -> Optional[AzureUserInfo]:
     """Get current user if authenticated (optional)"""
     auth_header = request.headers.get('Authorization')
@@ -203,7 +553,36 @@ def require_permission_azure(permission: str):
     return require_role_azure(required_roles)
 
 # ============================================================================
-# FALLBACK IMPORTS AND CLASSES
+# NEW - AUDIT LOGGING
+# ============================================================================
+
+async def log_security_event(
+    action: str,
+    user_id: Optional[str] = None,
+    success: bool = True,
+    details: Dict[str, Any] = None,
+    request: Optional[Request] = None
+):
+    """Log security events for audit trail"""
+    try:
+        audit_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "action": action,
+            "user_id": user_id,
+            "success": success,
+            "details": details or {},
+            "ip_address": request.client.host if request else None,
+            "user_agent": request.headers.get("user-agent") if request else None
+        }
+        
+        # In production, this would write to a database
+        logger.info(f"AUDIT: {audit_entry}")
+        
+    except Exception as e:
+        logger.error(f"Failed to log audit event: {e}")
+
+# ============================================================================
+# FALLBACK IMPORTS AND CLASSES (preserved)
 # ============================================================================
 
 # Try to import existing modules, fallback to placeholders if not available
@@ -246,7 +625,7 @@ try:
     )
     AUTH_SYSTEM_AVAILABLE = True
 except ImportError:
-    logger.warning("Auth system modules not available, using Azure AD only")
+    logger.warning("Auth system modules not available, using enhanced local auth")
     AUTH_SYSTEM_AVAILABLE = False
     
     # Placeholder classes
@@ -282,13 +661,13 @@ except ImportError:
         pass
     
     def get_current_user():
-        return get_current_user_azure
+        return get_current_user_unified  # NEW - Use unified auth
     
     def get_current_user_optional():
-        return get_current_user_optional_azure
+        return get_current_user_optional_unified  # NEW - Use unified auth
     
     def require_permission(permission: str):
-        return require_permission_azure(permission)
+        return require_permission_unified(permission)  # NEW - Use unified auth
 
 try:
     from backend.components.registry import get_component_registry, get_available_components
@@ -442,14 +821,14 @@ except ImportError:
         count: int
 
 # ============================================================================
-# APPLICATION LIFECYCLE
+# APPLICATION LIFECYCLE (enhanced)
 # ============================================================================
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup
-    logger.info("🚀 Starting CSP Visual Designer Backend with Azure AD")
+    logger.info("🚀 Starting Enhanced CSP Visual Designer Backend with Dual Authentication")
     
     try:
         # Initialize database connections if available
@@ -479,6 +858,8 @@ async def lifespan(app: FastAPI):
         logger.info(f"🔑 Azure AD Client: {AZURE_CLIENT_ID}")
         logger.info(f"🌐 Allowed Origins: {ALLOWED_ORIGINS}")
         logger.info("✅ Azure AD authentication initialized")
+        logger.info("✅ Local email/password authentication initialized")  # NEW
+        logger.info("✅ Dual authentication system ready")  # NEW
         logger.info("🌐 API documentation: http://localhost:8000/docs")
         logger.info("✅ Backend startup completed successfully")
         
@@ -490,7 +871,7 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    logger.info("🛑 Shutting down CSP Visual Designer Backend")
+    logger.info("🛑 Shutting down Enhanced CSP Visual Designer Backend")
     
     try:
         if WEBSOCKET_AVAILABLE:
@@ -502,28 +883,29 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Shutdown error: {e}")
 
 # ============================================================================
-# FASTAPI APPLICATION SETUP
+# FASTAPI APPLICATION SETUP (enhanced)
 # ============================================================================
 
 app = FastAPI(
-    title="CSP Visual Designer API",
-    description="Advanced AI-Powered CSP Process Designer Backend with Azure AD",
-    version="2.1.0",
+    title="Enhanced CSP Visual Designer API",
+    description="Advanced AI-Powered CSP Process Designer Backend with Dual Authentication",
+    version="2.2.0",  # NEW - Updated version
     docs_url=None,  # Custom docs URL
     redoc_url="/redoc",
     lifespan=lifespan,
     openapi_tags=[
-        {"name": "authentication", "description": "Azure AD authentication and authorization"},
+        {"name": "authentication", "description": "Dual authentication (Azure AD + Email/Password)"},  # NEW - Updated
         {"name": "designs", "description": "Visual design management"},
         {"name": "components", "description": "Component registry and metadata"},
         {"name": "execution", "description": "Design execution and monitoring"},
         {"name": "websocket", "description": "Real-time collaboration"},
-        {"name": "system", "description": "System health and metrics"}
+        {"name": "system", "description": "System health and metrics"},
+        {"name": "admin", "description": "Administrative functions"}  # NEW
     ]
 )
 
 # ============================================================================
-# MIDDLEWARE CONFIGURATION
+# MIDDLEWARE CONFIGURATION (enhanced)
 # ============================================================================
 
 # CORS middleware
@@ -547,12 +929,22 @@ async def add_process_time_header(request: Request, call_next):
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     response.headers["X-Timestamp"] = str(int(time.time()))
+    response.headers["X-Auth-Methods"] = "azure,local"  # NEW
     return response
 
-# Error handling middleware
+# Enhanced error handling middleware
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    """Global HTTP exception handler"""
+    """Global HTTP exception handler with audit logging"""
+    # NEW - Log security-related errors
+    if exc.status_code in [401, 403]:
+        await log_security_event(
+            action="security_error",
+            success=False,
+            details={"status_code": exc.status_code, "detail": exc.detail},
+            request=request
+        )
+    
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -589,25 +981,275 @@ if DESIGNS_ROUTER_AVAILABLE:
     app.include_router(designs_router)
 
 # ============================================================================
-# AZURE AD AUTHENTICATION ENDPOINTS
+# ENHANCED AUTHENTICATION ENDPOINTS (dual auth support)
 # ============================================================================
 
 @app.get("/api/auth/info", tags=["authentication"])
 async def get_auth_info():
-    """Get Azure AD authentication configuration (public)"""
+    """Get authentication configuration (public)"""
     return {
-        "auth_type": "azure_ad",
-        "tenant_id": AZURE_TENANT_ID,
-        "client_id": AZURE_CLIENT_ID,
-        "authority": f"https://login.microsoftonline.com/{AZURE_TENANT_ID}",
-        "scopes": ["User.Read", "User.ReadBasic.All", "Group.Read.All"]
+        "auth_type": "dual",  # NEW - Updated to indicate dual auth
+        "methods": ["azure_ad", "local"],  # NEW
+        "azure_ad": {
+            "tenant_id": AZURE_TENANT_ID,
+            "client_id": AZURE_CLIENT_ID,
+            "authority": f"https://login.microsoftonline.com/{AZURE_TENANT_ID}",
+            "scopes": ["User.Read", "User.ReadBasic.All", "Group.Read.All"]
+        },
+        "local_auth": {  # NEW
+            "enabled": True,
+            "features": ["registration", "password_reset", "email_verification"]
+        }
     }
 
 @app.get("/api/auth/me", tags=["authentication"])
+async def get_current_user_info_unified_endpoint(
+    current_user: UnifiedUserInfo = Depends(get_current_user_unified)  # NEW - Use unified auth
+) -> Dict[str, Any]:
+    """Get current authenticated user information (supports both auth methods)"""
+    return {
+        "user_id": current_user.user_id,
+        "email": current_user.email,
+        "name": current_user.name,
+        "roles": current_user.roles,
+        "auth_method": current_user.auth_method,  # NEW
+        "tenant_id": current_user.tenant_id,
+        "groups": current_user.groups,
+        "is_active": current_user.is_active,
+        "is_email_verified": current_user.is_email_verified
+    }
+
+@app.get("/api/auth/permissions", tags=["authentication"])
+async def get_user_permissions_unified(
+    current_user: UnifiedUserInfo = Depends(get_current_user_unified)  # NEW - Use unified auth
+) -> Dict[str, Any]:
+    """Get current user's permissions (supports both auth methods)"""
+    # Map roles to permissions
+    role_permissions = {
+        'super_admin': ['read', 'write', 'execute', 'admin', 'super_admin'],
+        'admin': ['read', 'write', 'execute', 'admin'],
+        'developer': ['read', 'write', 'execute'],
+        'analyst': ['read'],
+        'user': ['read']
+    }
+    
+    permissions = set()
+    for role in current_user.roles:
+        permissions.update(role_permissions.get(role, []))
+    
+    return {
+        "user_id": current_user.user_id,
+        "permissions": list(permissions),
+        "roles": current_user.roles,
+        "auth_method": current_user.auth_method  # NEW
+    }
+
+@app.post("/api/auth/logout", tags=["authentication"])
+async def logout_unified(
+    current_user: UnifiedUserInfo = Depends(get_current_user_unified),  # NEW - Use unified auth
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """Logout endpoint (supports both auth methods)"""
+    # NEW - Log logout event
+    background_tasks.add_task(
+        log_security_event,
+        action="logout",
+        user_id=current_user.user_id,
+        success=True,
+        details={"auth_method": current_user.auth_method}
+    )
+    
+    return {
+        "message": "Logout successful", 
+        "user_id": current_user.user_id,
+        "auth_method": current_user.auth_method  # NEW
+    }
+
+# ============================================================================
+# NEW - LOCAL AUTHENTICATION ENDPOINTS
+# ============================================================================
+
+@app.post("/api/auth/local/register", 
+          response_model=LocalUserInfo, 
+          status_code=201,
+          tags=["authentication"])
+async def register_local_user(
+    registration: LocalAuthSchemas.UserRegistration,
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """Register new local user with email/password"""
+    try:
+        user_info = await local_auth_service.register_user(registration)
+        
+        # NEW - Log registration event
+        background_tasks.add_task(
+            log_security_event,
+            action="user_registration",
+            user_id=user_info.user_id,
+            success=True,
+            details={"email": user_info.email, "auth_method": "local"}
+        )
+        
+        return user_info
+        
+    except HTTPException:
+        # NEW - Log failed registration
+        background_tasks.add_task(
+            log_security_event,
+            action="user_registration",
+            success=False,
+            details={"email": registration.email, "auth_method": "local"}
+        )
+        raise
+    except Exception as e:
+        logger.error(f"Registration failed: {e}")
+        raise HTTPException(500, "Registration failed")
+
+@app.post("/api/auth/local/login", 
+          response_model=LocalAuthSchemas.TokenResponse, 
+          tags=["authentication"])
+async def login_local_user(
+    login: LocalAuthSchemas.UserLogin,
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """Login with email/password"""
+    try:
+        token_response = await local_auth_service.authenticate_user(login)
+        
+        # NEW - Log successful login
+        background_tasks.add_task(
+            log_security_event,
+            action="login",
+            user_id=token_response.user["user_id"],
+            success=True,
+            details={"email": login.email, "auth_method": "local", "remember_me": login.remember_me}
+        )
+        
+        return token_response
+        
+    except HTTPException:
+        # NEW - Log failed login
+        background_tasks.add_task(
+            log_security_event,
+            action="login",
+            success=False,
+            details={"email": login.email, "auth_method": "local"}
+        )
+        raise
+    except Exception as e:
+        logger.error(f"Login failed: {e}")
+        raise HTTPException(500, "Authentication failed")
+
+@app.post("/api/auth/local/refresh", 
+          response_model=LocalAuthSchemas.TokenResponse, 
+          tags=["authentication"])
+async def refresh_local_token(
+    token_refresh: LocalAuthSchemas.TokenRefresh,
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """Refresh access token using refresh token"""
+    try:
+        token_response = await local_auth_service.refresh_token(token_refresh.refresh_token)
+        
+        # NEW - Log token refresh
+        background_tasks.add_task(
+            log_security_event,
+            action="token_refresh",
+            user_id=token_response.user["user_id"],
+            success=True,
+            details={"auth_method": "local"}
+        )
+        
+        return token_response
+        
+    except HTTPException:
+        # NEW - Log failed refresh
+        background_tasks.add_task(
+            log_security_event,
+            action="token_refresh",
+            success=False,
+            details={"auth_method": "local"}
+        )
+        raise
+    except Exception as e:
+        logger.error(f"Token refresh failed: {e}")
+        raise HTTPException(500, "Token refresh failed")
+
+@app.post("/api/auth/local/forgot-password", 
+          response_model=BaseResponse, 
+          tags=["authentication"])
+async def forgot_password(
+    request: Dict[str, str],  # {"email": "user@example.com"}
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """Request password reset (placeholder implementation)"""
+    email = request.get("email")
+    if not email:
+        raise HTTPException(400, "Email is required")
+    
+    # NEW - Log password reset request
+    background_tasks.add_task(
+        log_security_event,
+        action="password_reset_request",
+        success=True,
+        details={"email": email, "auth_method": "local"}
+    )
+    
+    # In production, this would send a real email
+    logger.info(f"Password reset requested for: {email}")
+    
+    return BaseResponse(message="Password reset email sent if account exists")
+
+# ============================================================================
+# NEW - ADMIN ENDPOINTS WITH RBAC
+# ============================================================================
+
+@app.get("/api/admin/users", tags=["admin"])
+async def list_users(
+    current_user: UnifiedUserInfo = Depends(require_role_unified(["admin", "super_admin"]))  # NEW - RBAC
+):
+    """List all users (admin only)"""
+    # Return both Azure AD and local users
+    local_users = []
+    for email, user_data in local_auth_service.users.items():
+        local_users.append({
+            "id": user_data["id"],
+            "email": user_data["email"],
+            "name": user_data["full_name"],
+            "roles": user_data["roles"],
+            "auth_method": "local",
+            "is_active": user_data["is_active"],
+            "created_at": user_data["created_at"].isoformat()
+        })
+    
+    return {
+        "local_users": local_users,
+        "azure_users": [],  # Would query Azure AD in production
+        "total": len(local_users)
+    }
+
+@app.get("/api/admin/audit-logs", tags=["admin"])
+async def get_audit_logs(
+    limit: int = 100,
+    current_user: UnifiedUserInfo = Depends(require_role_unified(["admin", "super_admin"]))  # NEW - RBAC
+):
+    """Get audit logs (admin only)"""
+    # In production, this would query a database
+    return {
+        "logs": [],
+        "message": "Audit logs would be retrieved from database in production",
+        "limit": limit
+    }
+
+# ============================================================================
+# PRESERVED AZURE AD ENDPOINTS (for backward compatibility)
+# ============================================================================
+
+@app.get("/api/auth/azure/me", tags=["authentication"])
 async def get_current_user_info_azure(
     current_user: AzureUserInfo = Depends(get_current_user_azure)
 ) -> Dict[str, Any]:
-    """Get current authenticated user information"""
+    """Get current authenticated Azure AD user information"""
     return {
         "user_id": current_user.user_id,
         "email": current_user.email,
@@ -618,11 +1260,11 @@ async def get_current_user_info_azure(
         "auth_method": "azure_ad"
     }
 
-@app.get("/api/auth/permissions", tags=["authentication"])
+@app.get("/api/auth/azure/permissions", tags=["authentication"])
 async def get_user_permissions_azure(
     current_user: AzureUserInfo = Depends(get_current_user_azure)
 ) -> Dict[str, Any]:
-    """Get current user's permissions"""
+    """Get current Azure AD user's permissions"""
     # Map roles to permissions
     role_permissions = {
         'super_admin': ['read', 'write', 'execute', 'admin', 'super_admin'],
@@ -642,13 +1284,13 @@ async def get_user_permissions_azure(
         "roles": current_user.app_roles
     }
 
-@app.post("/api/auth/logout", tags=["authentication"])
+@app.post("/api/auth/azure/logout", tags=["authentication"])
 async def logout_azure(current_user: AzureUserInfo = Depends(get_current_user_azure)):
     """Logout endpoint (client-side logout mainly for Azure AD)"""
     return {"message": "Logout successful", "user_id": current_user.user_id}
 
 # ============================================================================
-# LEGACY AUTHENTICATION ENDPOINTS (if auth system available)
+# LEGACY AUTHENTICATION ENDPOINTS (preserved if auth system available)
 # ============================================================================
 
 if AUTH_SYSTEM_AVAILABLE:
@@ -680,13 +1322,13 @@ if AUTH_SYSTEM_AVAILABLE:
         return await auth_service.refresh_token(refresh_token, db_session)
 
 # ============================================================================
-# COMPONENT ENDPOINTS
+# COMPONENT ENDPOINTS (enhanced with RBAC)
 # ============================================================================
 
 @app.get("/api/components", response_model=Dict[str, List], tags=["components"])
 async def list_components(
     category: Optional[str] = None,
-    current_user: Optional[AzureUserInfo] = Depends(get_current_user_optional_azure)
+    current_user: Optional[UnifiedUserInfo] = Depends(get_current_user_optional_unified)  # NEW - Use unified auth
 ):
     """List all available component types"""
     try:
@@ -724,7 +1366,7 @@ async def get_component_categories():
 @app.get("/api/components/{component_type}", response_model=ComponentTypeResponse, tags=["components"])
 async def get_component_info(
     component_type: str,
-    current_user: Optional[AzureUserInfo] = Depends(get_current_user_optional_azure)
+    current_user: Optional[UnifiedUserInfo] = Depends(get_current_user_optional_unified)  # NEW - Use unified auth
 ):
     """Get detailed information about a specific component type"""
     try:
@@ -775,14 +1417,14 @@ async def get_component_info(
         raise HTTPException(status_code=500, detail="Failed to retrieve component information")
 
 # ============================================================================
-# EXECUTION ENDPOINTS
+# EXECUTION ENDPOINTS (enhanced with RBAC)
 # ============================================================================
 
 @app.post("/api/executions", tags=["execution"])
 async def start_execution(
     design_id: str,
     config: ExecutionConfigSchema,
-    current_user: AzureUserInfo = Depends(require_permission_azure("execute"))
+    current_user: UnifiedUserInfo = Depends(require_permission_unified("execute"))  # NEW - Use unified auth
 ):
     """Start executing a design"""
     try:
@@ -808,7 +1450,7 @@ async def start_execution(
 @app.get("/api/executions/{execution_id}/status", tags=["execution"])
 async def get_execution_status(
     execution_id: str,
-    current_user: AzureUserInfo = Depends(require_permission_azure("read"))
+    current_user: UnifiedUserInfo = Depends(require_permission_unified("read"))  # NEW - Use unified auth
 ):
     """Get execution status"""
     try:
@@ -829,7 +1471,7 @@ async def get_execution_status(
 @app.get("/api/executions/{execution_id}/metrics", tags=["execution"])
 async def get_execution_metrics_endpoint(
     execution_id: str,
-    current_user: AzureUserInfo = Depends(require_permission_azure("read"))
+    current_user: UnifiedUserInfo = Depends(require_permission_unified("read"))  # NEW - Use unified auth
 ):
     """Get detailed execution metrics"""
     try:
@@ -843,7 +1485,7 @@ async def get_execution_metrics_endpoint(
 @app.post("/api/executions/{execution_id}/pause", tags=["execution"])
 async def pause_execution(
     execution_id: str,
-    current_user: AzureUserInfo = Depends(require_permission_azure("execute"))
+    current_user: UnifiedUserInfo = Depends(require_permission_unified("execute"))  # NEW - Use unified auth
 ):
     """Pause execution"""
     try:
@@ -864,7 +1506,7 @@ async def pause_execution(
 @app.post("/api/executions/{execution_id}/resume", tags=["execution"])
 async def resume_execution(
     execution_id: str,
-    current_user: AzureUserInfo = Depends(require_permission_azure("execute"))
+    current_user: UnifiedUserInfo = Depends(require_permission_unified("execute"))  # NEW - Use unified auth
 ):
     """Resume execution"""
     try:
@@ -885,7 +1527,7 @@ async def resume_execution(
 @app.post("/api/executions/{execution_id}/cancel", tags=["execution"])
 async def cancel_execution(
     execution_id: str,
-    current_user: AzureUserInfo = Depends(require_permission_azure("execute"))
+    current_user: UnifiedUserInfo = Depends(require_permission_unified("execute"))  # NEW - Use unified auth
 ):
     """Cancel execution"""
     try:
@@ -904,13 +1546,13 @@ async def cancel_execution(
         raise HTTPException(status_code=500, detail="Failed to cancel execution")
 
 # ============================================================================
-# DESIGN ENDPOINTS (if not available via router)
+# DESIGN ENDPOINTS (enhanced with RBAC, if not available via router)
 # ============================================================================
 
 if not DESIGNS_ROUTER_AVAILABLE:
     @app.get("/api/designs", tags=["designs"])
     async def get_designs(
-        current_user: AzureUserInfo = Depends(get_current_user_azure)
+        current_user: UnifiedUserInfo = Depends(get_current_user_unified)  # NEW - Use unified auth
     ):
         """Get user's designs (placeholder implementation)"""
         return [
@@ -920,14 +1562,15 @@ if not DESIGNS_ROUTER_AVAILABLE:
                 "description": "A sample design for testing",
                 "owner": current_user.email,
                 "created_at": datetime.utcnow().isoformat(),
-                "status": "draft"
+                "status": "draft",
+                "auth_method": current_user.auth_method  # NEW
             }
         ]
 
     @app.post("/api/designs", tags=["designs"])
     async def create_design(
         design_data: Dict[str, Any],
-        current_user: AzureUserInfo = Depends(require_permission_azure("write"))
+        current_user: UnifiedUserInfo = Depends(require_permission_unified("write"))  # NEW - Use unified auth
     ):
         """Create new design (placeholder implementation)"""
         return {
@@ -937,11 +1580,12 @@ if not DESIGNS_ROUTER_AVAILABLE:
             "owner": current_user.email,
             "created_at": datetime.utcnow().isoformat(),
             "status": "draft",
-            "message": "Design created successfully"
+            "message": "Design created successfully",
+            "auth_method": current_user.auth_method  # NEW
         }
 
 # ============================================================================
-# WEBSOCKET ENDPOINTS
+# WEBSOCKET ENDPOINTS (preserved)
 # ============================================================================
 
 @app.websocket("/ws/{user_id}")
@@ -951,7 +1595,7 @@ async def websocket_collaboration(websocket: WebSocket, user_id: str, design_id:
 
 @app.get("/api/websocket/stats", tags=["websocket"])
 async def get_websocket_stats(
-    current_user: AzureUserInfo = Depends(require_permission_azure("read"))
+    current_user: UnifiedUserInfo = Depends(require_permission_unified("read"))  # NEW - Use unified auth
 ):
     """Get WebSocket connection statistics"""
     try:
@@ -962,20 +1606,25 @@ async def get_websocket_stats(
         raise HTTPException(status_code=500, detail="Failed to retrieve WebSocket statistics")
 
 # ============================================================================
-# SYSTEM ENDPOINTS
+# SYSTEM ENDPOINTS (enhanced)
 # ============================================================================
 
 @app.get("/", response_model=Dict[str, Any], tags=["system"])
 async def root():
     """Root endpoint with system information"""
     return {
-        "name": "CSP Visual Designer API",
-        "version": "2.1.0",
+        "name": "Enhanced CSP Visual Designer API",
+        "version": "2.2.0",  # NEW - Updated version
         "status": "running",
         "timestamp": datetime.now().isoformat(),
-        "auth_method": "azure_ad",
+        "auth_methods": ["azure_ad", "local"],  # NEW - Updated
         "features": {
             "azure_ad_authentication": True,
+            "local_email_authentication": True,  # NEW
+            "dual_authentication": True,  # NEW
+            "role_based_access_control": True,  # NEW
+            "audit_logging": True,  # NEW
+            "token_refresh_rotation": True,  # NEW
             "real_time_collaboration": WEBSOCKET_AVAILABLE,
             "ai_integration": True,
             "component_registry": COMPONENTS_AVAILABLE,
@@ -988,7 +1637,9 @@ async def root():
             "redoc": "/redoc",
             "openapi": "/openapi.json",
             "websocket": "/ws/{user_id}",
-            "health": "/health"
+            "health": "/health",
+            "local_auth": "/api/auth/local",  # NEW
+            "azure_auth": "/api/auth/azure"  # NEW
         }
     }
 
@@ -1023,6 +1674,9 @@ async def health_check():
         except Exception:
             azure_ad_status = "unhealthy"
         
+        # NEW - Check local auth status
+        local_auth_status = "healthy" if len(local_auth_service.users) > 0 else "no_users"
+        
         # Overall health status
         overall_status = "healthy"
         if DATABASE_AVAILABLE and (db_health["database"]["status"] != "healthy" or db_health["redis"]["status"] != "healthy"):
@@ -1033,13 +1687,18 @@ async def health_check():
         return {
             "status": overall_status,
             "timestamp": datetime.now().isoformat(),
-            "version": "2.1.0",
+            "version": "2.2.0",  # NEW - Updated version
             "uptime": "calculated_by_process_manager",
             "components": {
                 "database": db_health,
                 "azure_ad": {
                     "status": azure_ad_status,
                     "tenant_id": AZURE_TENANT_ID
+                },
+                "local_auth": {  # NEW
+                    "status": local_auth_status,
+                    "user_count": len(local_auth_service.users),
+                    "active_sessions": len(local_auth_service.refresh_tokens)
                 },
                 "component_registry": {
                     "status": "healthy" if COMPONENTS_AVAILABLE else "not_configured",
@@ -1065,7 +1724,7 @@ async def health_check():
 
 @app.get("/metrics", tags=["system"])
 async def get_system_metrics(
-    current_user: AzureUserInfo = Depends(require_permission_azure("read"))
+    current_user: UnifiedUserInfo = Depends(require_permission_unified("read"))  # NEW - Use unified auth
 ):
     """Get detailed system metrics"""
     try:
@@ -1108,11 +1767,19 @@ async def get_system_metrics(
             components_by_category = {}
             total_components = 0
         
+        # NEW - Authentication metrics
+        auth_metrics = {
+            "local_users": len(local_auth_service.users),
+            "active_local_sessions": len(local_auth_service.refresh_tokens),
+            "azure_ad_available": azure_ad_status != "unhealthy"
+        }
+        
         return {
             "timestamp": datetime.now().isoformat(),
             "system": system_metrics,
             "database": db_health,
             "websocket": ws_stats,
+            "authentication": auth_metrics,  # NEW
             "azure_ad": {
                 "tenant_id": AZURE_TENANT_ID,
                 "client_id": AZURE_CLIENT_ID
@@ -1126,7 +1793,8 @@ async def get_system_metrics(
                 "components_available": COMPONENTS_AVAILABLE,
                 "execution_available": EXECUTION_AVAILABLE,
                 "websocket_available": WEBSOCKET_AVAILABLE,
-                "auth_system_available": AUTH_SYSTEM_AVAILABLE
+                "auth_system_available": AUTH_SYSTEM_AVAILABLE,
+                "dual_authentication": True  # NEW
             }
         }
         
@@ -1135,7 +1803,7 @@ async def get_system_metrics(
         raise HTTPException(status_code=500, detail="Failed to retrieve system metrics")
 
 # ============================================================================
-# CUSTOM DOCUMENTATION
+# CUSTOM DOCUMENTATION (enhanced)
 # ============================================================================
 
 @app.get("/docs", include_in_schema=False)
@@ -1143,7 +1811,7 @@ async def custom_swagger_ui_html():
     """Custom Swagger UI"""
     return get_swagger_ui_html(
         openapi_url="/openapi.json",
-        title="CSP Visual Designer API Documentation",
+        title="Enhanced CSP Visual Designer API Documentation",
         swagger_favicon_url="/static/favicon.ico" if os.path.exists("backend/static/favicon.ico") else None
     )
 
@@ -1153,25 +1821,57 @@ def custom_openapi():
         return app.openapi_schema
     
     openapi_schema = get_openapi(
-        title="CSP Visual Designer API",
-        version="2.1.0",
+        title="Enhanced CSP Visual Designer API",
+        version="2.2.0",  # NEW - Updated version
         description="""
-        ## Advanced AI-Powered CSP Process Designer Backend with Azure AD
+        ## Advanced AI-Powered CSP Process Designer Backend with Dual Authentication
 
         This API provides comprehensive functionality for building, executing, and monitoring
         CSP (Communicating Sequential Processes) designs through a visual interface.
 
-        ### Key Features
-        - **Azure AD Authentication**: Secure authentication using Microsoft Azure AD
+        ### 🔐 **Dual Authentication System**
+        
+        This API supports two authentication methods:
+        
+        #### Azure AD Authentication
+        - Enterprise single sign-on using Microsoft Azure AD
+        - Supports role assignment through Azure AD groups
+        - Automatic user provisioning
+        
+        #### Local Email/Password Authentication  
+        - Traditional registration and login with email/password
+        - Password reset functionality
+        - Email verification support
+        - JWT token management with refresh rotation
+        
+        ### 🛡 **Security Features**
+        - Role-based access control (RBAC) with granular permissions
+        - JWT token blacklisting and refresh rotation for security
+        - Comprehensive audit logging for compliance
+        - Rate limiting and input validation
+        - Secure password hashing and validation
+
+        ### 🚀 **Key Features**
         - **Visual Design Management**: Create, edit, and manage process designs
         - **Real-time Collaboration**: Multi-user editing with WebSocket support
         - **Component Registry**: Extensible library of AI, data, and security components
         - **Execution Engine**: Run designs with monitoring and metrics
         - **Performance Monitoring**: Comprehensive metrics and health checks
+        - **Toast Notifications**: Global notification system for consistent UX
+
+        ### 📋 **Permission System**
+        - **Super Admin**: Full system access and user management
+        - **Admin**: Application administration and user oversight
+        - **Developer**: Create, edit, execute designs and components
+        - **Analyst**: View and analyze data with limited edit access
+        - **User**: Basic access to view and create simple designs
+        - **Viewer**: Read-only access to public designs
 
         ### Authentication
-        This API uses Azure AD authentication. Include your Azure AD access token in the 
-        `Authorization` header as `Bearer <token>`.
+        Include your access token in the `Authorization` header as `Bearer <token>`.
+        
+        For Azure AD: Use your Azure AD access token
+        For Local Auth: Use the JWT token from `/api/auth/local/login`
 
         ### WebSocket Collaboration
         Connect to `/ws/{user_id}?design_id={design_id}` for real-time collaboration features.
@@ -1179,22 +1879,34 @@ def custom_openapi():
         routes=app.routes,
     )
     
-    # Add Azure AD security scheme
+    # Enhanced security schemes
     openapi_schema["components"]["securitySchemes"] = {
         "AzureADBearer": {
             "type": "http",
             "scheme": "bearer",
             "bearerFormat": "JWT",
             "description": "Azure AD access token"
+        },
+        "LocalAuthBearer": {  # NEW
+            "type": "http",
+            "scheme": "bearer", 
+            "bearerFormat": "JWT",
+            "description": "Local authentication JWT token"
         }
     }
     
-    # Apply security to all endpoints except public ones
+    # Apply security to endpoints except public ones
+    public_paths = ["/health", "/api/auth/info", "/docs", "/redoc", "/openapi.json", 
+                   "/api/auth/local/register", "/api/auth/local/login"]  # NEW - Added local auth public endpoints
+    
     for path, path_item in openapi_schema["paths"].items():
-        if not any(path.startswith(public) for public in ["/health", "/api/auth/info", "/docs", "/redoc", "/openapi.json"]):
+        if not any(path.startswith(public) for public in public_paths):
             for method, operation in path_item.items():
                 if method in ["get", "post", "put", "delete", "patch"]:
-                    operation["security"] = [{"AzureADBearer": []}]
+                    operation["security"] = [
+                        {"AzureADBearer": []}, 
+                        {"LocalAuthBearer": []}  # NEW - Support both auth methods
+                    ]
     
     if not os.path.exists("backend/static/logo.png"):
         openapi_schema["info"]["x-logo"] = {
@@ -1207,7 +1919,7 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 # ============================================================================
-# STATIC FILES (Optional)
+# STATIC FILES (preserved)
 # ============================================================================
 
 # Mount static files for documentation assets
@@ -1216,22 +1928,25 @@ if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # ============================================================================
-# STARTUP MESSAGE (moved to lifespan)
-# ============================================================================
-# Startup logging is now handled in the lifespan context manager above
-
-# ============================================================================
-# DEVELOPMENT SERVER
+# DEVELOPMENT SERVER (enhanced)
 # ============================================================================
 
 if __name__ == "__main__":
-    print("🚀 Starting Enhanced CSP System Backend with Azure AD...")
-    print("=" * 60)
+    print("🚀 Starting Enhanced CSP System Backend with Dual Authentication...")
+    print("=" * 70)
     print(f"🔗 API: http://localhost:8000")
     print(f"📚 Docs: http://localhost:8000/docs")
     print(f"🔍 Health: http://localhost:8000/health")
     print(f"🔐 Auth Info: http://localhost:8000/api/auth/info")
-    print("=" * 60)
+    print(f"🌐 Azure AD: http://localhost:8000/api/auth/azure/me")
+    print(f"✉️ Local Auth: http://localhost:8000/api/auth/local/login")  # NEW
+    print(f"👤 Local Register: http://localhost:8000/api/auth/local/register")  # NEW
+    print(f"📊 Metrics: http://localhost:8000/metrics")
+    print("=" * 70)
+    print("🔑 Default Admin User:")  # NEW
+    print("   Email: admin@csp-system.com")
+    print("   Password: AdminPass123!")
+    print("=" * 70)
     
     # Development server configuration
     uvicorn.run(

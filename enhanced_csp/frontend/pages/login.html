@@ -1,10 +1,27 @@
+<!-- frontend/pages/login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced CSP System - Professional Login</title>
+    <title>🔐 Enhanced CSP System - Login</title>
+    
+    <!-- Enhanced styles -->
     <style>
+        :root {
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,835 +29,750 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
-            position: relative;
+            padding: 20px;
         }
 
-        /* Background Animation */
-        .background-animation {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: hidden;
-            z-index: 1;
-        }
-
-        .floating-circle {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(180deg); }
-        }
-
-        /* Main Container */
         .login-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-            padding: 3rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             width: 100%;
             max-width: 450px;
-            position: relative;
-            z-index: 10;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
         }
 
-        .logo-section {
+        .login-header {
+            background: var(--gray-50);
+            padding: 32px 32px 24px;
             text-align: center;
-            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--gray-100);
         }
 
-        .logo {
-            font-size: 2.5rem;
+        .login-title {
+            font-size: 28px;
             font-weight: 700;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
+            color: var(--gray-900);
+            margin-bottom: 8px;
         }
 
-        .subtitle {
-            color: #666;
-            font-size: 1rem;
-            margin-bottom: 1rem;
+        .login-subtitle {
+            color: var(--gray-500);
+            font-size: 14px;
         }
 
-        /* Status Messages */
-        .status-message {
-            padding: 1rem;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-            text-align: center;
+        .login-body {
+            padding: 32px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 6px;
             font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--gray-500);
+        }
+
+        .auth-tab.active {
+            background: white;
+            color: var(--primary-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-form {
             display: none;
-            animation: slideDown 0.3s ease;
         }
 
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .status-loading {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-        }
-
-        .status-success {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            color: white;
-        }
-
-        .status-error {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            color: white;
-        }
-
-        /* Authentication Section */
-        .auth-section {
+        .auth-form.active {
             display: block;
         }
 
-        .user-info {
-            display: none;
-            text-align: center;
-            padding: 2rem;
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            border-radius: 15px;
-            color: white;
-            margin-bottom: 2rem;
+        .form-group {
+            margin-bottom: 20px;
         }
 
-        /* Buttons */
-        .login-btn {
+        .form-label {
+            display: block;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .form-input {
             width: 100%;
-            padding: 1rem 2rem;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: white;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-input.error {
+            border-color: var(--error-color);
+        }
+
+        .form-error {
+            color: var(--error-color);
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .checkbox-input {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary-color);
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+
+        .form-button {
+            width: 100%;
+            background: var(--primary-color);
+            color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 1.1rem;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 1rem;
+            transition: background-color 0.2s, transform 0.1s;
+            margin-bottom: 16px;
+        }
+
+        .form-button:hover {
+            background: var(--primary-hover);
+        }
+
+        .form-button:active {
+            transform: translateY(1px);
+        }
+
+        .form-button:disabled {
+            background: var(--gray-300);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-button.loading {
             position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
+            color: transparent;
         }
 
-        .azure-login-btn {
-            background: linear-gradient(135deg, #0078d4, #106ebe);
-            color: white;
-        }
-
-        .azure-login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 120, 212, 0.4);
-        }
-
-        .demo-toggle-btn {
-            background: linear-gradient(135deg, #ff9a9e, #fecfef);
-            color: #333;
-            font-size: 0.9rem;
-        }
-
-        .demo-toggle-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 5px 15px rgba(255, 154, 158, 0.4);
-        }
-
-        /* Demo Panel */
-        .demo-panel {
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-top: 1rem;
-            display: none;
-            border: 2px dashed rgba(0, 0, 0, 0.1);
-        }
-
-        .demo-panel.active {
-            display: block;
-            animation: slideDown 0.3s ease;
-        }
-
-        .demo-creds {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .demo-creds:hover {
-            background: #f8f9fa;
-            border-color: #667eea;
-            transform: translateX(5px);
-        }
-
-        .action-buttons {
-            display: none;
-            text-align: center;
-            gap: 1rem;
-        }
-
-        .action-buttons.active {
-            display: flex;
-            justify-content: center;
-            animation: slideDown 0.3s ease;
-        }
-
-        /* Loading Spinner */
-        .spinner {
+        .form-button.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
             width: 20px;
             height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid white;
+            margin: -10px 0 0 -10px;
+            border: 2px solid white;
+            border-top-color: transparent;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            display: none;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
 
-        /* Library Status */
-        .library-status {
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 10px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            border-left: 4px solid #ffc107;
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: var(--gray-500);
+            font-size: 14px;
         }
 
-        .library-status h4 {
-            margin-bottom: 0.5rem;
-            color: #333;
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--gray-300);
         }
 
-        .library-status p {
-            margin: 0.25rem 0;
-            font-size: 0.9rem;
-            color: #666;
+        .divider::before {
+            margin-right: 16px;
         }
 
-        /* Responsive Design */
+        .divider::after {
+            margin-left: 16px;
+        }
+
+        .azure-button {
+            width: 100%;
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .azure-button:hover {
+            background: #106ebe;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .forgot-password a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .login-footer {
+            background: var(--gray-50);
+            padding: 20px 32px;
+            text-align: center;
+            border-top: 1px solid var(--gray-100);
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        .login-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .success-message {
+            background: var(--success-color);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
         @media (max-width: 480px) {
             .login-container {
-                margin: 1rem;
-                padding: 2rem;
+                margin: 0;
+                border-radius: 0;
+                min-height: 100vh;
             }
-
-            .logo {
-                font-size: 2rem;
+            
+            .login-header,
+            .login-body,
+            .login-footer {
+                padding-left: 20px;
+                padding-right: 20px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="background-animation" id="background-animation"></div>
-    
     <div class="login-container">
-        <div class="logo-section">
-            <div class="logo">🚀 Enhanced CSP</div>
-            <div class="subtitle">Cyber Security Platform</div>
-            <div class="subtitle" style="font-size: 0.85rem; color: #999;">Professional Authentication System</div>
+        <!-- Header -->
+        <div class="login-header">
+            <h1 class="login-title">🚀 Welcome Back</h1>
+            <p class="login-subtitle">Enhanced CSP Visual Designer</p>
         </div>
 
-        <!-- Library Status -->
-        <div class="library-status" id="library-status">
-            <h4>🔧 Authentication System Status</h4>
-            <p id="msal-status">Checking MSAL library...</p>
-            <p id="auth-status">Initializing authentication...</p>
-        </div>
-
-        <!-- Status Messages -->
-        <div class="status-message" id="status-message"></div>
-
-        <!-- User Info (shown when logged in) -->
-        <div class="user-info" id="user-info">
-            <div id="user-details"></div>
-        </div>
-
-        <!-- Authentication Section -->
-        <div class="auth-section" id="auth-section">
-            <!-- Azure AD Login -->
-            <button class="login-btn azure-login-btn" id="azure-login-btn">
-                <div class="spinner" id="azure-spinner"></div>
-                <span id="azure-login-text">🔐 Sign in with Microsoft</span>
-            </button>
-
-            <!-- Demo Mode Toggle -->
-            <button class="login-btn demo-toggle-btn" id="demo-toggle-btn">
-                🧪 Use Demo Mode (Development Only)
-            </button>
-
-            <!-- Demo Credentials Panel -->
-            <div class="demo-panel" id="demo-panel">
-                <h4 style="margin-bottom: 1rem; color: #333;">Demo Credentials</h4>
-                <div class="demo-creds" data-username="admin@csp.local" data-password="csp2025!">
-                    <span><strong>👑 Administrator</strong><br>admin@csp.local</span>
-                    <span style="color: #667eea;">Click to login</span>
-                </div>
-                <div class="demo-creds" data-username="developer@csp.local" data-password="dev123!">
-                    <span><strong>🛠️ Developer</strong><br>developer@csp.local</span>
-                    <span style="color: #667eea;">Click to login</span>
-                </div>
-                <div class="demo-creds" data-username="user@csp.local" data-password="user123!">
-                    <span><strong>👁️ User</strong><br>user@csp.local</span>
-                    <span style="color: #667eea;">Click to login</span>
-                </div>
+        <!-- Body -->
+        <div class="login-body">
+            <!-- Auth Method Tabs -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="local">Email/Password</button>
+                <button class="auth-tab" data-tab="azure">Azure AD</button>
             </div>
+
+            <!-- Success Message (hidden by default) -->
+            <div id="success-message" class="success-message" style="display: none;"></div>
+
+            <!-- Local Authentication Form -->
+            <form id="local-auth-form" class="auth-form active">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input type="email" id="email" class="form-input" placeholder="Enter your email" required>
+                    <div class="form-error" id="email-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+                    <div class="form-error" id="password-error"></div>
+                </div>
+
+                <div class="form-checkbox">
+                    <input type="checkbox" id="remember-me" class="checkbox-input">
+                    <label class="checkbox-label" for="remember-me">Remember me for 30 days</label>
+                </div>
+
+                <button type="submit" class="form-button" id="login-button">Sign In</button>
+
+                <div class="forgot-password">
+                    <a href="#" id="forgot-password-link">Forgot your password?</a>
+                </div>
+            </form>
+
+            <!-- Azure AD Authentication Form -->
+            <div id="azure-auth-form" class="auth-form">
+                <p style="color: var(--gray-500); margin-bottom: 20px; text-align: center;">
+                    Sign in with your organization account
+                </p>
+                
+                <button type="button" class="azure-button" id="azure-login-button">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M0 0h7.5v7.5H0V0zm8.5 0H16v7.5H8.5V0zM0 8.5h7.5V16H0V8.5zm8.5 0H16V16H8.5V8.5z"/>
+                    </svg>
+                    Continue with Microsoft
+                </button>
+            </div>
+
+            <!-- Registration Toggle -->
+            <div class="divider">Don't have an account?</div>
+            
+            <button type="button" class="form-button" id="show-register" 
+                    style="background: var(--gray-100); color: var(--gray-700);">
+                Create New Account
+            </button>
         </div>
 
-        <!-- Action Buttons (shown when logged in) -->
-        <div class="action-buttons" id="action-buttons">
-            <button class="login-btn azure-login-btn" id="dashboard-btn">
-                🏠 Go to Main Page
-            </button>
-            <button class="login-btn demo-toggle-btn" id="logout-btn">
-                🚪 Sign Out
-            </button>
+        <!-- Footer -->
+        <div class="login-footer">
+            <p>Need help? <a href="/support">Contact Support</a></p>
+            <p><a href="/docs">API Documentation</a> | <a href="/health">System Status</a></p>
         </div>
     </div>
 
-    <!-- MSAL Library -->
-    <script src="https://alcdn.msauth.net/browser/2.38.4/js/msal-browser.min.js"></script>
+    <!-- Registration Modal (NEW) -->
+    <div id="registration-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; border-radius: 16px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto;">
+            <div style="padding: 24px 32px; border-bottom: 1px solid var(--gray-100);">
+                <h2 style="font-size: 24px; font-weight: 700; color: var(--gray-900); margin-bottom: 8px;">Create Account</h2>
+                <p style="color: var(--gray-500); font-size: 14px;">Join the CSP Visual Designer platform</p>
+            </div>
+            
+            <form id="registration-form" style="padding: 32px;">
+                <div class="form-group">
+                    <label class="form-label" for="reg-full-name">Full Name</label>
+                    <input type="text" id="reg-full-name" class="form-input" placeholder="Enter your full name" required>
+                    <div class="form-error" id="reg-full-name-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="reg-email">Email Address</label>
+                    <input type="email" id="reg-email" class="form-input" placeholder="Enter your email" required>
+                    <div class="form-error" id="reg-email-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="reg-password">Password</label>
+                    <input type="password" id="reg-password" class="form-input" placeholder="Create a strong password" required>
+                    <div class="form-error" id="reg-password-error"></div>
+                    <div style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">
+                        Must be at least 8 characters with uppercase, lowercase, number, and special character
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="reg-confirm-password">Confirm Password</label>
+                    <input type="password" id="reg-confirm-password" class="form-input" placeholder="Confirm your password" required>
+                    <div class="form-error" id="reg-confirm-password-error"></div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="button" class="form-button" id="cancel-registration" 
+                            style="background: var(--gray-300); color: var(--gray-700); flex: 1;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="form-button" id="register-button" style="flex: 2;">
+                        Create Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.js"></script>
+    <script type="module" src="../components/ToastProvider.js"></script>
+    <script type="module" src="../services/authService.js"></script>
     
     <script>
-        // Azure AD Configuration
-        const msalConfig = {
-            auth: {
-                clientId: "53537e30-ae6b-48f7-9c7c-4db20fc27850",
-                authority: "https://login.microsoftonline.com/622a5fe0-fac1-4213-9cf7-d5f6defdf4c4",
-                redirectUri: window.location.origin,
-            },
-            cache: {
-                cacheLocation: "sessionStorage",
-                storeAuthStateInCookie: false,
+        // NEW - Enhanced login page functionality
+        class LoginPage {
+            constructor() {
+                this.currentTab = 'local';
+                this.isLoading = false;
+                this.init();
             }
-        };
 
-        const loginRequest = {
-            scopes: ["User.Read", "User.ReadBasic.All"]
-        };
-
-        // User roles mapping
-        const USER_ROLES = {
-            SUPER_ADMIN: 'super_admin',
-            ADMIN: 'admin',
-            DEVELOPER: 'developer',
-            ANALYST: 'analyst',
-            USER: 'user'
-        };
-
-        // Global variables - initialize as null to prevent access before initialization
-        let msalInstance = null;
-        let currentUser = null;
-        let isDemoMode = false;
-        let unifiedAuth = null;
-
-        // DOM Elements
-        const statusMessage = document.getElementById('status-message');
-        const userInfo = document.getElementById('user-info');
-        const userDetails = document.getElementById('user-details');
-        const authSection = document.getElementById('auth-section');
-        const azureLoginBtn = document.getElementById('azure-login-btn');
-        const azureSpinner = document.getElementById('azure-spinner');
-        const azureLoginText = document.getElementById('azure-login-text');
-        const actionButtons = document.getElementById('action-buttons');
-        const logoutBtn = document.getElementById('logout-btn');
-        const dashboardBtn = document.getElementById('dashboard-btn');
-        const demoToggleBtn = document.getElementById('demo-toggle-btn');
-        const demoPanel = document.getElementById('demo-panel');
-        const libraryStatus = document.getElementById('library-status');
-        const msalStatus = document.getElementById('msal-status');
-        const authStatus = document.getElementById('auth-status');
-
-        // Initialize on page load with proper async handling
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Enhanced CSP System - Professional Login Initializing...');
-            
-            // Create background animation
-            createBackgroundAnimation();
-            
-            try {
-                // Update status
-                authStatus.textContent = 'Checking authentication libraries...';
+            init() {
+                this.setupTabSwitching();
+                this.setupLocalAuth();
+                this.setupAzureAuth();
+                this.setupRegistration();
+                this.setupPasswordReset();
                 
-                // Check if MSAL is loaded
-                if (typeof msal === 'undefined') {
-                    msalStatus.textContent = 'MSAL library not available - Demo mode only';
-                    msalStatus.style.color = '#dc3545';
-                    libraryStatus.style.borderLeftColor = '#dc3545';
-                    authStatus.textContent = 'Demo authentication only';
-                    showStatus('Authentication system running in demo mode.', 'loading');
+                // Check URL parameters
+                this.handleUrlParameters();
+                
+                console.log('🔐 Login page initialized');
+            }
+
+            setupTabSwitching() {
+                const tabs = document.querySelectorAll('.auth-tab');
+                const forms = document.querySelectorAll('.auth-form');
+
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const tabType = tab.dataset.tab;
+                        
+                        // Update tab states
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        
+                        // Update form states
+                        forms.forEach(f => f.classList.remove('active'));
+                        document.getElementById(`${tabType}-auth-form`).classList.add('active');
+                        
+                        this.currentTab = tabType;
+                    });
+                });
+            }
+
+            setupLocalAuth() {
+                const form = document.getElementById('local-auth-form');
+                const button = document.getElementById('login-button');
+                
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
                     
-                    // Hide Azure login button
-                    azureLoginBtn.style.display = 'none';
-                } else {
-                    msalStatus.textContent = 'MSAL library loaded successfully';
-                    msalStatus.style.color = '#28a745';
-                    libraryStatus.style.borderLeftColor = '#28a745';
-                    authStatus.textContent = 'Full Azure AD integration available';
-
-                    // Initialize MSAL with proper error handling
-                    await initializeMSAL();
-                }
-
-                // Set up event listeners
-                setupEventListeners();
-
-                // Check for existing session
-                await checkExistingSession();
-
-                // Handle redirect if coming from protected page
-                handleRedirect();
-
-                // Create unified auth interface
-                createUnifiedAuthInterface();
-
-            } catch (error) {
-                console.error('❌ Initialization failed:', error);
-                msalStatus.textContent = 'Initialization failed';
-                libraryStatus.style.borderLeftColor = '#dc3545';
-                showStatus('Failed to initialize authentication system.', 'error');
-            }
-        });
-
-        // Initialize MSAL with proper async handling
-        async function initializeMSAL() {
-            try {
-                authStatus.textContent = 'Initializing Azure AD authentication...';
-                
-                // Create MSAL instance
-                msalInstance = new msal.PublicClientApplication(msalConfig);
-                
-                // Wait for initialization to complete
-                await msalInstance.initialize();
-                
-                console.log('✅ MSAL initialized successfully');
-                authStatus.textContent = 'Azure AD authentication ready';
-                
-                return true;
-            } catch (error) {
-                console.error('❌ MSAL initialization failed:', error);
-                authStatus.textContent = 'Azure AD initialization failed';
-                throw error;
-            }
-        }
-
-        // Create unified authentication interface
-        function createUnifiedAuthInterface() {
-            unifiedAuth = {
-                isInitialized: true,
-                msalInstance: msalInstance,
-                currentUser: currentUser,
-                
-                // Safe method access
-                async login() {
-                    if (msalInstance) {
-                        return await azureLogin();
-                    } else {
-                        throw new Error('MSAL not available');
-                    }
-                },
-                
-                async logout() {
-                    return await logout();
-                },
-                
-                isAuthenticated() {
-                    return currentUser !== null;
-                },
-                
-                getCurrentUser() {
-                    return currentUser;
-                },
-                
-                hasRole(role) {
-                    return currentUser && currentUser.role === role;
-                }
-            };
-            
-            // Make available globally after proper initialization
-            window.unifiedAuth = unifiedAuth;
-            window.authService = unifiedAuth;
-            
-            console.log('✅ Unified authentication interface created');
-        }
-
-        // Check for existing authentication session
-        async function checkExistingSession() {
-            try {
-                authStatus.textContent = 'Checking for existing session...';
-                
-                // Check Azure AD session first
-                if (msalInstance && msalInstance.getActiveAccount) {
-                    const account = msalInstance.getActiveAccount();
-                    if (account) {
-                        console.log('🔍 Found existing Azure AD session');
-                        await setupAzureUser(account);
+                    if (this.isLoading) return;
+                    
+                    const email = document.getElementById('email').value.trim();
+                    const password = document.getElementById('password').value;
+                    const rememberMe = document.getElementById('remember-me').checked;
+                    
+                    // Validate input
+                    if (!this.validateLocalLogin(email, password)) {
                         return;
                     }
-                }
-
-                // Check demo session
-                const demoSession = sessionStorage.getItem('csp_demo_session');
-                if (demoSession) {
-                    console.log('🔍 Found existing demo session');
-                    currentUser = JSON.parse(demoSession);
-                    showUserInfo(currentUser);
-                    return;
-                }
-
-                console.log('ℹ️ No existing session found');
-                authStatus.textContent = 'Ready for authentication';
-                showStatus('Ready to sign in', 'loading');
-                setTimeout(hideStatus, 2000);
-            } catch (error) {
-                console.error('❌ Session check failed:', error);
-                authStatus.textContent = 'Session check failed';
-            }
-        }
-
-        // Set up event listeners with proper error handling
-        function setupEventListeners() {
-            // Azure AD login button (only if MSAL is available)
-            if (azureLoginBtn) {
-                azureLoginBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    if (msalInstance) {
-                        await azureLogin();
-                    } else {
-                        showStatus('Azure AD authentication not available', 'error');
+                    
+                    this.setLoading(true);
+                    
+                    try {
+                        await window.authService.loginLocal(email, password, rememberMe);
+                        
+                        // Redirect to dashboard or intended page
+                        const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/pages/dashboard.html';
+                        window.location.href = redirectUrl;
+                        
+                    } catch (error) {
+                        console.error('Login failed:', error);
+                        // Error toast is shown by authService
+                    } finally {
+                        this.setLoading(false);
                     }
                 });
             }
 
-            // Demo toggle button
-            if (demoToggleBtn) {
-                demoToggleBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    isDemoMode = !isDemoMode;
-                    demoPanel.classList.toggle('active', isDemoMode);
-                    demoToggleBtn.textContent = isDemoMode ? 
-                        '❌ Hide Demo Mode' : 
-                        '🧪 Use Demo Mode (Development Only)';
+            setupAzureAuth() {
+                const button = document.getElementById('azure-login-button');
+                
+                button.addEventListener('click', async () => {
+                    if (this.isLoading) return;
+                    
+                    this.setLoading(true);
+                    
+                    try {
+                        await window.authService.loginWithAzure();
+                        
+                        // Redirect to dashboard or intended page
+                        const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/pages/dashboard.html';
+                        window.location.href = redirectUrl;
+                        
+                    } catch (error) {
+                        console.error('Azure login failed:', error);
+                        // Error toast is shown by authService
+                    } finally {
+                        this.setLoading(false);
+                    }
                 });
             }
 
-            // Demo credentials click handlers
-            document.addEventListener('click', (e) => {
-                if (e.target.closest('.demo-creds')) {
-                    const creds = e.target.closest('.demo-creds');
-                    const username = creds.dataset.username;
-                    const password = creds.dataset.password;
+            setupRegistration() {
+                const showRegisterBtn = document.getElementById('show-register');
+                const modal = document.getElementById('registration-modal');
+                const cancelBtn = document.getElementById('cancel-registration');
+                const form = document.getElementById('registration-form');
+                
+                showRegisterBtn.addEventListener('click', () => {
+                    modal.style.display = 'flex';
+                });
+                
+                cancelBtn.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                    this.clearRegistrationForm();
+                });
+                
+                // Close modal on background click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                        this.clearRegistrationForm();
+                    }
+                });
+                
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
                     
-                    if (demoLogin(username, password)) {
-                        demoPanel.classList.remove('active');
-                        isDemoMode = false;
-                        demoToggleBtn.textContent = '🧪 Use Demo Mode (Development Only)';
+                    if (this.isLoading) return;
+                    
+                    const fullName = document.getElementById('reg-full-name').value.trim();
+                    const email = document.getElementById('reg-email').value.trim();
+                    const password = document.getElementById('reg-password').value;
+                    const confirmPassword = document.getElementById('reg-confirm-password').value;
+                    
+                    // Validate registration input
+                    if (!this.validateRegistration(fullName, email, password, confirmPassword)) {
+                        return;
+                    }
+                    
+                    this.setLoading(true);
+                    
+                    try {
+                        await window.authService.registerLocal(email, password, confirmPassword, fullName);
+                        
+                        // Close modal and show success
+                        modal.style.display = 'none';
+                        this.clearRegistrationForm();
+                        this.showSuccessMessage('Registration successful! Please check your email to verify your account.');
+                        
+                    } catch (error) {
+                        console.error('Registration failed:', error);
+                        // Error toast is shown by authService
+                    } finally {
+                        this.setLoading(false);
+                    }
+                });
+            }
+
+            setupPasswordReset() {
+                const link = document.getElementById('forgot-password-link');
+                
+                link.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    
+                    const email = document.getElementById('email').value.trim();
+                    
+                    if (!email) {
+                        window.toast.warning('Email Required', 'Please enter your email address first');
+                        document.getElementById('email').focus();
+                        return;
+                    }
+                    
+                    try {
+                        await window.authService.requestPasswordReset(email);
+                    } catch (error) {
+                        console.error('Password reset request failed:', error);
+                        // Error toast is shown by authService
+                    }
+                });
+            }
+
+            validateLocalLogin(email, password) {
+                let isValid = true;
+                
+                // Clear previous errors
+                this.clearFieldError('email');
+                this.clearFieldError('password');
+                
+                if (!email) {
+                    this.showFieldError('email', 'Email is required');
+                    isValid = false;
+                }
+                
+                if (!password) {
+                    this.showFieldError('password', 'Password is required');
+                    isValid = false;
+                }
+                
+                return isValid;
+            }
+
+            validateRegistration(fullName, email, password, confirmPassword) {
+                let isValid = true;
+                
+                // Clear previous errors
+                ['reg-full-name', 'reg-email', 'reg-password', 'reg-confirm-password'].forEach(field => {
+                    this.clearFieldError(field);
+                });
+                
+                if (!fullName || fullName.length < 2) {
+                    this.showFieldError('reg-full-name', 'Full name must be at least 2 characters');
+                    isValid = false;
+                }
+                
+                if (!email || !email.includes('@')) {
+                    this.showFieldError('reg-email', 'Please enter a valid email address');
+                    isValid = false;
+                }
+                
+                if (!password || password.length < 8) {
+                    this.showFieldError('reg-password', 'Password must be at least 8 characters');
+                    isValid = false;
+                } else {
+                    // Check password complexity
+                    const hasUpper = /[A-Z]/.test(password);
+                    const hasLower = /[a-z]/.test(password);
+                    const hasDigit = /\d/.test(password);
+                    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password);
+                    
+                    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+                        this.showFieldError('reg-password', 'Password must contain uppercase, lowercase, number, and special character');
+                        isValid = false;
                     }
                 }
-            });
-
-            // Action buttons
-            if (dashboardBtn) {
-                dashboardBtn.addEventListener('click', goToDashboard);
-            }
-            
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', logout);
-            }
-        }
-
-        // Azure AD login with proper async handling
-        async function azureLogin() {
-            if (!msalInstance) {
-                showStatus('Azure AD not available', 'error');
-                return;
-            }
-
-            try {
-                showLoading(azureSpinner, azureLoginText, 'Signing in...');
-                showStatus('Connecting to Microsoft...', 'loading');
-
-                const loginResponse = await msalInstance.loginPopup(loginRequest);
                 
-                if (loginResponse.account) {
-                    await setupAzureUser(loginResponse.account);
+                if (password !== confirmPassword) {
+                    this.showFieldError('reg-confirm-password', 'Passwords do not match');
+                    isValid = false;
                 }
-            } catch (error) {
-                console.error('❌ Azure login failed:', error);
-                hideLoading(azureSpinner, azureLoginText, '🔐 Sign in with Microsoft');
                 
-                if (error.errorCode === 'user_cancelled') {
-                    showStatus('Sign in was cancelled', 'error');
-                } else {
-                    showStatus(`Sign in failed: ${error.errorMessage || 'Unknown error'}`, 'error');
+                return isValid;
+            }
+
+            showFieldError(fieldId, message) {
+                const field = document.getElementById(fieldId);
+                const error = document.getElementById(`${fieldId}-error`);
+                
+                if (field && error) {
+                    field.classList.add('error');
+                    error.textContent = message;
+                    error.style.display = 'block';
                 }
             }
-        }
 
-        // Setup Azure user after successful login
-        async function setupAzureUser(account) {
-            try {
-                msalInstance.setActiveAccount(account);
+            clearFieldError(fieldId) {
+                const field = document.getElementById(fieldId);
+                const error = document.getElementById(`${fieldId}-error`);
                 
-                currentUser = {
-                    id: account.homeAccountId,
-                    name: account.name || account.idTokenClaims?.name || 'Azure User',
-                    email: account.username,
-                    role: mapEmailToRole(account.username),
-                    loginTime: new Date().toISOString(),
-                    authMethod: 'azure_ad',
-                    tenantId: account.tenantId
-                };
-
-                // Store session
-                sessionStorage.setItem('csp_azure_session', JSON.stringify(currentUser));
-                
-                hideLoading(azureSpinner, azureLoginText, '🔐 Sign in with Microsoft');
-                showUserInfo(currentUser);
-                
-                console.log('✅ Azure user setup complete:', currentUser);
-            } catch (error) {
-                console.error('❌ Azure user setup failed:', error);
-                showStatus('Failed to setup user profile', 'error');
-            }
-        }
-
-        // Demo login function
-        function demoLogin(username, password) {
-            const demoUsers = {
-                'admin@csp.local': {
-                    name: 'System Administrator',
-                    role: USER_ROLES.ADMIN,
-                    password: 'csp2025!'
-                },
-                'developer@csp.local': {
-                    name: 'Lead Developer',
-                    role: USER_ROLES.DEVELOPER,
-                    password: 'dev123!'
-                },
-                'user@csp.local': {
-                    name: 'Standard User',
-                    role: USER_ROLES.USER,
-                    password: 'user123!'
+                if (field && error) {
+                    field.classList.remove('error');
+                    error.style.display = 'none';
                 }
-            };
-
-            const user = demoUsers[username];
-            if (user && user.password === password) {
-                currentUser = {
-                    id: Date.now().toString(),
-                    name: user.name,
-                    email: username,
-                    role: user.role,
-                    loginTime: new Date().toISOString(),
-                    authMethod: 'demo'
-                };
-
-                sessionStorage.setItem('csp_demo_session', JSON.stringify(currentUser));
-                showUserInfo(currentUser);
-                return true;
             }
 
-            showStatus('Invalid demo credentials', 'error');
-            return false;
-        }
-
-        // Map email to role
-        function mapEmailToRole(email) {
-            if (email.includes('admin')) return USER_ROLES.ADMIN;
-            if (email.includes('developer') || email.includes('dev')) return USER_ROLES.DEVELOPER;
-            if (email.includes('analyst')) return USER_ROLES.ANALYST;
-            return USER_ROLES.USER;
-        }
-
-        // Show user info after successful login
-        function showUserInfo(user) {
-            authSection.style.display = 'none';
-            userInfo.style.display = 'block';
-            actionButtons.classList.add('active');
-            
-            const roleEmoji = {
-                [USER_ROLES.ADMIN]: '👑',
-                [USER_ROLES.DEVELOPER]: '🛠️',
-                [USER_ROLES.ANALYST]: '📊',
-                [USER_ROLES.USER]: '👤'
-            };
-
-            userDetails.innerHTML = `
-                <h3>${roleEmoji[user.role] || '👤'} Welcome, ${user.name}!</h3>
-                <p><strong>Email:</strong> ${user.email}</p>
-                <p><strong>Role:</strong> ${user.role.replace('_', ' ').toUpperCase()}</p>
-                <p><strong>Login Method:</strong> ${user.authMethod === 'azure_ad' ? 'Microsoft Azure AD' : 'Demo Account'}</p>
-                <p><strong>Login Time:</strong> ${new Date(user.loginTime).toLocaleString()}</p>
-            `;
-
-            showStatus(`Welcome back, ${user.name}! 🎉`, 'success');
-            
-            // Update unified auth
-            if (unifiedAuth) {
-                unifiedAuth.currentUser = currentUser;
+            clearRegistrationForm() {
+                const form = document.getElementById('registration-form');
+                form.reset();
+                
+                ['reg-full-name', 'reg-email', 'reg-password', 'reg-confirm-password'].forEach(field => {
+                    this.clearFieldError(field);
+                });
             }
-        }
 
-        // Logout function
-        async function logout() {
-            try {
-                showStatus('Signing out...', 'loading');
-
-                // Clear sessions
-                sessionStorage.removeItem('csp_azure_session');
-                sessionStorage.removeItem('csp_demo_session');
-
-                // Azure AD logout
-                if (currentUser?.authMethod === 'azure_ad' && msalInstance) {
-                    await msalInstance.logoutRedirect({
-                        postLogoutRedirectUri: window.location.origin
-                    });
-                } else {
-                    // Simple logout for demo accounts
-                    currentUser = null;
-                    
-                    // Reset UI
-                    userInfo.style.display = 'none';
-                    authSection.style.display = 'block';
-                    actionButtons.classList.remove('active');
-                    
-                    showStatus('Signed out successfully', 'success');
-                    setTimeout(hideStatus, 2000);
-                }
-            } catch (error) {
-                console.error('❌ Logout failed:', error);
-                showStatus('Logout failed', 'error');
+            setLoading(loading) {
+                this.isLoading = loading;
+                
+                const localButton = document.getElementById('login-button');
+                const azureButton = document.getElementById('azure-login-button');
+                const registerButton = document.getElementById('register-button');
+                
+                [localButton, azureButton, registerButton].forEach(btn => {
+                    if (btn) {
+                        btn.disabled = loading;
+                        if (loading) {
+                            btn.classList.add('loading');
+                        } else {
+                            btn.classList.remove('loading');
+                        }
+                    }
+                });
             }
-        }
 
-        // Navigate to main index
-        function goToDashboard() {
-            if (currentUser) {
-                showStatus('Redirecting to main page...', 'loading');
+            showSuccessMessage(message) {
+                const successDiv = document.getElementById('success-message');
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                
+                // Auto-hide after 10 seconds
                 setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
+                    successDiv.style.display = 'none';
+                }, 10000);
             }
-        }
 
-        // Handle redirect from protected pages
-        function handleRedirect() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirectUrl = urlParams.get('redirect');
-            
-            if (redirectUrl && currentUser) {
-                showStatus('Redirecting to requested page...', 'loading');
-                setTimeout(() => {
-                    window.location.href = decodeURIComponent(redirectUrl);
-                }, 1500);
-            } else if (currentUser) {
-                // Default redirect to index page
-                showStatus('Redirecting to main page...', 'loading');
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1500);
-            }
-        }
-
-        // Utility functions
-        function showStatus(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = `status-message status-${type}`;
-            statusMessage.style.display = 'block';
-        }
-
-        function hideStatus() {
-            statusMessage.style.display = 'none';
-        }
-
-        function showLoading(spinner, textElement, message) {
-            spinner.style.display = 'block';
-            textElement.textContent = message;
-        }
-
-        function hideLoading(spinner, textElement, originalText) {
-            spinner.style.display = 'none';
-            textElement.textContent = originalText;
-        }
-
-        // Create background animation
-        function createBackgroundAnimation() {
-            const container = document.getElementById('background-animation');
-            
-            for (let i = 0; i < 50; i++) {
-                const circle = document.createElement('div');
-                circle.className = 'floating-circle';
+            handleUrlParameters() {
+                const params = new URLSearchParams(window.location.search);
                 
-                const size = Math.random() * 100 + 50;
-                circle.style.width = size + 'px';
-                circle.style.height = size + 'px';
-                circle.style.left = Math.random() * 100 + '%';
-                circle.style.top = Math.random() * 100 + '%';
-                circle.style.animationDelay = Math.random() * 6 + 's';
-                circle.style.animationDuration = (Math.random() * 4 + 4) + 's';
-                
-                container.appendChild(circle);
-            }
-        }
-
-        // Export authentication functions for use in other parts of the application
-        window.CSPAuth = {
-            getCurrentUser: () => currentUser,
-            isAuthenticated: () => currentUser !== null,
-            logout: logout,
-            getUserRole: () => currentUser?.role || USER_ROLES.USER,
-            hasPermission: (permission) => {
-                const rolePermissions = {
-                    [USER_ROLES.SUPER_ADMIN]: ['*'],
-                    [USER_ROLES.ADMIN]: ['system.view', 'user.manage', 'ai.manage'],
-                    [USER_ROLES.DEVELOPER]: ['system.view', 'ai.view', 'quantum.view'],
-                    [USER_ROLES.ANALYST]: ['system.view', 'reports.view'],
-                    [USER_ROLES.USER]: ['system.view']
-                };
-                
-                const userPermissions = rolePermissions[currentUser?.role] || [];
-                return userPermissions.includes('*') || userPermissions.includes(permission);
-            },
-            
-            // Safe access to unifiedAuth
-            getUnifiedAuth: () => {
-                if (!unifiedAuth) {
-                    console.warn('unifiedAuth not yet initialized');
-                    return null;
+                // Handle email verification
+                if (params.get('verified') === 'true') {
+                    this.showSuccessMessage('Email verified successfully! You can now sign in.');
                 }
-                return unifiedAuth;
+                
+                // Handle password reset
+                if (params.get('reset') === 'true') {
+                    this.showSuccessMessage('Password reset successfully! You can now sign in with your new password.');
+                }
+                
+                // Handle registration success
+                if (params.get('registered') === 'true') {
+                    this.showSuccessMessage('Registration successful! Please check your email to verify your account.');
+                }
             }
-        };
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new LoginPage();
+        });
     </script>
 </body>
 </html>

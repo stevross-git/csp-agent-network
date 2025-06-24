@@ -1,128 +1,249 @@
-# File: backend/api/endpoints/designs.py
+# backend/api/endpoints/designs.py
 """
-Design Management API Endpoints
-==============================
-FastAPI endpoints for visual design CRUD operations
+Design Management API Endpoints with Enhanced RBAC
+=================================================
+FastAPI endpoints for visual design CRUD operations with role-based access control
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, BackgroundTasks
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy import select, delete, update, func
+from sqlalchemy import select, delete, update, func, and_, or_
 from typing import List, Optional, Dict, Any
 from uuid import UUID
 import uuid
 from datetime import datetime, timedelta
 
 # Import models and schemas
-from backend.models.database_models import Design, DesignNode, DesignConnection, ExecutionSession
+from backend.models.database_models import Design, DesignNode, DesignConnection, ExecutionSession, AuditLog
 from backend.schemas.api_schemas import (
     DesignCreate, DesignUpdate, DesignResponse, DesignListResponse,
     NodeCreate, NodeUpdate, NodeResponse,
     ConnectionCreate, ConnectionUpdate, ConnectionResponse,
-    ExecutionConfig, ExecutionResponse, BaseResponse, ErrorResponse
+    ExecutionConfig, ExecutionResponse, BaseResponse, ErrorResponse,
+    AuditLogEntry
 )
 from backend.database.connection import get_db_session
-from backend.auth.auth_system import get_current_user
+
+# NEW - Import RBAC system
+from backend.auth.rbac import (
+    get_current_user_unified, UnifiedUserInfo, require_designer, require_authenticated,
+    require_design_create, require_design_delete, RBACService, Permission, UserRole
+)
 
 # Create router
 router = APIRouter(prefix="/api/designs", tags=["designs"])
 
+# NEW - Helper function for audit logging
+async def log_design_activity(
+    action: str,
+    user: UnifiedUserInfo,
+    design_id: str = None,
+    success: bool = True,
+    details: Dict[str, Any] = None,
+    db_session: AsyncSession = None
+):
+    """Log design-related activity for audit trail"""
+    try:
+        if db_session:
+            audit_log = AuditLog(
+                user_id=user.user_id,
+                user_email=user.email,
+                action=action,
+                resource_type="design",
+                resource_id=design_id,
+                details=details or {},
+                success=success
+            )
+            db_session.add(audit_log)
+            # Note: commit is handled by the calling function
+    except Exception as e:
+        print(f"Failed to log audit event: {e}")
+
+# NEW - Helper function to check design ownership/permissions
+async def check_design_access(
+    design_id: UUID, 
+    user: UnifiedUserInfo, 
+    permission: Permission,
+    db_session: AsyncSession
+) -> Design:
+    """Check if user has access to design and return design object"""
+    
+    # Get design
+    query = select(Design).where(Design.id == design_id)
+    result = await db_session.execute(query)
+    design = result.scalar_one_or_none()
+    
+    if not design:
+        raise HTTPException(status_code=404, detail="Design not found")
+    
+    # Check permissions
+    rbac = RBACService()
+    
+    # Admins can access everything
+    if user.has_role(UserRole.ADMIN) or user.has_role(UserRole.SUPER_ADMIN):
+        return design
+    
+    # Check if user owns the design
+    user_owns_design = (
+        (design.created_by and str(design.created_by) == user.user_id) or
+        (design.created_by_local_user_id and str(design.created_by_local_user_id) == user.user_id)
+    )
+    
+    # For read operations, check if design is public or user owns it
+    if permission == Permission.READ_DESIGN:
+        if design.is_public or user_owns_design:
+            return design
+    
+    # For write operations, user must own the design or have admin permissions
+    elif permission in [Permission.UPDATE_DESIGN, Permission.DELETE_DESIGN, Permission.EXECUTE_DESIGN]:
+        if user_owns_design:
+            return design
+    
+    # Check role-based permissions as fallback
+    if user.has_permission(permission):
+        return design
+    
+    # Access denied
+    raise HTTPException(
+        status_code=403,
+        detail=f"Access denied. Required permission: {permission.value}"
+    )
+
 # ============================================================================
-# DESIGN CRUD OPERATIONS
+# DESIGN CRUD OPERATIONS (Enhanced with RBAC)
 # ============================================================================
 
 @router.post("/", response_model=DesignResponse, status_code=201)
 async def create_design(
     design_data: DesignCreate,
+    current_user: UnifiedUserInfo = Depends(require_design_create),  # NEW - RBAC enforcement
     db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Create a new visual design"""
     try:
-        # Create design
+        # Create design with proper user association
         design = Design(
             name=design_data.name,
             description=design_data.description,
             version=design_data.version,
             canvas_settings=design_data.canvas_settings,
-            created_by=UUID(current_user["id"]) if "id" in current_user else None
+            metadata=design_data.metadata,
+            is_public=design_data.is_public,
+            is_template=design_data.is_template,
+            tags=design_data.tags
         )
+        
+        # Set creator based on auth method
+        if current_user.auth_method == 'azure':
+            design.created_by = UUID(current_user.user_id)
+        else:  # local auth
+            design.created_by_local_user_id = UUID(current_user.user_id)
         
         db.add(design)
         await db.commit()
         await db.refresh(design)
         
-        # Convert to response format
-        response_data = design.to_dict()
-        response_data["node_count"] = 0
-        response_data["connection_count"] = 0
+        # NEW - Log activity
+        background_tasks.add_task(
+            log_design_activity,
+            action="create_design",
+            user=current_user,
+            design_id=str(design.id),
+            success=True,
+            details={"name": design.name, "is_public": design.is_public},
+            db_session=db
+        )
         
-        return DesignResponse(**response_data)
+        return DesignResponse(**design.to_dict())
         
     except Exception as e:
         await db.rollback()
+        
+        # NEW - Log failure
+        background_tasks.add_task(
+            log_design_activity,
+            action="create_design",
+            user=current_user,
+            success=False,
+            details={"error": str(e), "name": design_data.name},
+            db_session=db
+        )
+        
         raise HTTPException(status_code=500, detail=f"Failed to create design: {str(e)}")
 
 @router.get("/", response_model=DesignListResponse)
 async def list_designs(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
-    search: Optional[str] = Query(None),
-    is_active: Optional[bool] = Query(None),
-    db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    search: Optional[str] = Query(None, description="Search in name and description"),
+    tags: Optional[List[str]] = Query(None, description="Filter by tags"),
+    is_public: Optional[bool] = Query(None, description="Filter by public/private"),
+    is_template: Optional[bool] = Query(None, description="Filter by template status"),
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Require auth
+    db: AsyncSession = Depends(get_db_session)
 ):
-    """List all designs with pagination and filtering"""
+    """List designs with enhanced filtering and permissions"""
     try:
-        # Build query
+        # Build base query
         query = select(Design)
+        
+        # NEW - Apply access control filters
+        access_filters = []
+        
+        # Public designs are visible to everyone
+        access_filters.append(Design.is_public == True)
+        
+        # User's own designs
+        if current_user.auth_method == 'azure':
+            access_filters.append(Design.created_by == UUID(current_user.user_id))
+        else:
+            access_filters.append(Design.created_by_local_user_id == UUID(current_user.user_id))
+        
+        # Admins can see all designs
+        if current_user.has_role(UserRole.ADMIN) or current_user.has_role(UserRole.SUPER_ADMIN):
+            # Remove access filters for admins
+            pass
+        else:
+            query = query.where(or_(*access_filters))
         
         # Apply filters
         if search:
-            query = query.where(Design.name.ilike(f"%{search}%"))
-        if is_active is not None:
-            query = query.where(Design.is_active == is_active)
+            search_filter = or_(
+                Design.name.ilike(f"%{search}%"),
+                Design.description.ilike(f"%{search}%")
+            )
+            query = query.where(search_filter)
         
-        # Add pagination
-        offset = (page - 1) * page_size
-        query = query.offset(offset).limit(page_size)
+        if tags:
+            # Filter by any of the provided tags
+            tag_filters = [Design.tags.contains([tag]) for tag in tags]
+            query = query.where(or_(*tag_filters))
+        
+        if is_public is not None:
+            query = query.where(Design.is_public == is_public)
+        
+        if is_template is not None:
+            query = query.where(Design.is_template == is_template)
+        
+        # Get total count
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total = total_result.scalar()
+        
+        # Apply pagination and ordering
         query = query.order_by(Design.updated_at.desc())
+        query = query.offset((page - 1) * page_size).limit(page_size)
         
         # Execute query
         result = await db.execute(query)
         designs = result.scalars().all()
         
-        # Get total count
-        count_query = select(func.count(Design.id))
-        if search:
-            count_query = count_query.where(Design.name.ilike(f"%{search}%"))
-        if is_active is not None:
-            count_query = count_query.where(Design.is_active == is_active)
-        
-        total_result = await db.execute(count_query)
-        total_count = total_result.scalar()
-        
-        # Convert to response format
-        design_responses = []
-        for design in designs:
-            response_data = design.to_dict()
-            
-            # Get node and connection counts
-            node_count_query = select(func.count(DesignNode.id)).where(DesignNode.design_id == design.id)
-            node_count_result = await db.execute(node_count_query)
-            response_data["node_count"] = node_count_result.scalar() or 0
-            
-            conn_count_query = select(func.count(DesignConnection.id)).where(DesignConnection.design_id == design.id)
-            conn_count_result = await db.execute(conn_count_query)
-            response_data["connection_count"] = conn_count_result.scalar() or 0
-            
-            design_responses.append(DesignResponse(**response_data))
-        
         return DesignListResponse(
-            designs=design_responses,
-            total_count=total_count,
+            designs=[DesignResponse(**design.to_dict()) for design in designs],
+            total=total,
             page=page,
             page_size=page_size
         )
@@ -133,46 +254,24 @@ async def list_designs(
 @router.get("/{design_id}", response_model=DesignResponse)
 async def get_design(
     design_id: UUID = Path(..., description="Design ID"),
-    include_details: bool = Query(False, description="Include nodes and connections"),
-    db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Require auth
+    db: AsyncSession = Depends(get_db_session)
 ):
-    """Get a specific design by ID"""
+    """Get a specific design with permission check"""
     try:
-        # Build query with optional relationships
-        query = select(Design).where(Design.id == design_id)
+        # NEW - Check access permissions
+        design = await check_design_access(design_id, current_user, Permission.READ_DESIGN, db)
         
-        if include_details:
-            query = query.options(
-                selectinload(Design.nodes),
-                selectinload(Design.connections)
-            )
+        # Load relationships
+        query = select(Design).options(
+            selectinload(Design.nodes),
+            selectinload(Design.connections)
+        ).where(Design.id == design_id)
         
         result = await db.execute(query)
-        design = result.scalar_one_or_none()
+        design_with_relations = result.scalar_one()
         
-        if not design:
-            raise HTTPException(status_code=404, detail="Design not found")
-        
-        # Convert to response format
-        response_data = design.to_dict()
-        
-        if include_details:
-            response_data["nodes"] = [node.to_dict() for node in design.nodes]
-            response_data["connections"] = [conn.to_dict() for conn in design.connections]
-            response_data["node_count"] = len(design.nodes)
-            response_data["connection_count"] = len(design.connections)
-        else:
-            # Get counts
-            node_count_query = select(func.count(DesignNode.id)).where(DesignNode.design_id == design.id)
-            node_count_result = await db.execute(node_count_query)
-            response_data["node_count"] = node_count_result.scalar() or 0
-            
-            conn_count_query = select(func.count(DesignConnection.id)).where(DesignConnection.design_id == design.id)
-            conn_count_result = await db.execute(conn_count_query)
-            response_data["connection_count"] = conn_count_result.scalar() or 0
-        
-        return DesignResponse(**response_data)
+        return DesignResponse(**design_with_relations.to_dict())
         
     except HTTPException:
         raise
@@ -181,86 +280,94 @@ async def get_design(
 
 @router.put("/{design_id}", response_model=DesignResponse)
 async def update_design(
-    design_id: UUID,
-    design_data: DesignUpdate,
+    design_id: UUID = Path(..., description="Design ID"),
+    design_data: DesignUpdate = ...,
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Auth required
     db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """Update a design"""
+    """Update a design with permission check"""
     try:
-        # Get existing design
-        query = select(Design).where(Design.id == design_id)
-        result = await db.execute(query)
-        design = result.scalar_one_or_none()
+        # NEW - Check access permissions
+        design = await check_design_access(design_id, current_user, Permission.UPDATE_DESIGN, db)
         
-        if not design:
-            raise HTTPException(status_code=404, detail="Design not found")
+        # Track changes for audit log
+        changes = {}
         
         # Update fields
         update_data = design_data.dict(exclude_unset=True)
         for field, value in update_data.items():
-            setattr(design, field, value)
+            if hasattr(design, field):
+                old_value = getattr(design, field)
+                if old_value != value:
+                    changes[field] = {"old": old_value, "new": value}
+                    setattr(design, field, value)
         
         design.updated_at = datetime.now()
         
         await db.commit()
         await db.refresh(design)
         
-        # Convert to response format
-        response_data = design.to_dict()
+        # NEW - Log activity
+        if changes:
+            background_tasks.add_task(
+                log_design_activity,
+                action="update_design",
+                user=current_user,
+                design_id=str(design.id),
+                success=True,
+                details={"changes": changes},
+                db_session=db
+            )
         
-        # Get counts
-        node_count_query = select(func.count(DesignNode.id)).where(DesignNode.design_id == design.id)
-        node_count_result = await db.execute(node_count_query)
-        response_data["node_count"] = node_count_result.scalar() or 0
-        
-        conn_count_query = select(func.count(DesignConnection.id)).where(DesignConnection.design_id == design.id)
-        conn_count_result = await db.execute(conn_count_query)
-        response_data["connection_count"] = conn_count_result.scalar() or 0
-        
-        return DesignResponse(**response_data)
+        return DesignResponse(**design.to_dict())
         
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
+        
+        # NEW - Log failure
+        background_tasks.add_task(
+            log_design_activity,
+            action="update_design",
+            user=current_user,
+            design_id=str(design_id),
+            success=False,
+            details={"error": str(e)},
+            db_session=db
+        )
+        
         raise HTTPException(status_code=500, detail=f"Failed to update design: {str(e)}")
 
 @router.delete("/{design_id}", response_model=BaseResponse)
 async def delete_design(
-    design_id: UUID,
-    force: bool = Query(False, description="Force delete even if executions exist"),
+    design_id: UUID = Path(..., description="Design ID"),
+    current_user: UnifiedUserInfo = Depends(require_design_delete),  # NEW - RBAC enforcement
     db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """Delete a design"""
+    """Delete a design with permission check"""
     try:
-        # Check if design exists
-        query = select(Design).where(Design.id == design_id)
-        result = await db.execute(query)
-        design = result.scalar_one_or_none()
+        # NEW - Check access permissions
+        design = await check_design_access(design_id, current_user, Permission.DELETE_DESIGN, db)
         
-        if not design:
-            raise HTTPException(status_code=404, detail="Design not found")
-        
-        # Check for active executions
-        if not force:
-            exec_query = select(ExecutionSession).where(
-                ExecutionSession.design_id == design_id,
-                ExecutionSession.status.in_(["running", "pending"])
-            )
-            exec_result = await db.execute(exec_query)
-            active_executions = exec_result.scalars().all()
-            
-            if active_executions:
-                raise HTTPException(
-                    status_code=400, 
-                    detail="Cannot delete design with active executions. Use force=true to override."
-                )
+        design_name = design.name  # Store for logging
         
         # Delete design (cascade will handle nodes and connections)
         await db.delete(design)
         await db.commit()
+        
+        # NEW - Log activity
+        background_tasks.add_task(
+            log_design_activity,
+            action="delete_design",
+            user=current_user,
+            design_id=str(design_id),
+            success=True,
+            details={"name": design_name},
+            db_session=db
+        )
         
         return BaseResponse(message="Design deleted successfully")
         
@@ -268,134 +375,57 @@ async def delete_design(
         raise
     except Exception as e:
         await db.rollback()
+        
+        # NEW - Log failure
+        background_tasks.add_task(
+            log_design_activity,
+            action="delete_design",
+            user=current_user,
+            design_id=str(design_id),
+            success=False,
+            details={"error": str(e)},
+            db_session=db
+        )
+        
         raise HTTPException(status_code=500, detail=f"Failed to delete design: {str(e)}")
 
-@router.post("/{design_id}/duplicate", response_model=DesignResponse)
-async def duplicate_design(
-    design_id: UUID,
-    new_name: Optional[str] = Query(None),
-    db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
-):
-    """Duplicate an existing design"""
-    try:
-        # Get original design with all relationships
-        query = select(Design).where(Design.id == design_id).options(
-            selectinload(Design.nodes),
-            selectinload(Design.connections)
-        )
-        result = await db.execute(query)
-        original_design = result.scalar_one_or_none()
-        
-        if not original_design:
-            raise HTTPException(status_code=404, detail="Design not found")
-        
-        # Create new design
-        new_design = Design(
-            name=new_name or f"{original_design.name} (Copy)",
-            description=original_design.description,
-            version="1.0.0",  # Reset version for copy
-            canvas_settings=original_design.canvas_settings.copy(),
-            created_by=UUID(current_user["id"]) if "id" in current_user else None
-        )
-        
-        db.add(new_design)
-        await db.flush()  # Get the new ID
-        
-        # Duplicate nodes
-        node_id_mapping = {}
-        for original_node in original_design.nodes:
-            new_node_id = f"{original_node.node_id}_copy"
-            new_node = DesignNode(
-                design_id=new_design.id,
-                node_id=new_node_id,
-                component_type=original_node.component_type,
-                position_x=original_node.position_x + 20,  # Slight offset
-                position_y=original_node.position_y + 20,
-                width=original_node.width,
-                height=original_node.height,
-                properties=original_node.properties.copy(),
-                visual_style=original_node.visual_style.copy()
-            )
-            node_id_mapping[original_node.node_id] = new_node_id
-            db.add(new_node)
-        
-        # Duplicate connections
-        for original_conn in original_design.connections:
-            new_from_id = node_id_mapping.get(original_conn.from_node_id)
-            new_to_id = node_id_mapping.get(original_conn.to_node_id)
-            
-            if new_from_id and new_to_id:  # Only create if both nodes exist
-                new_connection = DesignConnection(
-                    design_id=new_design.id,
-                    connection_id=f"{original_conn.connection_id}_copy",
-                    from_node_id=new_from_id,
-                    to_node_id=new_to_id,
-                    from_port=original_conn.from_port,
-                    to_port=original_conn.to_port,
-                    connection_type=original_conn.connection_type,
-                    properties=original_conn.properties.copy(),
-                    visual_style=original_conn.visual_style.copy()
-                )
-                db.add(new_connection)
-        
-        await db.commit()
-        await db.refresh(new_design)
-        
-        # Convert to response format
-        response_data = new_design.to_dict()
-        response_data["node_count"] = len(original_design.nodes)
-        response_data["connection_count"] = len(original_design.connections)
-        
-        return DesignResponse(**response_data)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to duplicate design: {str(e)}")
-
 # ============================================================================
-# NODE OPERATIONS
+# NODE OPERATIONS (Enhanced with RBAC)
 # ============================================================================
 
 @router.post("/{design_id}/nodes", response_model=NodeResponse, status_code=201)
 async def create_node(
-    design_id: UUID,
-    node_data: NodeCreate,
+    design_id: UUID = Path(..., description="Design ID"),
+    node_data: NodeCreate = ...,
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Auth required
     db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """Add a node to a design"""
+    """Create a node in a design with permission check"""
     try:
-        # Verify design exists
-        design_query = select(Design).where(Design.id == design_id)
-        design_result = await db.execute(design_query)
-        design = design_result.scalar_one_or_none()
+        # NEW - Check access permissions
+        design = await check_design_access(design_id, current_user, Permission.UPDATE_DESIGN, db)
         
-        if not design:
-            raise HTTPException(status_code=404, detail="Design not found")
-        
-        # Check if node_id already exists in this design
-        existing_query = select(DesignNode).where(
+        # Check if node ID already exists in design
+        existing_node_query = select(DesignNode).where(
             DesignNode.design_id == design_id,
             DesignNode.node_id == node_data.node_id
         )
-        existing_result = await db.execute(existing_query)
+        existing_result = await db.execute(existing_node_query)
         if existing_result.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Node ID already exists in this design")
+            raise HTTPException(status_code=400, detail="Node ID already exists in design")
         
         # Create node
         node = DesignNode(
             design_id=design_id,
             node_id=node_data.node_id,
             component_type=node_data.component_type,
-            position_x=node_data.position.x,
-            position_y=node_data.position.y,
-            width=node_data.size.width,
-            height=node_data.size.height,
-            properties=node_data.properties,
-            visual_style=node_data.visual_style
+            component_config=node_data.component_config,
+            position_x=node_data.position["x"],
+            position_y=node_data.position["y"],
+            width=node_data.size.get("width", 200),
+            height=node_data.size.get("height", 100),
+            metadata=node_data.metadata
         )
         
         db.add(node)
@@ -406,29 +436,50 @@ async def create_node(
         await db.commit()
         await db.refresh(node)
         
+        # NEW - Log activity
+        background_tasks.add_task(
+            log_design_activity,
+            action="create_node",
+            user=current_user,
+            design_id=str(design_id),
+            success=True,
+            details={
+                "node_id": node_data.node_id,
+                "component_type": node_data.component_type
+            },
+            db_session=db
+        )
+        
         return NodeResponse(**node.to_dict())
         
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
+        
+        # NEW - Log failure
+        background_tasks.add_task(
+            log_design_activity,
+            action="create_node",
+            user=current_user,
+            design_id=str(design_id),
+            success=False,
+            details={"error": str(e), "node_id": node_data.node_id},
+            db_session=db
+        )
+        
         raise HTTPException(status_code=500, detail=f"Failed to create node: {str(e)}")
 
 @router.get("/{design_id}/nodes", response_model=List[NodeResponse])
 async def get_design_nodes(
-    design_id: UUID,
-    db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    design_id: UUID = Path(..., description="Design ID"),
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Auth required
+    db: AsyncSession = Depends(get_db_session)
 ):
-    """Get all nodes for a design"""
+    """Get all nodes for a design with permission check"""
     try:
-        # Verify design exists
-        design_query = select(Design).where(Design.id == design_id)
-        design_result = await db.execute(design_query)
-        design = design_result.scalar_one_or_none()
-        
-        if not design:
-            raise HTTPException(status_code=404, detail="Design not found")
+        # NEW - Check access permissions
+        await check_design_access(design_id, current_user, Permission.READ_DESIGN, db)
         
         # Get nodes
         nodes_query = select(DesignNode).where(DesignNode.design_id == design_id)
@@ -444,14 +495,18 @@ async def get_design_nodes(
 
 @router.put("/{design_id}/nodes/{node_id}", response_model=NodeResponse)
 async def update_node(
-    design_id: UUID,
-    node_id: str,
-    node_data: NodeUpdate,
+    design_id: UUID = Path(..., description="Design ID"),
+    node_id: str = Path(..., description="Node ID"),
+    node_data: NodeUpdate = ...,
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Auth required
     db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """Update a specific node"""
+    """Update a specific node with permission check"""
     try:
+        # NEW - Check access permissions
+        await check_design_access(design_id, current_user, Permission.UPDATE_DESIGN, db)
+        
         # Get node
         query = select(DesignNode).where(
             DesignNode.design_id == design_id,
@@ -463,20 +518,37 @@ async def update_node(
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         
+        # Track changes
+        changes = {}
+        
         # Update fields
         update_data = node_data.dict(exclude_unset=True)
         
         if "position" in update_data:
-            node.position_x = update_data["position"]["x"]
-            node.position_y = update_data["position"]["y"]
+            old_pos = {"x": node.position_x, "y": node.position_y}
+            new_pos = update_data["position"]
+            if old_pos != new_pos:
+                changes["position"] = {"old": old_pos, "new": new_pos}
+                node.position_x = new_pos["x"]
+                node.position_y = new_pos["y"]
         
         if "size" in update_data:
-            node.width = update_data["size"]["width"]
-            node.height = update_data["size"]["height"]
+            old_size = {"width": node.width, "height": node.height}
+            new_size = update_data["size"]
+            if old_size != new_size:
+                changes["size"] = {"old": old_size, "new": new_size}
+                node.width = new_size["width"]
+                node.height = new_size["height"]
         
         for field, value in update_data.items():
             if field not in ["position", "size"] and hasattr(node, field):
-                setattr(node, field, value)
+                old_value = getattr(node, field)
+                if old_value != value:
+                    changes[field] = {"old": old_value, "new": value}
+                    setattr(node, field, value)
+        
+        # Update timestamps
+        node.updated_at = datetime.now()
         
         # Update design timestamp
         design_query = select(Design).where(Design.id == design_id)
@@ -487,23 +559,51 @@ async def update_node(
         await db.commit()
         await db.refresh(node)
         
+        # NEW - Log activity
+        if changes:
+            background_tasks.add_task(
+                log_design_activity,
+                action="update_node",
+                user=current_user,
+                design_id=str(design_id),
+                success=True,
+                details={"node_id": node_id, "changes": changes},
+                db_session=db
+            )
+        
         return NodeResponse(**node.to_dict())
         
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
+        
+        # NEW - Log failure
+        background_tasks.add_task(
+            log_design_activity,
+            action="update_node",
+            user=current_user,
+            design_id=str(design_id),
+            success=False,
+            details={"error": str(e), "node_id": node_id},
+            db_session=db
+        )
+        
         raise HTTPException(status_code=500, detail=f"Failed to update node: {str(e)}")
 
 @router.delete("/{design_id}/nodes/{node_id}", response_model=BaseResponse)
 async def delete_node(
-    design_id: UUID,
-    node_id: str,
+    design_id: UUID = Path(..., description="Design ID"),
+    node_id: str = Path(..., description="Node ID"),
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Auth required
     db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """Delete a node and its connections"""
+    """Delete a node and its connections with permission check"""
     try:
+        # NEW - Check access permissions
+        await check_design_access(design_id, current_user, Permission.UPDATE_DESIGN, db)
+        
         # Get node
         query = select(DesignNode).where(
             DesignNode.design_id == design_id,
@@ -515,11 +615,15 @@ async def delete_node(
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         
+        node_component_type = node.component_type  # Store for logging
+        
         # Delete connections involving this node
         conn_delete_query = delete(DesignConnection).where(
             DesignConnection.design_id == design_id,
-            (DesignConnection.from_node_id == node_id) | 
-            (DesignConnection.to_node_id == node_id)
+            or_(
+                DesignConnection.from_node_id == node_id,
+                DesignConnection.to_node_id == node_id
+            )
         )
         await db.execute(conn_delete_query)
         
@@ -534,34 +638,56 @@ async def delete_node(
         
         await db.commit()
         
+        # NEW - Log activity
+        background_tasks.add_task(
+            log_design_activity,
+            action="delete_node",
+            user=current_user,
+            design_id=str(design_id),
+            success=True,
+            details={
+                "node_id": node_id,
+                "component_type": node_component_type
+            },
+            db_session=db
+        )
+        
         return BaseResponse(message="Node deleted successfully")
         
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
+        
+        # NEW - Log failure
+        background_tasks.add_task(
+            log_design_activity,
+            action="delete_node",
+            user=current_user,
+            design_id=str(design_id),
+            success=False,
+            details={"error": str(e), "node_id": node_id},
+            db_session=db
+        )
+        
         raise HTTPException(status_code=500, detail=f"Failed to delete node: {str(e)}")
 
 # ============================================================================
-# CONNECTION OPERATIONS
+# CONNECTION OPERATIONS (Enhanced with RBAC)
 # ============================================================================
 
 @router.post("/{design_id}/connections", response_model=ConnectionResponse, status_code=201)
 async def create_connection(
-    design_id: UUID,
-    connection_data: ConnectionCreate,
+    design_id: UUID = Path(..., description="Design ID"),
+    connection_data: ConnectionCreate = ...,
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Auth required
     db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """Create a connection between nodes"""
+    """Create a connection between nodes with permission check"""
     try:
-        # Verify design exists
-        design_query = select(Design).where(Design.id == design_id)
-        design_result = await db.execute(design_query)
-        design = design_result.scalar_one_or_none()
-        
-        if not design:
-            raise HTTPException(status_code=404, detail="Design not found")
+        # NEW - Check access permissions
+        design = await check_design_access(design_id, current_user, Permission.UPDATE_DESIGN, db)
         
         # Verify both nodes exist
         from_node_query = select(DesignNode).where(
@@ -569,7 +695,9 @@ async def create_connection(
             DesignNode.node_id == connection_data.from_node_id
         )
         from_node_result = await db.execute(from_node_query)
-        if not from_node_result.scalar_one_or_none():
+        from_node = from_node_result.scalar_one_or_none()
+        
+        if not from_node:
             raise HTTPException(status_code=400, detail="Source node not found")
         
         to_node_query = select(DesignNode).where(
@@ -577,29 +705,31 @@ async def create_connection(
             DesignNode.node_id == connection_data.to_node_id
         )
         to_node_result = await db.execute(to_node_query)
-        if not to_node_result.scalar_one_or_none():
+        to_node = to_node_result.scalar_one_or_none()
+        
+        if not to_node:
             raise HTTPException(status_code=400, detail="Target node not found")
         
-        # Check if connection_id already exists in this design
-        existing_query = select(DesignConnection).where(
+        # Check if connection ID already exists
+        existing_conn_query = select(DesignConnection).where(
             DesignConnection.design_id == design_id,
             DesignConnection.connection_id == connection_data.connection_id
         )
-        existing_result = await db.execute(existing_query)
+        existing_result = await db.execute(existing_conn_query)
         if existing_result.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Connection ID already exists in this design")
+            raise HTTPException(status_code=400, detail="Connection ID already exists")
         
         # Create connection
         connection = DesignConnection(
             design_id=design_id,
             connection_id=connection_data.connection_id,
             from_node_id=connection_data.from_node_id,
-            to_node_id=connection_data.to_node_id,
             from_port=connection_data.from_port,
+            to_node_id=connection_data.to_node_id,
             to_port=connection_data.to_port,
             connection_type=connection_data.connection_type,
-            properties=connection_data.properties,
-            visual_style=connection_data.visual_style
+            style=connection_data.style,
+            metadata=connection_data.metadata
         )
         
         db.add(connection)
@@ -610,29 +740,51 @@ async def create_connection(
         await db.commit()
         await db.refresh(connection)
         
+        # NEW - Log activity
+        background_tasks.add_task(
+            log_design_activity,
+            action="create_connection",
+            user=current_user,
+            design_id=str(design_id),
+            success=True,
+            details={
+                "connection_id": connection_data.connection_id,
+                "from_node": connection_data.from_node_id,
+                "to_node": connection_data.to_node_id
+            },
+            db_session=db
+        )
+        
         return ConnectionResponse(**connection.to_dict())
         
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
+        
+        # NEW - Log failure
+        background_tasks.add_task(
+            log_design_activity,
+            action="create_connection",
+            user=current_user,
+            design_id=str(design_id),
+            success=False,
+            details={"error": str(e), "connection_id": connection_data.connection_id},
+            db_session=db
+        )
+        
         raise HTTPException(status_code=500, detail=f"Failed to create connection: {str(e)}")
 
 @router.get("/{design_id}/connections", response_model=List[ConnectionResponse])
 async def get_design_connections(
-    design_id: UUID,
-    db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    design_id: UUID = Path(..., description="Design ID"),
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Auth required
+    db: AsyncSession = Depends(get_db_session)
 ):
-    """Get all connections for a design"""
+    """Get all connections for a design with permission check"""
     try:
-        # Verify design exists
-        design_query = select(Design).where(Design.id == design_id)
-        design_result = await db.execute(design_query)
-        design = design_result.scalar_one_or_none()
-        
-        if not design:
-            raise HTTPException(status_code=404, detail="Design not found")
+        # NEW - Check access permissions
+        await check_design_access(design_id, current_user, Permission.READ_DESIGN, db)
         
         # Get connections
         connections_query = select(DesignConnection).where(DesignConnection.design_id == design_id)
@@ -648,13 +800,17 @@ async def get_design_connections(
 
 @router.delete("/{design_id}/connections/{connection_id}", response_model=BaseResponse)
 async def delete_connection(
-    design_id: UUID,
-    connection_id: str,
+    design_id: UUID = Path(..., description="Design ID"),
+    connection_id: str = Path(..., description="Connection ID"),
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Auth required
     db: AsyncSession = Depends(get_db_session),
-    current_user: dict = Depends(get_current_user)
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """Delete a connection"""
+    """Delete a connection with permission check"""
     try:
+        # NEW - Check access permissions
+        await check_design_access(design_id, current_user, Permission.UPDATE_DESIGN, db)
+        
         # Get connection
         query = select(DesignConnection).where(
             DesignConnection.design_id == design_id,
@@ -665,6 +821,12 @@ async def delete_connection(
         
         if not connection:
             raise HTTPException(status_code=404, detail="Connection not found")
+        
+        connection_details = {
+            "from_node": connection.from_node_id,
+            "to_node": connection.to_node_id,
+            "connection_type": connection.connection_type
+        }
         
         # Delete connection
         await db.delete(connection)
@@ -677,10 +839,162 @@ async def delete_connection(
         
         await db.commit()
         
+        # NEW - Log activity
+        background_tasks.add_task(
+            log_design_activity,
+            action="delete_connection",
+            user=current_user,
+            design_id=str(design_id),
+            success=True,
+            details={
+                "connection_id": connection_id,
+                **connection_details
+            },
+            db_session=db
+        )
+        
         return BaseResponse(message="Connection deleted successfully")
         
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
+        
+        # NEW - Log failure
+        background_tasks.add_task(
+            log_design_activity,
+            action="delete_connection",
+            user=current_user,
+            design_id=str(design_id),
+            success=False,
+            details={"error": str(e), "connection_id": connection_id},
+            db_session=db
+        )
+        
         raise HTTPException(status_code=500, detail=f"Failed to delete connection: {str(e)}")
+
+# ============================================================================
+# NEW - EXECUTION OPERATIONS (Enhanced with RBAC)
+# ============================================================================
+
+@router.post("/{design_id}/execute", response_model=ExecutionResponse, status_code=201)
+async def execute_design(
+    design_id: UUID = Path(..., description="Design ID"),
+    config: ExecutionConfig = ...,
+    current_user: UnifiedUserInfo = Depends(require_authenticated),  # NEW - Auth required
+    db: AsyncSession = Depends(get_db_session),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """Execute a design with permission check"""
+    try:
+        # NEW - Check access permissions
+        design = await check_design_access(design_id, current_user, Permission.EXECUTE_DESIGN, db)
+        
+        # Create execution session
+        execution = ExecutionSession(
+            design_id=design_id,
+            status="pending",
+            configuration=config.dict(),
+            started_at=datetime.now()
+        )
+        
+        db.add(execution)
+        await db.commit()
+        await db.refresh(execution)
+        
+        # NEW - Log activity
+        background_tasks.add_task(
+            log_design_activity,
+            action="execute_design",
+            user=current_user,
+            design_id=str(design_id),
+            success=True,
+            details={
+                "execution_id": str(execution.id),
+                "timeout_seconds": config.timeout_seconds,
+                "parallel_execution": config.parallel_execution
+            },
+            db_session=db
+        )
+        
+        # TODO: Start actual execution in background
+        # This would typically involve queuing the execution job
+        
+        return ExecutionResponse(**execution.to_dict())
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        
+        # NEW - Log failure
+        background_tasks.add_task(
+            log_design_activity,
+            action="execute_design",
+            user=current_user,
+            design_id=str(design_id),
+            success=False,
+            details={"error": str(e)},
+            db_session=db
+        )
+        
+        raise HTTPException(status_code=500, detail=f"Failed to execute design: {str(e)}")
+
+# ============================================================================
+# NEW - DESIGN ANALYTICS (Admin/Owner only)
+# ============================================================================
+
+@router.get("/{design_id}/analytics", tags=["analytics"])
+async def get_design_analytics(
+    design_id: UUID = Path(..., description="Design ID"),
+    current_user: UnifiedUserInfo = Depends(require_authenticated),
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Get design analytics (owner or admin only)"""
+    try:
+        # Check access permissions (must own design or be admin)
+        design = await check_design_access(design_id, current_user, Permission.READ_DESIGN, db)
+        
+        # Get execution statistics
+        execution_query = select(ExecutionSession).where(ExecutionSession.design_id == design_id)
+        executions = await db.execute(execution_query)
+        execution_list = executions.scalars().all()
+        
+        total_executions = len(execution_list)
+        successful_executions = len([e for e in execution_list if e.status == "completed"])
+        failed_executions = len([e for e in execution_list if e.status == "failed"])
+        
+        # Calculate average execution time
+        completed_executions = [e for e in execution_list if e.ended_at and e.started_at]
+        avg_time = 0
+        if completed_executions:
+            total_time = sum((e.ended_at - e.started_at).total_seconds() for e in completed_executions)
+            avg_time = total_time / len(completed_executions)
+        
+        # Get node count by component type
+        nodes_query = select(DesignNode).where(DesignNode.design_id == design_id)
+        nodes_result = await db.execute(nodes_query)
+        nodes = nodes_result.scalars().all()
+        
+        component_counts = {}
+        for node in nodes:
+            comp_type = node.component_type
+            component_counts[comp_type] = component_counts.get(comp_type, 0) + 1
+        
+        return {
+            "design_id": str(design_id),
+            "total_executions": total_executions,
+            "successful_executions": successful_executions,
+            "failed_executions": failed_executions,
+            "success_rate": (successful_executions / total_executions * 100) if total_executions > 0 else 0,
+            "average_execution_time_seconds": avg_time,
+            "last_execution": execution_list[-1].created_at.isoformat() if execution_list else None,
+            "component_usage": component_counts,
+            "total_nodes": len(nodes),
+            "total_connections": len(design.connections) if hasattr(design, 'connections') else 0
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get analytics: {str(e)}")

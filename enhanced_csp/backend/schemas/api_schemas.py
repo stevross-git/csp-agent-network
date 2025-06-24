@@ -1,419 +1,457 @@
-# File: backend/schemas/api_schemas.py
+# backend/schemas/api_schemas.py
 """
-Pydantic Schemas for CSP Visual Designer API
-===========================================
-Request/Response models for API validation
+API Schemas for CSP Visual Designer
+==================================
+Pydantic schemas for request/response validation with examples
 """
 
-from pydantic import BaseModel, Field, validator
+from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Union
-from datetime import datetime
 from uuid import UUID
 import uuid
+from pydantic import BaseModel, EmailStr, validator, Field
+from enum import Enum
 
 # ============================================================================
-# BASE SCHEMAS
+# EXISTING SCHEMAS (preserved)
 # ============================================================================
 
 class BaseResponse(BaseModel):
     """Base response model"""
-    success: bool = True
-    message: str = ""
+    message: str
     timestamp: datetime = Field(default_factory=datetime.now)
+    success: bool = True
 
-class ErrorResponse(BaseResponse):
+class ErrorResponse(BaseModel):
     """Error response model"""
     success: bool = False
     error_code: str
+    message: str
     details: Optional[Dict[str, Any]] = None
+    timestamp: datetime = Field(default_factory=datetime.now)
 
-# ============================================================================
-# DESIGN SCHEMAS
-# ============================================================================
-
+# Design related schemas (existing, preserved)
 class DesignCreate(BaseModel):
-    """Schema for creating a new design"""
-    name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    version: str = Field(default="1.0.0", max_length=50)
-    canvas_settings: Dict[str, Any] = Field(default_factory=dict)
-    
+    """Design creation request"""
+    name: str = Field(..., min_length=1, max_length=255, description="Design name")
+    description: Optional[str] = Field(None, max_length=2000, description="Design description")
+    version: str = Field("1.0.0", description="Design version")
+    canvas_settings: Dict[str, Any] = Field(default_factory=dict, description="Canvas configuration")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    is_public: bool = Field(False, description="Whether design is publicly visible")
+    is_template: bool = Field(False, description="Whether design is a template")
+    tags: List[str] = Field(default_factory=list, description="Design tags")
+
     class Config:
-        json_schema_extra = {
+        schema_extra = {
             "example": {
-                "name": "My AI Processing Pipeline",
-                "description": "A pipeline for processing AI requests",
+                "name": "Customer Data Pipeline",
+                "description": "A pipeline for processing customer data",
                 "version": "1.0.0",
-                "canvas_settings": {
-                    "width": 1200,
-                    "height": 800,
-                    "zoom": 1.0,
-                    "grid_enabled": True
-                }
+                "canvas_settings": {"zoom": 1.0, "pan_x": 0, "pan_y": 0},
+                "metadata": {"category": "data_processing"},
+                "is_public": False,
+                "is_template": False,
+                "tags": ["data", "pipeline", "customer"]
             }
         }
 
 class DesignUpdate(BaseModel):
-    """Schema for updating a design"""
+    """Design update request"""
     name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    version: Optional[str] = Field(None, max_length=50)
+    description: Optional[str] = Field(None, max_length=2000)
+    version: Optional[str] = None
     canvas_settings: Optional[Dict[str, Any]] = None
-    is_active: Optional[bool] = None
+    metadata: Optional[Dict[str, Any]] = None
+    is_public: Optional[bool] = None
+    is_template: Optional[bool] = None
+    tags: Optional[List[str]] = None
 
 class DesignResponse(BaseModel):
-    """Schema for design response"""
-    id: UUID
+    """Design response"""
+    id: str
     name: str
     description: Optional[str]
     version: str
-    created_by: Optional[UUID]
+    canvas_settings: Dict[str, Any]
+    metadata: Dict[str, Any]
+    is_public: bool
+    is_template: bool
+    tags: List[str]
+    created_by: Optional[str]
+    created_by_local_user_id: Optional[str]  # NEW
     created_at: datetime
     updated_at: datetime
-    canvas_settings: Dict[str, Any]
-    is_active: bool
-    node_count: int = 0
-    connection_count: int = 0
-    
-    class Config:
-        from_attributes = True
+    node_count: int
+    connection_count: int
 
-class DesignListResponse(BaseResponse):
-    """Schema for design list response"""
+class DesignListResponse(BaseModel):
+    """Design list response"""
     designs: List[DesignResponse]
-    total_count: int
+    total: int
     page: int = 1
-    page_size: int = 10
+    page_size: int = 20
 
-# ============================================================================
-# NODE SCHEMAS
-# ============================================================================
-
-class Position(BaseModel):
-    """Position model"""
-    x: float
-    y: float
-
-class Size(BaseModel):
-    """Size model"""
-    width: float = 120.0
-    height: float = 80.0
-
+# Node related schemas (existing, preserved)
 class NodeCreate(BaseModel):
-    """Schema for creating a node"""
-    node_id: str = Field(..., min_length=1, max_length=100)
-    component_type: str = Field(..., min_length=1, max_length=100)
-    position: Position
-    size: Size = Field(default_factory=Size)
-    properties: Dict[str, Any] = Field(default_factory=dict)
-    visual_style: Dict[str, Any] = Field(default_factory=dict)
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "node_id": "ai_agent_1",
-                "component_type": "ai_agent",
-                "position": {"x": 100, "y": 200},
-                "size": {"width": 150, "height": 100},
-                "properties": {
-                    "model": "gpt-4",
-                    "temperature": 0.7,
-                    "max_tokens": 1000
-                },
-                "visual_style": {
-                    "color": "#4CAF50",
-                    "border_color": "#2E7D32"
-                }
-            }
-        }
+    """Node creation request"""
+    node_id: str = Field(..., description="Unique node identifier within design")
+    component_type: str = Field(..., description="Component type")
+    component_config: Dict[str, Any] = Field(default_factory=dict, description="Component configuration")
+    position: Dict[str, float] = Field(..., description="Node position")
+    size: Dict[str, float] = Field(default_factory=lambda: {"width": 200, "height": 100}, description="Node size")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+
+    @validator('position')
+    def validate_position(cls, v):
+        if 'x' not in v or 'y' not in v:
+            raise ValueError('Position must contain x and y coordinates')
+        return v
+
+    @validator('size')
+    def validate_size(cls, v):
+        if 'width' not in v or 'height' not in v:
+            raise ValueError('Size must contain width and height')
+        if v['width'] <= 0 or v['height'] <= 0:
+            raise ValueError('Width and height must be positive')
+        return v
 
 class NodeUpdate(BaseModel):
-    """Schema for updating a node"""
-    position: Optional[Position] = None
-    size: Optional[Size] = None
-    properties: Optional[Dict[str, Any]] = None
-    visual_style: Optional[Dict[str, Any]] = None
+    """Node update request"""
+    component_config: Optional[Dict[str, Any]] = None
+    position: Optional[Dict[str, float]] = None
+    size: Optional[Dict[str, float]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    is_locked: Optional[bool] = None
 
 class NodeResponse(BaseModel):
-    """Schema for node response"""
-    id: UUID
-    design_id: UUID
+    """Node response"""
+    id: str
+    design_id: str
     node_id: str
     component_type: str
-    position: Position
-    size: Size
-    properties: Dict[str, Any]
-    visual_style: Dict[str, Any]
+    component_config: Dict[str, Any]
+    position: Dict[str, float]
+    size: Dict[str, float]
+    z_index: int
+    is_locked: bool
+    metadata: Dict[str, Any]
     created_at: datetime
-    
-    class Config:
-        from_attributes = True
+    updated_at: datetime
 
-# ============================================================================
-# CONNECTION SCHEMAS
-# ============================================================================
-
+# Connection related schemas (existing, preserved)
 class ConnectionCreate(BaseModel):
-    """Schema for creating a connection"""
-    connection_id: str = Field(..., min_length=1, max_length=100)
-    from_node_id: str = Field(..., min_length=1, max_length=100)
-    to_node_id: str = Field(..., min_length=1, max_length=100)
-    from_port: str = Field(default="output", max_length=50)
-    to_port: str = Field(default="input", max_length=50)
-    connection_type: str = Field(default="data_flow", max_length=50)
-    properties: Dict[str, Any] = Field(default_factory=dict)
-    visual_style: Dict[str, Any] = Field(default_factory=dict)
-    
-    @validator('to_node_id')
-    def validate_no_self_connection(cls, v, values):
-        if 'from_node_id' in values and v == values['from_node_id']:
-            raise ValueError('Cannot connect node to itself')
-        return v
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "connection_id": "conn_1",
-                "from_node_id": "ai_agent_1",
-                "to_node_id": "data_processor_1",
-                "from_port": "output",
-                "to_port": "input",
-                "connection_type": "data_flow",
-                "properties": {
-                    "data_type": "text",
-                    "buffer_size": 1000
-                },
-                "visual_style": {
-                    "color": "#2196F3",
-                    "width": 2
-                }
-            }
-        }
+    """Connection creation request"""
+    connection_id: str = Field(..., description="Unique connection identifier within design")
+    from_node_id: str = Field(..., description="Source node ID")
+    from_port: str = Field(..., description="Source port")
+    to_node_id: str = Field(..., description="Target node ID")
+    to_port: str = Field(..., description="Target port")
+    connection_type: str = Field("data", description="Connection type")
+    style: Dict[str, Any] = Field(default_factory=dict, description="Connection style")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 class ConnectionUpdate(BaseModel):
-    """Schema for updating a connection"""
-    from_port: Optional[str] = Field(None, max_length=50)
-    to_port: Optional[str] = Field(None, max_length=50)
-    connection_type: Optional[str] = Field(None, max_length=50)
-    properties: Optional[Dict[str, Any]] = None
-    visual_style: Optional[Dict[str, Any]] = None
+    """Connection update request"""
+    connection_type: Optional[str] = None
+    style: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 class ConnectionResponse(BaseModel):
-    """Schema for connection response"""
-    id: UUID
-    design_id: UUID
+    """Connection response"""
+    id: str
+    design_id: str
     connection_id: str
     from_node_id: str
-    to_node_id: str
     from_port: str
+    to_node_id: str
     to_port: str
     connection_type: str
-    properties: Dict[str, Any]
-    visual_style: Dict[str, Any]
+    style: Dict[str, Any]
+    metadata: Dict[str, Any]
     created_at: datetime
-    
-    class Config:
-        from_attributes = True
 
-# ============================================================================
-# COMPONENT TYPE SCHEMAS
-# ============================================================================
-
-class ComponentTypeResponse(BaseModel):
-    """Schema for component type response"""
-    id: UUID
-    component_type: str
-    category: str
-    display_name: str
-    description: Optional[str]
-    icon: Optional[str]
-    color: Optional[str]
-    default_properties: Dict[str, Any]
-    input_ports: List[Dict[str, Any]]
-    output_ports: List[Dict[str, Any]]
-    implementation_class: Optional[str]
-    is_active: bool
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-class ComponentCategoryResponse(BaseModel):
-    """Schema for component categories"""
-    category: str
-    components: List[ComponentTypeResponse]
-    count: int
-
-# ============================================================================
-# EXECUTION SCHEMAS
-# ============================================================================
-
+# Execution related schemas (existing, preserved)
 class ExecutionConfig(BaseModel):
-    """Schema for execution configuration"""
-    session_name: Optional[str] = None
-    max_execution_time: Optional[int] = Field(default=3600, ge=1, le=86400)  # 1 hour default, max 24 hours
-    enable_monitoring: bool = True
-    enable_profiling: bool = False
-    custom_settings: Dict[str, Any] = Field(default_factory=dict)
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "session_name": "Test Run 1",
-                "max_execution_time": 1800,
-                "enable_monitoring": True,
-                "enable_profiling": True,
-                "custom_settings": {
-                    "log_level": "INFO",
-                    "performance_sampling_rate": 0.1
-                }
-            }
-        }
+    """Execution configuration"""
+    timeout_seconds: int = Field(300, ge=1, le=3600, description="Execution timeout")
+    parallel_execution: bool = Field(True, description="Enable parallel execution")
+    debug_mode: bool = Field(False, description="Enable debug mode")
+    environment: Dict[str, Any] = Field(default_factory=dict, description="Environment variables")
+    resource_limits: Dict[str, Any] = Field(default_factory=dict, description="Resource limits")
 
 class ExecutionResponse(BaseModel):
-    """Schema for execution session response"""
-    id: UUID
-    design_id: UUID
-    session_name: Optional[str]
+    """Execution response"""
+    id: str
+    design_id: str
     status: str
     started_at: Optional[datetime]
     ended_at: Optional[datetime]
     configuration: Dict[str, Any]
+    results: Dict[str, Any]
+    error_message: Optional[str]
     performance_metrics: Dict[str, Any]
-    error_logs: List[Dict[str, Any]]
     created_at: datetime
+    duration_seconds: Optional[float]
+
+# ============================================================================
+# NEW AUTHENTICATION SCHEMAS
+# ============================================================================
+
+class UserRegistration(BaseModel):
+    """User registration request"""
+    email: EmailStr = Field(..., description="User email address")
+    password: str = Field(..., min_length=8, description="User password")
+    confirm_password: str = Field(..., description="Password confirmation")
+    full_name: str = Field(..., min_length=2, max_length=100, description="Full name")
     
+    @validator('password')
+    def validate_password_strength(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not any(c.isupper() for c in v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not any(c.islower() for c in v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('Password must contain at least one digit')
+        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in v):
+            raise ValueError('Password must contain at least one special character')
+        return v
+    
+    @validator('confirm_password')
+    def validate_passwords_match(cls, v, values):
+        if 'password' in values and v != values['password']:
+            raise ValueError('Passwords do not match')
+        return v
+
     class Config:
-        from_attributes = True
-
-class ExecutionStatusResponse(BaseResponse):
-    """Schema for execution status response"""
-    execution: ExecutionResponse
-    current_step: Optional[str] = None
-    progress_percentage: float = 0.0
-    active_nodes: List[str] = Field(default_factory=list)
-    
-# ============================================================================
-# TEMPLATE SCHEMAS
-# ============================================================================
-
-class TemplateCreate(BaseModel):
-    """Schema for creating a template"""
-    name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    category: Optional[str] = Field(None, max_length=100)
-    tags: List[str] = Field(default_factory=list)
-    template_data: Dict[str, Any] = Field(..., description="Complete design structure")
-    preview_image: Optional[str] = None
-    is_public: bool = False
-
-class TemplateResponse(BaseModel):
-    """Schema for template response"""
-    id: UUID
-    name: str
-    description: Optional[str]
-    category: Optional[str]
-    tags: List[str]
-    template_data: Dict[str, Any]
-    preview_image: Optional[str]
-    is_public: bool
-    created_by: Optional[UUID]
-    usage_count: int
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-# ============================================================================
-# METRICS SCHEMAS
-# ============================================================================
-
-class MetricData(BaseModel):
-    """Schema for individual metric data"""
-    node_id: str
-    metric_name: str
-    metric_value: float
-    metric_unit: Optional[str] = None
-    timestamp: datetime
-
-class MetricsResponse(BaseResponse):
-    """Schema for metrics response"""
-    session_id: UUID
-    metrics: List[MetricData]
-    summary: Dict[str, Any] = Field(default_factory=dict)
-
-# ============================================================================
-# USER SCHEMAS
-# ============================================================================
-
-class UserCreate(BaseModel):
-    """Schema for user creation"""
-    username: str = Field(..., min_length=3, max_length=100)
-    email: str = Field(..., pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
-    password: str = Field(..., min_length=8)
-    full_name: Optional[str] = Field(None, max_length=255)
+        schema_extra = {
+            "example": {
+                "email": "user@example.com",
+                "password": "SecurePass123!",
+                "confirm_password": "SecurePass123!",
+                "full_name": "John Doe"
+            }
+        }
 
 class UserLogin(BaseModel):
-    """Schema for user login"""
-    username: str
-    password: str
+    """User login request"""
+    email: EmailStr = Field(..., description="User email address")
+    password: str = Field(..., description="User password")
+    remember_me: bool = Field(False, description="Remember login for extended period")
 
-class UserResponse(BaseModel):
-    """Schema for user response"""
-    id: UUID
-    username: str
-    email: str
-    full_name: Optional[str]
-    is_active: bool
-    is_admin: bool
-    preferences: Dict[str, Any]
-    created_at: datetime
-    last_login: Optional[datetime]
-    
     class Config:
-        from_attributes = True
+        schema_extra = {
+            "example": {
+                "email": "user@example.com",
+                "password": "SecurePass123!",
+                "remember_me": False
+            }
+        }
+
+class TokenRefresh(BaseModel):
+    """Token refresh request"""
+    refresh_token: str = Field(..., description="Refresh token")
+
+class PasswordResetRequest(BaseModel):
+    """Password reset request"""
+    email: EmailStr = Field(..., description="User email address")
+
+class PasswordReset(BaseModel):
+    """Password reset"""
+    token: str = Field(..., description="Password reset token")
+    new_password: str = Field(..., min_length=8, description="New password")
+    confirm_password: str = Field(..., description="Password confirmation")
+    
+    @validator('confirm_password')
+    def validate_passwords_match(cls, v, values):
+        if 'new_password' in values and v != values['new_password']:
+            raise ValueError('Passwords do not match')
+        return v
+
+class UserInfo(BaseModel):
+    """User information response"""
+    id: str
+    email: str
+    full_name: str
+    roles: List[str]
+    auth_method: str  # 'azure' or 'local'
+    is_active: bool
+    is_email_verified: Optional[bool] = None
+    last_login: Optional[datetime]
+    created_at: datetime
 
 class TokenResponse(BaseModel):
-    """Schema for authentication token response"""
+    """Authentication token response"""
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
     expires_in: int
-    user: UserResponse
+    user: Dict[str, Any]
 
 # ============================================================================
-# WEBSOCKET SCHEMAS
+# NEW RBAC SCHEMAS
 # ============================================================================
 
-class WebSocketMessage(BaseModel):
-    """Schema for WebSocket messages"""
-    type: str  # 'node_update', 'connection_update', 'execution_status', etc.
-    data: Dict[str, Any]
+class RoleUpdate(BaseModel):
+    """Role update request"""
+    user_id: str = Field(..., description="User ID")
+    roles: List[str] = Field(..., description="New roles")
+    
+    @validator('roles')
+    def validate_roles(cls, v):
+        valid_roles = ['super_admin', 'admin', 'designer', 'analyst', 'user', 'viewer']
+        for role in v:
+            if role not in valid_roles:
+                raise ValueError(f'Invalid role: {role}. Valid roles: {valid_roles}')
+        return v
+
+class PermissionCheck(BaseModel):
+    """Permission check request"""
+    permission: str = Field(..., description="Permission to check")
+    resource_id: Optional[str] = Field(None, description="Resource ID (optional)")
+
+class PermissionResponse(BaseModel):
+    """Permission check response"""
+    has_permission: bool
+    permission: str
+    user_roles: List[str]
+    all_permissions: List[str]
+
+# ============================================================================
+# NEW SYSTEM SCHEMAS
+# ============================================================================
+
+class SystemHealth(BaseModel):
+    """System health response"""
+    status: str = Field(..., description="Overall system status")
     timestamp: datetime = Field(default_factory=datetime.now)
-    sender_id: Optional[str] = None
+    services: Dict[str, Any] = Field(..., description="Service status details")
+    version: str = Field(..., description="System version")
+    uptime_seconds: float = Field(..., description="System uptime in seconds")
 
-class DesignCollaborationEvent(BaseModel):
-    """Schema for design collaboration events"""
-    event_type: str  # 'cursor_move', 'node_select', 'node_drag', etc.
-    user_id: UUID
-    design_id: UUID
-    data: Dict[str, Any]
+class SystemMetrics(BaseModel):
+    """System metrics response"""
+    cpu_usage_percent: float
+    memory_usage_percent: float
+    disk_usage_percent: float
+    active_users: int
+    active_designs: int
+    total_executions: int
+    average_response_time_ms: float
     timestamp: datetime = Field(default_factory=datetime.now)
 
+class AuditLogEntry(BaseModel):
+    """Audit log entry"""
+    id: str
+    user_id: Optional[str]
+    user_email: Optional[str]
+    action: str
+    resource_type: Optional[str]
+    resource_id: Optional[str]
+    details: Dict[str, Any]
+    ip_address: Optional[str]
+    success: bool
+    error_message: Optional[str]
+    timestamp: datetime
+
+class AuditLogQuery(BaseModel):
+    """Audit log query parameters"""
+    user_id: Optional[str] = None
+    action: Optional[str] = None
+    resource_type: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    success: Optional[bool] = None
+    page: int = Field(1, ge=1)
+    page_size: int = Field(20, ge=1, le=100)
+
+class AuditLogResponse(BaseModel):
+    """Audit log response"""
+    logs: List[AuditLogEntry]
+    total: int
+    page: int
+    page_size: int
+
 # ============================================================================
-# BATCH OPERATIONS
+# NEW NOTIFICATION SCHEMAS
 # ============================================================================
 
-class BatchNodeCreate(BaseModel):
-    """Schema for batch node creation"""
-    nodes: List[NodeCreate]
+class NotificationCreate(BaseModel):
+    """Notification creation request"""
+    title: str = Field(..., max_length=200, description="Notification title")
+    message: str = Field(..., max_length=1000, description="Notification message")
+    type: str = Field("info", description="Notification type: info, success, warning, error")
+    user_id: Optional[str] = Field(None, description="Target user ID (if personal)")
+    persistent: bool = Field(False, description="Whether notification persists across sessions")
+    actions: List[Dict[str, Any]] = Field(default_factory=list, description="Notification actions")
 
-class BatchConnectionCreate(BaseModel):
-    """Schema for batch connection creation"""
-    connections: List[ConnectionCreate]
+    @validator('type')
+    def validate_notification_type(cls, v):
+        valid_types = ['info', 'success', 'warning', 'error']
+        if v not in valid_types:
+            raise ValueError(f'Invalid notification type: {v}. Valid types: {valid_types}')
+        return v
 
-class BatchOperationResponse(BaseResponse):
-    """Schema for batch operation response"""
-    successful_operations: int
-    failed_operations: int
-    results: List[Dict[str, Any]]
-    errors: List[Dict[str, Any]] = Field(default_factory=list)
+class NotificationResponse(BaseModel):
+    """Notification response"""
+    id: str
+    title: str
+    message: str
+    type: str
+    user_id: Optional[str]
+    persistent: bool
+    read: bool
+    actions: List[Dict[str, Any]]
+    created_at: datetime
+    read_at: Optional[datetime]
+
+# ============================================================================
+# NEW COMPONENT SCHEMAS
+# ============================================================================
+
+class ComponentInfo(BaseModel):
+    """Component information"""
+    component_type: str
+    name: str
+    description: str
+    category: str
+    icon: str
+    input_ports: List[Dict[str, Any]]
+    output_ports: List[Dict[str, Any]]
+    configuration_schema: Dict[str, Any]
+    documentation_url: Optional[str]
+    version: str
+
+class ComponentValidation(BaseModel):
+    """Component validation result"""
+    is_valid: bool
+    errors: List[str]
+    warnings: List[str]
+    suggestions: List[str]
+
+# ============================================================================
+# NEW ANALYTICS SCHEMAS
+# ============================================================================
+
+class DesignAnalytics(BaseModel):
+    """Design analytics"""
+    design_id: str
+    total_executions: int
+    successful_executions: int
+    failed_executions: int
+    average_execution_time_seconds: float
+    last_execution: Optional[datetime]
+    most_used_components: List[Dict[str, Any]]
+    performance_trend: List[Dict[str, Any]]
+
+class SystemAnalytics(BaseModel):
+    """System-wide analytics"""
+    total_designs: int
+    active_users: int
+    total_executions: int
+    popular_components: List[Dict[str, Any]]
+    usage_by_day: List[Dict[str, Any]]
+    performance_metrics: Dict[str, Any]
+    timestamp: datetime = Field(default_factory=datetime.now)
