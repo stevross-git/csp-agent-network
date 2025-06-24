@@ -47,3 +47,26 @@ enhanced_csp/backend/schemas/__pycache__/api_schemas.cpython-310.pyc
 enhanced_csp/dev_tools/__pycache__/csp_dev_tools.cpython-310.pyc
 enhanced_csp/csp_users_2025-06-23.csv
 enhanced_csp/frontend/.env
+enhanced_csp/backups/admin.html.backup.20250624_112800
+enhanced_csp/backups/ai-agents.html.backup.20250624_112800
+enhanced_csp/backups/csp_admin_portal.html.backup.20250624_112801
+enhanced_csp/backups/deploy_auth.sh
+enhanced_csp/backups/deployment_configurations (1).txt
+enhanced_csp/backups/deployment_configurations.txt
+enhanced_csp/backups/designer.html.backup.20250624_112801
+enhanced_csp/backups/developer_tools.html.backup.20250624_112801
+enhanced_csp/backups/fix_metrics.py
+enhanced_csp/backups/fix_sqlite.py
+enhanced_csp/backups/login.html.backup
+enhanced_csp/backups/login.html.backup1
+enhanced_csp/backups/memory.html.backup.20250624_112801
+enhanced_csp/backups/monitoring.html.backup.20250624_112801
+enhanced_csp/backups/performance.html.backup.20250624_112801
+enhanced_csp/backups/security_dashboard.html.backup.20250624_112801
+enhanced_csp/backups/security.html.backup.20250624_112801
+enhanced_csp/backups/css/developer_tools.css
+enhanced_csp/backups/templates/web_ui/developer_tools-mini.html
+enhanced_csp/backups/templates/web_ui/developer_tools1.html
+enhanced_csp/backups/web_ui/__init__.py
+enhanced_csp/backups/web_ui/dashboard/__init__.py
+enhanced_csp/backups/web_ui/dashboard/app.py
