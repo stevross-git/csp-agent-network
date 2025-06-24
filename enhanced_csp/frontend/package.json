@@ -9,12 +9,21 @@
     "test": "echo \"No tests yet\" && exit 0"
   },
   "dependencies": {
-    "@azure/msal-browser": "^2.38.3"
+    "@azure/msal-browser": "^2.38.3",
+    "@playwright/test": "^1.53.1",
+    "react-hot-toast": "^2.5.2",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "live-server": "^1.2.2"
   },
-  "keywords": ["csp", "azure-ad", "authentication", "ai", "dashboard"],
+  "keywords": [
+    "csp",
+    "azure-ad",
+    "authentication",
+    "ai",
+    "dashboard"
+  ],
   "author": "CSP Development Team",
   "license": "MIT"
 }

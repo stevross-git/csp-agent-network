@@ -70,3 +70,4 @@ enhanced_csp/backups/templates/web_ui/developer_tools1.html
 enhanced_csp/backups/web_ui/__init__.py
 enhanced_csp/backups/web_ui/dashboard/__init__.py
 enhanced_csp/backups/web_ui/dashboard/app.py
+enhanced_csp/frontend/node_modules/**
