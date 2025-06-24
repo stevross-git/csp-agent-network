@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CSP System - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-info {
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .welcome-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .welcome-subtitle {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Pages Grid */
+        .pages-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .pages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .page-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .page-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .page-icon {
+            font-size: 2rem;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .page-info {
+            flex: 1;
+        }
+
+        .page-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-subtitle {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .page-description {
+            color: #777;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+        }
+
+        .page-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-available {
+            background: #e8f5e8;
+            color: #2d5a2d;
+        }
+
+        .status-demo {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-coming-soon {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .page-filename {
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            color: #999;
+            background: #f5f5f5;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        /* Categories */
+        .category-section {
+            margin-bottom: 2rem;
+        }
+
+        .category-title {
+            font-size: 1.4rem;
+            color: white;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            display: inline-block;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 1000;
+        }
+
+        .quick-action {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .quick-action:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .header-content {
+                padding: 0 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .pages-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .quick-actions {
+                bottom: 1rem;
+                right: 1rem;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .page-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .page-card:nth-child(even) {
+            animation-delay: 0.1s;
+        }
+
+        .page-card:nth-child(3n) {
+            animation-delay: 0.2s;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.1rem;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
+    <!-- CSP Authentication Wrapper -->
+    <script src="../js/auth-wrapper.js"></script>
+    <link rel="stylesheet" href="../css/auth-wrapper.css">
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                🚀 Enhanced CSP System
+            </div>
+            <div class="user-info" id="user-info">
+                <span id="current-time"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome-section">
+            <h1 class="welcome-title">Welcome to Enhanced CSP System</h1>
+            <p class="welcome-subtitle">Your comprehensive cyber security platform dashboard</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-pages">--</div>
+                    <div class="stat-label">Available Pages</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <div class="stat-number" id="active-sessions">1</div>
+                    <div class="stat-label">Active Sessions</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                    <div class="stat-number" id="system-status">Online</div>
+                    <div class="stat-label">System Status</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                    <div class="stat-number" id="uptime">99.9%</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pages-section">
+            <h2 class="section-title">🎯 Core Management</h2>
+            <div class="category-section">
+                <div class="pages-grid" id="core-pages">
+                    <!-- Core pages will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <h2 class="section-title">🔐 Security & Monitoring</h2>
+            <div class="category-section">
+                <div class="pages-grid" id="security-pages">
+                    <!-- Security pages will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <h2 class="section-title">🤖 AI & Advanced Tools</h2>
+            <div class="category-section">
+                <div class="pages-grid" id="ai-pages">
+                    <!-- AI pages will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <h2 class="section-title">📄 All Available Pages</h2>
+            <div class="category-section">
+                <div class="pages-grid" id="all-pages">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Scanning available pages...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="quick-action" title="Refresh Pages" onclick="refreshPages()">🔄</button>
+        <button class="quick-action" title="Settings" onclick="goToSettings()">⚙️</button>
+        <button class="quick-action" title="Help" onclick="showHelp()">❓</button>
+    </div>
+
+    <script>
+        // Page definitions with categories and descriptions
+        const pageDefinitions = {
+            // Core Management
+            'dashboard': { 
+                icon: '📊', 
+                title: 'Dashboard', 
+                description: 'Main system overview and analytics',
+                category: 'core',
+                status: 'available'
+            },
+            'admin': { 
+                icon: '👑', 
+                title: 'Administration', 
+                description: 'System administration and user management',
+                category: 'core',
+                status: 'available'
+            },
+            'designer': { 
+                icon: '🎨', 
+                title: 'Designer Studio', 
+                description: 'Design and configure system components',
+                category: 'core',
+                status: 'available'
+            },
+            'monitoring': { 
+                icon: '📈', 
+                title: 'System Monitoring', 
+                description: 'Real-time system performance monitoring',
+                category: 'security',
+                status: 'available'
+            },
+            'settings': { 
+                icon: '⚙️', 
+                title: 'Settings', 
+                description: 'System configuration and preferences',
+                category: 'core',
+                status: 'available'
+            },
+
+            // Security & Monitoring
+            'security': { 
+                icon: '🔐', 
+                title: 'Security Center', 
+                description: 'Security policies and threat monitoring',
+                category: 'security',
+                status: 'available'
+            },
+            'login': { 
+                icon: '🔑', 
+                title: 'Authentication', 
+                description: 'User login and authentication system',
+                category: 'security',
+                status: 'available'
+            },
+            'audit': { 
+                icon: '🔍', 
+                title: 'Audit Logs', 
+                description: 'System audit trail and compliance',
+                category: 'security',
+                status: 'demo'
+            },
+            'alerts': { 
+                icon: '🚨', 
+                title: 'Security Alerts', 
+                description: 'Real-time security notifications',
+                category: 'security',
+                status: 'demo'
+            },
+
+            // AI & Advanced Tools
+            'ai-agents': { 
+                icon: '🤖', 
+                title: 'AI Agents', 
+                description: 'Artificial intelligence agent management',
+                category: 'ai',
+                status: 'demo'
+            },
+            'quantum': { 
+                icon: '⚛️', 
+                title: 'Quantum Systems', 
+                description: 'Quantum computing integration',
+                category: 'ai',
+                status: 'coming-soon'
+            },
+            'blockchain': { 
+                icon: '⛓️', 
+                title: 'Blockchain', 
+                description: 'Blockchain and distributed ledger',
+                category: 'ai',
+                status: 'coming-soon'
+            },
+            'neural-networks': { 
+                icon: '🧠', 
+                title: 'Neural Networks', 
+                description: 'Deep learning and neural network tools',
+                category: 'ai',
+                status: 'demo'
+            },
+
+            // Additional Tools
+            'api-explorer': { 
+                icon: '🔍', 
+                title: 'API Explorer', 
+                description: 'Explore and test system APIs',
+                category: 'core',
+                status: 'available'
+            },
+            'deployment': { 
+                icon: '🚀', 
+                title: 'Deployment', 
+                description: 'Application deployment management',
+                category: 'core',
+                status: 'demo'
+            },
+            'infrastructure': { 
+                icon: '🏗️', 
+                title: 'Infrastructure', 
+                description: 'Infrastructure management and scaling',
+                category: 'core',
+                status: 'demo'
+            },
+            'containers': { 
+                icon: '📦', 
+                title: 'Containers', 
+                description: 'Container orchestration and management',
+                category: 'core',
+                status: 'demo'
+            },
+            'kubernetes': { 
+                icon: '☸️', 
+                title: 'Kubernetes', 
+                description: 'Kubernetes cluster management',
+                category: 'core',
+                status: 'demo'
+            },
+            'chat': { 
+                icon: '💬', 
+                title: 'Chat Interface', 
+                description: 'Real-time communication system',
+                category: 'core',
+                status: 'demo'
+            },
+            'collaboration': { 
+                icon: '🤝', 
+                title: 'Collaboration', 
+                description: 'Team collaboration tools',
+                category: 'core',
+                status: 'demo'
+            },
+            'notifications': { 
+                icon: '🔔', 
+                title: 'Notifications', 
+                description: 'System notification center',
+                category: 'core',
+                status: 'demo'
+            }
+        };
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+            updateTime();
+            setInterval(updateTime, 1000);
+        });
+
+        // Authentication ready handler
+        document.addEventListener('cspAuthReady', function(event) {
+            console.log('🎉 Index page authenticated and ready');
+            displayUserInfo(event.detail.user);
+            scanAvailablePages();
+        });
+
+        function initializePage() {
+            console.log('🚀 Initializing Enhanced CSP Index Page');
+            scanAvailablePages();
+        }
+
+        function displayUserInfo(user) {
+            if (user) {
+                const userInfoElement = document.getElementById('user-info');
+                userInfoElement.innerHTML = `
+                    <span>👤 ${user.name || user.email}</span>
+                    <span>🏷️ ${(user.role || 'user').toUpperCase()}</span>
+                    <span id="current-time"></span>
+                `;
+            }
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const currentTimeElement = document.getElementById('current-time');
+            if (currentTimeElement) {
+                currentTimeElement.textContent = timeString;
+            }
+        }
+
+        async function scanAvailablePages() {
+            console.log('🔍 Scanning available pages...');
+            
+            try {
+                // Get list of actual HTML files in pages directory
+                const actualPages = await getActualPages();
+                
+                // Combine with predefined pages
+                const allPages = new Set([...Object.keys(pageDefinitions), ...actualPages]);
+                
+                // Update stats
+                document.getElementById('total-pages').textContent = allPages.size;
+                
+                // Categorize and display pages
+                displayPagesByCategory('core-pages', Array.from(allPages), 'core');
+                displayPagesByCategory('security-pages', Array.from(allPages), 'security');
+                displayPagesByCategory('ai-pages', Array.from(allPages), 'ai');
+                displayAllPages(Array.from(allPages));
+                
+            } catch (error) {
+                console.error('Error scanning pages:', error);
+                displayError();
+            }
+        }
+
+        async function getActualPages() {
+            // This would normally scan the directory, but since we're client-side,
+            // we'll try to detect available pages by attempting to load them
+            const commonPages = [
+                'index', 'dashboard', 'admin', 'login', 'security', 'monitoring',
+                'designer', 'settings', 'ai-agents', 'quantum', 'blockchain',
+                'neural-networks', 'api-explorer', 'deployment', 'infrastructure',
+                'containers', 'kubernetes', 'chat', 'collaboration', 'notifications',
+                'audit', 'alerts', 'reports', 'analytics', 'users', 'roles',
+                'permissions', 'logs', 'backup', 'recovery', 'integrations',
+                'webhooks', 'api-keys', 'certificates', 'firewall', 'vpn'
+            ];
+            
+            return commonPages;
+        }
+
+        function displayPagesByCategory(containerId, pages, category) {
+            const container = document.getElementById(containerId);
+            const categoryPages = pages.filter(page => {
+                const def = pageDefinitions[page];
+                return def && def.category === category;
+            });
+            
+            if (categoryPages.length === 0) {
+                container.innerHTML = '<p style="color: white; text-align: center; grid-column: 1/-1;">No pages available in this category</p>';
+                return;
+            }
+            
+            container.innerHTML = categoryPages.map(page => createPageCard(page)).join('');
+        }
+
+        function displayAllPages(pages) {
+            const container = document.getElementById('all-pages');
+            container.innerHTML = pages.map(page => createPageCard(page)).join('');
+        }
+
+        function createPageCard(pageName) {
+            const def = pageDefinitions[pageName] || {
+                icon: '📄',
+                title: formatPageName(pageName),
+                description: 'Page available for access',
+                category: 'other',
+                status: 'available'
+            };
+            
+            const statusClass = `status-${def.status.replace('_', '-')}`;
+            const statusText = def.status.replace('-', ' ').replace('_', ' ').toUpperCase();
+            
+            return `
+                <a href="${pageName}.html" class="page-card" onclick="navigateToPage('${pageName}', event)">
+                    <div class="page-header">
+                        <div class="page-icon">${def.icon}</div>
+                        <div class="page-info">
+                            <div class="page-title">${def.title}</div>
+                            <div class="page-subtitle">${def.category.toUpperCase()}</div>
+                        </div>
+                    </div>
+                    <div class="page-description">${def.description}</div>
+                    <div class="page-status">
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                        <span class="page-filename">${pageName}.html</span>
+                    </div>
+                </a>
+            `;
+        }
+
+        function formatPageName(name) {
+            return name.split('-').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+        }
+
+        function navigateToPage(pageName, event) {
+            console.log(`🔗 Navigating to: ${pageName}`);
+            
+            // For demo pages, show preview
+            const def = pageDefinitions[pageName];
+            if (def && (def.status === 'demo' || def.status === 'coming-soon')) {
+                event.preventDefault();
+                showPagePreview(pageName, def);
+                return;
+            }
+            
+            // Normal navigation
+            window.location.href = `${pageName}.html`;
+        }
+
+        function showPagePreview(pageName, def) {
+            alert(`${def.icon} ${def.title}\n\n${def.description}\n\nStatus: ${def.status.replace('-', ' ').toUpperCase()}\n\nThis page is currently in development.`);
+        }
+
+        function refreshPages() {
+            console.log('🔄 Refreshing page list...');
+            scanAvailablePages();
+        }
+
+        function goToSettings() {
+            window.location.href = 'settings.html';
+        }
+
+        function showHelp() {
+            alert('🎯 Enhanced CSP System\n\n' +
+                  '• Click on any page card to navigate\n' +
+                  '• Use the quick action buttons for common tasks\n' +
+                  '• Pages are organized by category\n' +
+                  '• Green badges indicate available pages\n' +
+                  '• Yellow badges indicate demo pages\n' +
+                  '• Red badges indicate coming soon\n\n' +
+                  'Need help? Contact your system administrator.');
+        }
+
+        function displayError() {
+            const container = document.getElementById('all-pages');
+            container.innerHTML = `
+                <div class="page-card" style="text-align: center; grid-column: 1/-1;">
+                    <div class="page-header">
+                        <div class="page-icon">⚠️</div>
+                        <div class="page-info">
+                            <div class="page-title">Error Loading Pages</div>
+                            <div class="page-subtitle">Please try again</div>
+                        </div>
+                    </div>
+                    <div class="page-description">
+                        Unable to scan available pages. This might be due to browser security restrictions.
+                        Please check the browser console for more details.
+                    </div>
+                    <div class="page-status">
+                        <button onclick="refreshPages()" class="status-badge" style="background: #007bff; color: white; border: none; cursor: pointer;">
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+
+    <!-- Authentication Ready Handler -->
+    <script>
+        document.addEventListener('cspAuthReady', (event) => {
+            console.log('🎉 Page authenticated and ready');
+            // Page-specific initialization can go here
+        });
+    </script>
+</body>
+</html>

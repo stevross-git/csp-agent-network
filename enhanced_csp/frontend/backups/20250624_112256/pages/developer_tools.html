@@ -425,10 +425,6 @@
         }
     </style>
 </head>
-    <!-- CSP Unified Authentication -->
-    <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
-    <script src="../js/auth-wrapper.js"></script>
-    <link rel="stylesheet" href="../css/auth-wrapper.css">
 <body>
     <div class="command-center">
         <!-- Header -->
@@ -1074,15 +1070,4 @@
         }, 2000);
     </script>
 </body>
-    <!-- Authentication Ready Handler -->
-    <script>
-        document.addEventListener('cspAuthReady', (event) => {
-            console.log('🎉 Page authenticated and ready:', event.detail);
-            // Page-specific initialization can go here
-        });
-        
-        document.addEventListener('cspAuthError', (event) => {
-            console.error('❌ Authentication error:', event.detail);
-            // Handle auth errors
-        });
-    </script>
+</html>

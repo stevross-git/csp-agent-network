@@ -36,20 +36,6 @@ export const msalConfig = {
     cache: {
         cacheLocation: "sessionStorage",
         storeAuthStateInCookie: false,
-    },
-    system: {
-        loggerOptions: {
-            loggerCallback: (level, message, containsPii) => {
-                if (containsPii) return;
-                switch (level) {
-                    case 0: console.error('[MSAL]', message); break;
-                    case 1: console.warn('[MSAL]', message); break;
-                    case 2: console.info('[MSAL]', message); break;
-                    case 3: console.debug('[MSAL]', message); break;
-                }
-            },
-            logLevel: 3
-        }
     }
 };
 
@@ -57,12 +43,6 @@ export const msalConfig = {
 export const loginRequest = {
     scopes: ["User.Read", "User.ReadBasic.All", "Group.Read.All"],
     prompt: "select_account"
-};
-
-// Token request configuration for API calls
-export const tokenRequest = {
-    scopes: ["User.Read"],
-    forceRefresh: false
 };
 
 // User roles configuration
@@ -74,15 +54,9 @@ export const USER_ROLES = {
     USER: 'user'
 };
 
-// Make available globally for backward compatibility
-window.msalConfig = msalConfig;
-window.loginRequest = loginRequest;
-window.USER_ROLES = USER_ROLES;
-
 export default {
     msalConfig,
     loginRequest,
-    tokenRequest,
     USER_ROLES,
     getAzureConfig
 };

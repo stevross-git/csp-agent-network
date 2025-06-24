@@ -32,7 +32,7 @@ if __name__ == "__main__":
         print(f"📡 Serving at http://localhost:{PORT}")
         print(f"📁 Directory: {DIRECTORY}")
         print(f"🔐 Login page: http://localhost:{PORT}/pages/login.html")
-        print(f"📊 Dashboard: http://localhost:{PORT}/csp_admin_portal.html")
+        print(f"📊 Dashboard: http://localhost:{PORT}/pages/admin.html")
         print("Press Ctrl+C to stop the server")
         
         try:

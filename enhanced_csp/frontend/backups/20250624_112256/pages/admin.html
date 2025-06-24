@@ -600,19 +600,16 @@
         }
     </style>
 </head>
-    <!-- CSP Unified Authentication -->
-    <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
-    <script src="../js/auth-wrapper.js"></script>
-    <link rel="stylesheet" href="../css/auth-wrapper.css">
 <body>
     <!-- Header -->
     <div class="header">
         <h1>🛡️ Enhanced CSP Admin Portal</h1>
         <div class="header-controls">
             <div class="admin-badge">
-                🔑 Administrator
+                🔑 <span id="user-role">Administrator</span>
                 <span id="admin-user">admin@csp.ai</span>
             </div>
+            <button class="btn btn-secondary" onclick="logout()" style="margin-right: 1rem;">🚪 Logout</button>
             <button class="emergency-btn" onclick="emergencyShutdown()">🚨 Emergency Stop</button>
         </div>
     </div>
@@ -777,6 +774,13 @@
                         </div>
                         <div class="card-value">3</div>
                         <div class="card-subtitle">Require immediate attention</div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <span>ℹ️</span>
+                    <div>
+                        <strong>Authentication System:</strong> Currently using temporary credentials. Azure AD integration will replace this system for enterprise authentication and single sign-on.
                     </div>
                 </div>
 
@@ -1359,12 +1363,143 @@
     <script>
         // Global state
         let currentSection = 'dashboard';
+        let currentUser = null;
 
         // Initialize admin portal
         function initAdminPortal() {
             console.log('🛡️ Enhanced CSP Admin Portal initialized');
+            
+            // Check authentication first
+            if (!checkAuthentication()) {
+                redirectToLogin();
+                return;
+            }
+            
+            loadUserSession();
             updateSystemStats();
             startRealTimeUpdates();
+        }
+
+        // Check if user is authenticated
+        function checkAuthentication() {
+            const session = localStorage.getItem('csp_session') || sessionStorage.getItem('csp_session');
+            
+            if (!session) {
+                return false;
+            }
+            
+            try {
+                const sessionData = JSON.parse(session);
+                const loginTime = new Date(sessionData.loginTime);
+                const now = new Date();
+                const hoursSinceLogin = (now - loginTime) / (1000 * 60 * 60);
+                
+                // Check if session is still valid
+                const maxHours = sessionData.rememberMe ? 24 : 8;
+                
+                if (hoursSinceLogin >= maxHours) {
+                    // Session expired
+                    localStorage.removeItem('csp_session');
+                    sessionStorage.removeItem('csp_session');
+                    return false;
+                }
+                
+                currentUser = sessionData;
+                return true;
+            } catch (e) {
+                console.error('Invalid session data');
+                return false;
+            }
+        }
+
+        // Load user session data
+        function loadUserSession() {
+            if (currentUser) {
+                document.getElementById('user-role').textContent = currentUser.role;
+                document.getElementById('admin-user').textContent = currentUser.email;
+                
+                // Check role-based access
+                checkRoleAccess();
+                
+                console.log(`👤 Welcome ${currentUser.name} (${currentUser.role})`);
+            }
+        }
+
+        // Check role-based access to features
+        function checkRoleAccess() {
+            const role = currentUser.role.toLowerCase();
+            
+            // Disable certain features for non-admin users
+            if (role !== 'administrator') {
+                // Hide emergency shutdown for non-admins
+                const emergencyBtn = document.querySelector('.emergency-btn');
+                if (emergencyBtn && role !== 'developer') {
+                    emergencyBtn.style.display = 'none';
+                }
+                
+                // Add role-specific restrictions
+                if (role === 'user' || role === 'analyst') {
+                    // Disable user management for regular users
+                    const userNavItem = document.querySelector('.nav-item[onclick="showSection(\'users\')"]');
+                    if (userNavItem) {
+                        userNavItem.style.opacity = '0.5';
+                        userNavItem.style.cursor = 'not-allowed';
+                        userNavItem.onclick = () => showAccessDenied();
+                    }
+                }
+            }
+        }
+
+        // Show access denied message
+        function showAccessDenied() {
+            alert('🚫 Access Denied\n\nYou do not have permission to access this section.\nContact your administrator for elevated privileges.');
+        }
+
+        // Logout function
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                // Clear session data
+                localStorage.removeItem('csp_session');
+                sessionStorage.removeItem('csp_session');
+                
+                console.log('🚪 User logged out');
+                
+                // Show logout message
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.9);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 9999;
+                    font-size: 2rem;
+                    color: #ff6b35;
+                    font-weight: bold;
+                    text-align: center;
+                `;
+                overlay.innerHTML = '👋 Logging out...<br><div style="font-size: 1.2rem; margin-top: 1rem; color: #cccccc;">Redirecting to login page...</div>';
+                document.body.appendChild(overlay);
+                
+                // Redirect after delay
+                setTimeout(() => {
+                    redirectToLogin();
+                }, 1500);
+            }
+        }
+
+        // Redirect to login page
+        function redirectToLogin() {
+            // In real implementation, this would redirect to login page
+            // For demo, we'll show an alert
+            alert('🔐 Redirecting to login page...\n\nIn a real implementation, you would be redirected to the login page.');
+            
+            // Simulate redirect by reloading (in real app: window.location.href = '/login')
+            window.location.reload();
         }
 
         // Show specific section
@@ -1436,6 +1571,122 @@
         function startRealTimeUpdates() {
             setInterval(updateSystemStats, 5000);
             setInterval(updateSystemTime, 1000);
+            setInterval(checkSessionTimeout, 60000); // Check every minute
+        }
+
+        // Check for session timeout
+        function checkSessionTimeout() {
+            if (!currentUser) return;
+            
+            const session = localStorage.getItem('csp_session') || sessionStorage.getItem('csp_session');
+            if (!session) {
+                logout();
+                return;
+            }
+            
+            try {
+                const sessionData = JSON.parse(session);
+                const loginTime = new Date(sessionData.loginTime);
+                const now = new Date();
+                const minutesSinceLogin = (now - loginTime) / (1000 * 60);
+                
+                const maxMinutes = sessionData.rememberMe ? (24 * 60) : (8 * 60);
+                const warningMinutes = 15; // Warn 15 minutes before expiry
+                
+                if (minutesSinceLogin >= maxMinutes - warningMinutes && minutesSinceLogin < maxMinutes) {
+                    const remainingMinutes = Math.ceil(maxMinutes - minutesSinceLogin);
+                    showSessionWarning(remainingMinutes);
+                } else if (minutesSinceLogin >= maxMinutes) {
+                    showSessionExpired();
+                }
+            } catch (e) {
+                console.error('Session timeout check failed');
+                logout();
+            }
+        }
+
+        // Show session timeout warning
+        function showSessionWarning(remainingMinutes) {
+            const existingWarning = document.getElementById('session-warning');
+            if (existingWarning) return; // Don't show multiple warnings
+            
+            const warning = document.createElement('div');
+            warning.id = 'session-warning';
+            warning.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                background: rgba(255, 170, 0, 0.95);
+                color: #000;
+                padding: 1rem 1.5rem;
+                border-radius: 10px;
+                z-index: 2000;
+                box-shadow: 0 5px 20px rgba(255, 170, 0, 0.5);
+                border: 2px solid #ffaa00;
+                max-width: 300px;
+            `;
+            warning.innerHTML = `
+                <strong>⚠️ Session Timeout Warning</strong><br>
+                Your session will expire in ${remainingMinutes} minutes.<br>
+                <button onclick="extendSession()" style="background: #000; color: #ffaa00; border: none; padding: 0.5rem 1rem; border-radius: 5px; margin-top: 0.5rem; cursor: pointer;">Extend Session</button>
+                <button onclick="dismissWarning()" style="background: transparent; border: none; color: #000; cursor: pointer; margin-left: 0.5rem;">✕</button>
+            `;
+            document.body.appendChild(warning);
+            
+            // Auto-dismiss after 30 seconds
+            setTimeout(() => {
+                if (warning.parentNode) {
+                    warning.parentNode.removeChild(warning);
+                }
+            }, 30000);
+        }
+
+        // Show session expired message
+        function showSessionExpired() {
+            alert('🕐 Session Expired\n\nYour session has expired for security reasons.\nYou will be redirected to the login page.');
+            logout();
+        }
+
+        // Extend session
+        function extendSession() {
+            if (currentUser) {
+                currentUser.loginTime = new Date().toISOString();
+                
+                const storage = currentUser.rememberMe ? localStorage : sessionStorage;
+                storage.setItem('csp_session', JSON.stringify(currentUser));
+                
+                dismissWarning();
+                
+                // Show confirmation
+                const confirmation = document.createElement('div');
+                confirmation.style.cssText = `
+                    position: fixed;
+                    top: 100px;
+                    right: 20px;
+                    background: rgba(0, 255, 136, 0.95);
+                    color: #000;
+                    padding: 1rem 1.5rem;
+                    border-radius: 10px;
+                    z-index: 2000;
+                    box-shadow: 0 5px 20px rgba(0, 255, 136, 0.5);
+                `;
+                confirmation.innerHTML = '✅ Session extended successfully';
+                document.body.appendChild(confirmation);
+                
+                setTimeout(() => {
+                    if (confirmation.parentNode) {
+                        confirmation.parentNode.removeChild(confirmation);
+                    }
+                }, 3000);
+            }
+        }
+
+        // Dismiss warning
+        function dismissWarning() {
+            const warning = document.getElementById('session-warning');
+            if (warning && warning.parentNode) {
+                warning.parentNode.removeChild(warning);
+            }
         }
 
         // Update system time
@@ -1582,15 +1833,4 @@
         document.addEventListener('DOMContentLoaded', initAdminPortal);
     </script>
 </body>
-    <!-- Authentication Ready Handler -->
-    <script>
-        document.addEventListener('cspAuthReady', (event) => {
-            console.log('🎉 Page authenticated and ready:', event.detail);
-            // Page-specific initialization can go here
-        });
-        
-        document.addEventListener('cspAuthError', (event) => {
-            console.error('❌ Authentication error:', event.detail);
-            // Handle auth errors
-        });
-    </script>
+</html>
