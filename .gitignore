@@ -20,6 +20,7 @@ enhanced_csp/**.db
 
 enhanced_csp/*.egg-info/*
 
+enhanced_csp/frontend/azure-quickstart/node_modules/**
 
 enhanced_csp/gauge_all_672165.db
 enhanced_csp/gauge_all_686386.db

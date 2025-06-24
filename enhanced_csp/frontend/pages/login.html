@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced CSP System - Azure AD Login</title>
-    <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+    <title>Enhanced CSP System - Sign In</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Load MSAL Library Locally -->
+    <script src="../js/vendor/msal-browser.min.js"></script>
+    <!-- Load Authentication Middleware -->
+    <script src="../js/auth-middleware.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -14,173 +20,185 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
-            overflow: hidden;
+            justify-content: center;
+            color: #333;
             position: relative;
         }
 
-        /* Animated Background */
+        /* Animated background particles */
         .bg-animation {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: 
-                radial-gradient(circle at 20% 50%, rgba(255, 107, 53, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(0, 204, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 40% 80%, rgba(0, 255, 136, 0.1) 0%, transparent 50%);
-            animation: backgroundPulse 10s ease-in-out infinite;
-        }
-
-        @keyframes backgroundPulse {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 1; }
-        }
-
-        /* Particles */
-        .particles {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+            overflow: hidden;
+            z-index: 1;
         }
 
         .particle {
             position: absolute;
-            width: 2px;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 50%;
-            animation: float 20s infinite linear;
+            animation: float 6s ease-in-out infinite;
         }
 
         @keyframes float {
-            0% {
-                transform: translateY(100vh) translateX(0);
-                opacity: 0;
-            }
-            10% {
-                opacity: 1;
-            }
-            90% {
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(-100px) translateX(100px);
-                opacity: 0;
-            }
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
         }
 
-        /* Login Container */
         .login-container {
-            background: rgba(30, 30, 60, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 107, 53, 0.3);
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            padding: 3rem 2.5rem;
-            max-width: 450px;
-            width: 90%;
-            box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.3),
-                0 0 0 1px rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            padding: 3rem;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             position: relative;
             z-index: 10;
+            transform: translateY(0);
+            transition: all 0.3s ease;
         }
 
-        /* Header */
+        .login-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+        }
+
         .login-header {
-            text-align: center;
             margin-bottom: 2.5rem;
         }
 
-        .login-logo {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            animation: logoFloat 3s ease-in-out infinite;
-        }
-
-        @keyframes logoFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .login-title {
-            color: #ffffff;
-            font-size: 1.8rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .login-subtitle {
-            color: #cccccc;
-            font-size: 0.95rem;
-            margin-bottom: 1rem;
-        }
-
-        .azure-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: linear-gradient(45deg, #0078d4, #106ebe);
-            color: white;
-            padding: 0.5rem 1rem;
+        .login-header .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2rem;
+            color: white;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
         }
 
-        /* Authentication Status */
-        .auth-status {
-            text-align: center;
-            margin-bottom: 2rem;
+        .login-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: #7f8c8d;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header .subtitle {
+            color: #95a5a6;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-message {
             padding: 1rem;
             border-radius: 10px;
+            margin-bottom: 1.5rem;
+            display: none;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-loading {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            color: #1976d2;
+            border: 1px solid #90caf9;
+        }
+
+        .status-success {
+            background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+
+        .status-error {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        .status-warning {
+            background: linear-gradient(135deg, #fff8e1, #ffecb3);
+            color: #f57c00;
+            border: 1px solid #ffe082;
+        }
+
+        .auth-section {
+            margin: 2rem 0;
+        }
+
+        .auth-toggle {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 0.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .auth-toggle button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #6c757d;
+        }
+
+        .auth-toggle button.active {
+            background: white;
+            color: #2c3e50;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .signin-section, .signup-section {
             display: none;
         }
 
-        .auth-status.loading {
-            background: rgba(0, 204, 255, 0.1);
-            border: 1px solid #00ccff;
-            color: #00ccff;
+        .signin-section.active, .signup-section.active {
             display: block;
+            animation: fadeIn 0.3s ease;
         }
 
-        .auth-status.success {
-            background: rgba(0, 255, 136, 0.1);
-            border: 1px solid #00ff88;
-            color: #00ff88;
-            display: block;
-        }
-
-        .auth-status.error {
-            background: rgba(255, 107, 53, 0.1);
-            border: 1px solid #ff6b35;
-            color: #ff6b35;
-            display: block;
-        }
-
-        /* Login Options */
-        .login-options {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .azure-login-btn {
-            background: linear-gradient(45deg, #0078d4, #106ebe);
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #0078d4, #106ebe);
             color: white;
             border: none;
-            padding: 1rem 1.5rem;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
@@ -189,295 +207,325 @@
             align-items: center;
             justify-content: center;
             gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(16, 110, 190, 0.3);
             position: relative;
             overflow: hidden;
         }
 
-        .azure-login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 120, 212, 0.3);
+        .azure-login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
         }
 
-        .azure-login-btn:active {
-            transform: translateY(0);
+        .azure-login-btn:hover::before {
+            left: 100%;
+        }
+
+        .azure-login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 110, 190, 0.4);
         }
 
         .azure-login-btn:disabled {
-            opacity: 0.6;
+            background: #ccc;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
 
-        .btn-spinner {
+        .azure-login-btn i {
+            font-size: 1.2rem;
+        }
+
+        .spinner {
             width: 20px;
             height: 20px;
-            border: 2px solid transparent;
-            border-top: 2px solid currentColor;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             display: none;
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        .divider {
-            text-align: center;
-            margin: 1.5rem 0;
-            position: relative;
-            color: #888;
-        }
-
-        .divider::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .divider span {
-            background: rgba(30, 30, 60, 0.95);
-            padding: 0 1rem;
-            font-size: 0.85rem;
-        }
-
-        /* Demo Mode Toggle */
-        .demo-toggle {
-            text-align: center;
-            margin-top: 1rem;
-        }
-
-        .demo-btn {
-            background: rgba(255, 107, 53, 0.1);
-            border: 1px solid rgba(255, 107, 53, 0.3);
-            color: #ff6b35;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-
-        .demo-btn:hover {
-            background: rgba(255, 107, 53, 0.2);
-            border-color: #ff6b35;
-        }
-
-        /* Demo Credentials Panel */
-        .demo-panel {
-            margin-top: 1.5rem;
+        .signup-info {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
             padding: 1.5rem;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 107, 53, 0.2);
-            display: none;
+            margin: 1rem 0;
+            border-left: 4px solid #0078d4;
         }
 
-        .demo-panel.active {
-            display: block;
-        }
-
-        .demo-title {
-            color: #ff6b35;
-            font-size: 0.9rem;
-            font-weight: 600;
+        .signup-info h3 {
+            color: #2c3e50;
             margin-bottom: 1rem;
-            text-align: center;
+            font-size: 1.1rem;
         }
 
-        .demo-creds {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 0.75rem;
-            border-radius: 6px;
+        .signup-info p {
+            color: #6c757d;
+            font-size: 0.9rem;
+            line-height: 1.6;
             margin-bottom: 0.75rem;
-            font-family: monospace;
-            font-size: 0.85rem;
-            color: #cccccc;
-            cursor: pointer;
-            transition: all 0.3s ease;
         }
 
-        .demo-creds:hover {
-            background: rgba(255, 107, 53, 0.1);
-            transform: translateX(5px);
-        }
-
-        /* User Info Display */
-        .user-info {
-            background: rgba(0, 255, 136, 0.1);
-            border: 1px solid #00ff88;
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            display: none;
-        }
-
-        .user-info.active {
-            display: block;
-        }
-
-        .user-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #00ff88, #00ccff);
+        .signup-info .contact-info {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin: 0 auto 1rem;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+
+        .user-info {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            text-align: left;
+            display: none;
+            border: 1px solid #dee2e6;
+        }
+
+        .user-info h3 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .user-details {
-            text-align: center;
-            color: #00ff88;
-        }
-
-        .user-name {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .user-email {
+            display: grid;
+            gap: 0.75rem;
             font-size: 0.9rem;
-            opacity: 0.8;
-            margin-bottom: 0.5rem;
         }
 
-        .user-role {
-            background: rgba(0, 255, 136, 0.2);
+        .user-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .user-detail:last-child {
+            border-bottom: none;
+        }
+
+        .user-detail strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .user-detail span {
+            color: #6c757d;
+        }
+
+        .role-badge {
+            background: linear-gradient(135deg, #0078d4, #106ebe);
+            color: white;
             padding: 0.25rem 0.75rem;
-            border-radius: 15px;
+            border-radius: 20px;
             font-size: 0.8rem;
-            display: inline-block;
+            font-weight: 600;
         }
 
-        /* Footer */
+        .action-buttons {
+            display: none;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0078d4, #106ebe);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 110, 190, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+
         .login-footer {
-            text-align: center;
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid rgba(255, 107, 53, 0.3);
-        }
-
-        .footer-text {
-            color: #888888;
-            font-size: 0.8rem;
-            margin-bottom: 0.5rem;
+            margin-top: 2.5rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            color: #7f8c8d;
+            font-size: 0.85rem;
         }
 
         .security-note {
-            color: #00ff88;
-            font-size: 0.75rem;
-            font-style: italic;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
 
-        /* Responsive Design */
+        .help-link {
+            color: #0078d4;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .help-link:hover {
+            color: #106ebe;
+        }
+
+        /* Responsive design */
         @media (max-width: 480px) {
             .login-container {
                 margin: 1rem;
-                padding: 2rem 1.5rem;
+                padding: 2rem;
             }
             
-            .login-title {
-                font-size: 1.5rem;
-            }
-            
-            .login-logo {
-                font-size: 2.5rem;
+            .login-header h1 {
+                font-size: 1.8rem;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Animated Background -->
-    <div class="bg-animation"></div>
-    
-    <!-- Particles -->
-    <div class="particles" id="particles"></div>
+    <!-- Background Animation -->
+    <div class="bg-animation">
+        <!-- Particles will be added by JavaScript -->
+    </div>
 
-    <!-- Login Container -->
     <div class="login-container">
         <!-- Header -->
         <div class="login-header">
-            <div class="login-logo">🚀</div>
-            <h1 class="login-title">Enhanced CSP System</h1>
-            <p class="login-subtitle">AI-to-AI Communication Platform</p>
-            <div class="azure-badge">
-                <span>🔐</span>
-                <span>Azure AD Secured</span>
+            <div class="logo">
+                <i class="fas fa-network-wired"></i>
             </div>
+            <h1>Enhanced CSP System</h1>
+            <p>Advanced AI-to-AI Communication Platform</p>
+            <div class="subtitle">Enterprise Authentication Portal</div>
         </div>
 
-        <!-- Authentication Status -->
-        <div id="auth-status" class="auth-status">
-            <div id="status-message">Initializing authentication...</div>
-        </div>
+        <!-- Status Messages -->
+        <div id="status-message" class="status-message"></div>
 
-        <!-- User Info (shown when authenticated) -->
+        <!-- User Info Display (shown after login) -->
         <div id="user-info" class="user-info">
-            <div class="user-avatar" id="user-avatar">👤</div>
-            <div class="user-details">
-                <div class="user-name" id="user-name">Loading...</div>
-                <div class="user-email" id="user-email">Loading...</div>
-                <div class="user-role" id="user-role">Loading...</div>
-            </div>
-        </div>
-
-        <!-- Login Options -->
-        <div id="login-options" class="login-options">
-            <button id="azure-login-btn" class="azure-login-btn">
-                <span id="btn-text">🔐 Sign in with Microsoft</span>
-                <div id="btn-spinner" class="btn-spinner"></div>
-            </button>
-
-            <div class="divider">
-                <span>or</span>
-            </div>
-
-            <div class="demo-toggle">
-                <button id="demo-toggle-btn" class="demo-btn">
-                    🧪 Use Demo Mode (Development Only)
+            <h3><i class="fas fa-user-check"></i> Welcome to CSP System!</h3>
+            <div id="user-details" class="user-details"></div>
+            <div id="action-buttons" class="action-buttons">
+                <a href="/csp_admin_portal.html" class="btn btn-primary">
+                    <i class="fas fa-tachometer-alt"></i> Access Dashboard
+                </a>
+                <button id="logout-btn" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
                 </button>
             </div>
         </div>
 
-        <!-- Demo Credentials Panel -->
-        <div id="demo-panel" class="demo-panel">
-            <div class="demo-title">🧪 Demo Credentials (Development Only)</div>
-            <div class="demo-creds" data-username="admin" data-password="csp2025!">
-                <strong>Administrator:</strong> admin / csp2025!
+        <!-- Authentication Section (shown when not authenticated) -->
+        <div id="auth-section" class="auth-section">
+            <!-- Sign In / Sign Up Toggle -->
+            <div class="auth-toggle">
+                <button id="signin-tab" class="active" onclick="showSignIn()">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+                <button id="signup-tab" onclick="showSignUp()">
+                    <i class="fas fa-user-plus"></i> Get Access
+                </button>
             </div>
-            <div class="demo-creds" data-username="developer" data-password="dev123!">
-                <strong>Developer:</strong> developer / dev123!
-            </div>
-            <div class="demo-creds" data-username="analyst" data-password="analyst123!">
-                <strong>Analyst:</strong> analyst / analyst123!
-            </div>
-            <div class="demo-creds" data-username="user" data-password="user123!">
-                <strong>User:</strong> user / user123!
-            </div>
-        </div>
 
-        <!-- Action Buttons (shown when authenticated) -->
-        <div id="action-buttons" class="login-options" style="display: none;">
-            <button id="dashboard-btn" class="azure-login-btn">
-                <span>📊 Go to Dashboard</span>
-            </button>
-            <button id="logout-btn" class="demo-btn" style="margin-top: 0.5rem;">
-                <span>🚪 Sign Out</span>
-            </button>
+            <!-- Sign In Section -->
+            <div id="signin-section" class="signin-section active">
+                <button id="azure-login-btn" class="azure-login-btn">
+                    <i class="fab fa-microsoft"></i>
+                    <span>Sign in with Microsoft</span>
+                    <div class="spinner" id="azure-spinner"></div>
+                </button>
+                
+                <p style="color: #6c757d; font-size: 0.9rem; margin-top: 1rem;">
+                    Use your organization's Microsoft account to access the Enhanced CSP System
+                </p>
+            </div>
+
+            <!-- Sign Up Section -->
+            <div id="signup-section" class="signup-section">
+                <div class="signup-info">
+                    <h3><i class="fas fa-building"></i> Request Access</h3>
+                    <p>
+                        The Enhanced CSP System is available to authorized organizations and enterprise users. 
+                        To request access, please contact your system administrator or IT department.
+                    </p>
+                    <p>
+                        <strong>Already have an organization account?</strong> 
+                        Switch to Sign In to access the system with your Microsoft credentials.
+                    </p>
+                    
+                    <div class="contact-info">
+                        <i class="fas fa-envelope" style="color: #0078d4;"></i>
+                        <span>Contact: <strong>admin@your-organization.com</strong></span>
+                    </div>
+                </div>
+
+                <button class="azure-login-btn" onclick="showSignIn()">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Sign In</span>
+                </button>
+            </div>
         </div>
 
         <!-- Footer -->
         <div class="login-footer">
             <div class="footer-text">Enhanced CSP System v2.1.0</div>
-            <div class="security-note">🔐 Enterprise-grade security with Azure AD</div>
+            <div class="security-note">
+                <i class="fas fa-shield-alt"></i>
+                <span>Enterprise-grade security with Azure AD</span>
+            </div>
+            <div style="margin-top: 1rem;">
+                <a href="#" class="help-link" onclick="showHelp()">
+                    <i class="fas fa-question-circle"></i> Need Help?
+                </a>
+            </div>
         </div>
     </div>
 
@@ -485,8 +533,8 @@
         // Azure AD Configuration
         const msalConfig = {
             auth: {
-                clientId: "53537e30-ae6b-48f7-9c7c-4db20fc27850", // Your Azure AD client ID
-                authority: "https://login.microsoftonline.com/622a5fe0-fac1-4213-9cf7-d5f6defdf4c4", // Your tenant ID
+                clientId: "53537e30-ae6b-48f7-9c7c-4db20fc27850",
+                authority: "https://login.microsoftonline.com/622a5fe0-fac1-4213-9cf7-d5f6defdf4c4",
                 redirectUri: window.location.origin,
             },
             cache: {
@@ -499,9 +547,6 @@
             scopes: ["User.Read", "User.ReadBasic.All"]
         };
 
-        // Initialize MSAL
-        const msalInstance = new msal.PublicClientApplication(msalConfig);
-
         // User roles mapping
         const USER_ROLES = {
             SUPER_ADMIN: 'super_admin',
@@ -511,92 +556,153 @@
             USER: 'user'
         };
 
-        // Demo users (for development)
-        const demoUsers = {
-            'admin': { password: 'csp2025!', role: USER_ROLES.ADMIN, name: 'System Administrator' },
-            'developer': { password: 'dev123!', role: USER_ROLES.DEVELOPER, name: 'Developer User' },
-            'analyst': { password: 'analyst123!', role: USER_ROLES.ANALYST, name: 'Data Analyst' },
-            'user': { password: 'user123!', role: USER_ROLES.USER, name: 'Regular User' }
-        };
-
-        // Application state
+        // Initialize MSAL
+        let msalInstance;
         let currentUser = null;
-        let isDemoMode = false;
 
-        // DOM elements
-        const authStatus = document.getElementById('auth-status');
+        // DOM Elements
         const statusMessage = document.getElementById('status-message');
         const userInfo = document.getElementById('user-info');
-        const loginOptions = document.getElementById('login-options');
-        const actionButtons = document.getElementById('action-buttons');
+        const userDetails = document.getElementById('user-details');
+        const authSection = document.getElementById('auth-section');
         const azureLoginBtn = document.getElementById('azure-login-btn');
-        const demoToggleBtn = document.getElementById('demo-toggle-btn');
-        const demoPanel = document.getElementById('demo-panel');
-        const dashboardBtn = document.getElementById('dashboard-btn');
+        const azureSpinner = document.getElementById('azure-spinner');
+        const actionButtons = document.getElementById('action-buttons');
         const logoutBtn = document.getElementById('logout-btn');
 
-        // Initialize particles
-        function createParticles() {
-            const particlesContainer = document.getElementById('particles');
-            const particleCount = 50;
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Enhanced CSP System - Professional Login Initializing...');
+            
+            // Create background animation
+            createBackgroundAnimation();
+            
+            // Check if MSAL is loaded
+            if (typeof msal === 'undefined') {
+                showStatus('Authentication system unavailable. Please contact support.', 'error');
+                return;
+            }
 
-            for (let i = 0; i < particleCount; i++) {
+            try {
+                // Initialize MSAL
+                msalInstance = new msal.PublicClientApplication(msalConfig);
+                await msalInstance.initialize();
+                console.log('✅ Professional MSAL initialized successfully');
+
+                // Check for existing session
+                await checkExistingSession();
+
+                // Set up event listeners
+                setupEventListeners();
+
+                // Handle redirect if coming from protected page
+                handleRedirect();
+
+            } catch (error) {
+                console.error('❌ Initialization failed:', error);
+                showStatus('Failed to initialize authentication system.', 'error');
+            }
+        });
+
+        // Create background animation
+        function createBackgroundAnimation() {
+            const bgAnimation = document.querySelector('.bg-animation');
+            
+            for (let i = 0; i < 20; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
+                
+                const size = Math.random() * 4 + 2;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
                 particle.style.left = Math.random() * 100 + '%';
-                particle.style.animationDelay = Math.random() * 20 + 's';
-                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
-                particlesContainer.appendChild(particle);
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
+                
+                bgAnimation.appendChild(particle);
+            }
+        }
+
+        // Tab switching
+        function showSignIn() {
+            document.getElementById('signin-tab').classList.add('active');
+            document.getElementById('signup-tab').classList.remove('active');
+            document.getElementById('signin-section').classList.add('active');
+            document.getElementById('signup-section').classList.remove('active');
+        }
+
+        function showSignUp() {
+            document.getElementById('signin-tab').classList.remove('active');
+            document.getElementById('signup-tab').classList.add('active');
+            document.getElementById('signin-section').classList.remove('active');
+            document.getElementById('signup-section').classList.add('active');
+        }
+
+        // Check for existing authentication session
+        async function checkExistingSession() {
+            try {
+                // Check Azure AD session
+                const account = msalInstance.getActiveAccount();
+                if (account) {
+                    console.log('🔍 Found existing Azure AD session');
+                    await setupAzureUser(account);
+                    return;
+                }
+
+                // Check stored session
+                const storedSession = sessionStorage.getItem('csp_azure_session');
+                if (storedSession) {
+                    console.log('🔍 Found existing stored session');
+                    currentUser = JSON.parse(storedSession);
+                    showUserInfo(currentUser);
+                    return;
+                }
+
+                console.log('ℹ️ No existing session found');
+            } catch (error) {
+                console.error('❌ Session check failed:', error);
+            }
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            azureLoginBtn.addEventListener('click', azureLogin);
+            logoutBtn.addEventListener('click', logout);
+        }
+
+        // Handle redirect from protected pages
+        function handleRedirect() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect');
+            
+            if (redirectUrl) {
+                sessionStorage.setItem('redirect_after_login', redirectUrl);
+                showStatus('Please sign in to access the requested page.', 'warning');
             }
         }
 
         // Show status message
         function showStatus(message, type = 'loading') {
             statusMessage.textContent = message;
-            authStatus.className = `auth-status ${type}`;
+            statusMessage.className = `status-message status-${type}`;
+            statusMessage.style.display = 'block';
         }
 
         // Hide status message
         function hideStatus() {
-            authStatus.className = 'auth-status';
+            statusMessage.style.display = 'none';
         }
 
-        // Show user info
-        function showUserInfo(user) {
-            document.getElementById('user-name').textContent = user.name || user.displayName || 'Unknown User';
-            document.getElementById('user-email').textContent = user.email || user.username || 'No email';
-            document.getElementById('user-role').textContent = user.role || 'User';
-            
-            // Set avatar
-            const avatar = document.getElementById('user-avatar');
-            const initials = (user.name || user.displayName || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
-            avatar.textContent = initials;
-
-            userInfo.classList.add('active');
-            loginOptions.style.display = 'none';
-            actionButtons.style.display = 'block';
-        }
-
-        // Hide user info
-        function hideUserInfo() {
-            userInfo.classList.remove('active');
-            loginOptions.style.display = 'block';
-            actionButtons.style.display = 'none';
-        }
-
-        // Set loading state for button
+        // Set button loading state
         function setButtonLoading(button, loading) {
-            const text = button.querySelector('#btn-text');
-            const spinner = button.querySelector('#btn-spinner');
-            
+            const spinner = button.querySelector('.spinner');
             if (loading) {
-                text.style.display = 'none';
-                spinner.style.display = 'block';
                 button.disabled = true;
+                if (spinner) spinner.style.display = 'inline-block';
             } else {
-                text.style.display = 'block';
-                spinner.style.display = 'none';
                 button.disabled = false;
+                if (spinner) spinner.style.display = 'none';
             }
         }
 
@@ -605,7 +711,7 @@
             const email = account.username || account.idTokenClaims?.preferred_username || '';
             
             // Map based on email domain or Azure AD groups
-            if (email.includes('admin@')) return USER_ROLES.SUPER_ADMIN;
+            if (email.includes('admin@')) return USER_ROLES.ADMIN;
             if (email.includes('dev@')) return USER_ROLES.DEVELOPER;
             if (email.includes('analyst@')) return USER_ROLES.ANALYST;
             
@@ -617,194 +723,215 @@
         async function azureLogin() {
             try {
                 setButtonLoading(azureLoginBtn, true);
-                showStatus('Redirecting to Microsoft sign-in...', 'loading');
+                showStatus('Connecting to Microsoft sign-in...', 'loading');
 
                 const loginResponse = await msalInstance.loginPopup(loginRequest);
-                const account = loginResponse.account;
+                console.log('✅ Azure AD login successful:', loginResponse);
 
-                // Get additional user info
+                await setupAzureUser(loginResponse.account);
+
+            } catch (error) {
+                console.error('❌ Azure login failed:', error);
+                setButtonLoading(azureLoginBtn, false);
+                
+                let errorMessage = 'Sign in failed. Please try again.';
+                if (error.message && error.message.includes('cancelled')) {
+                    errorMessage = 'Sign in was cancelled.';
+                } else if (error.message) {
+                    errorMessage = `Sign in failed: ${error.message}`;
+                }
+                
+                showStatus(errorMessage, 'error');
+                setTimeout(hideStatus, 5000);
+            }
+        }
+
+        // Setup Azure user after successful login
+        async function setupAzureUser(account) {
+            try {
                 const userRole = getUserRole(account);
                 
                 currentUser = {
-                    id: account.homeAccountId,
-                    name: account.name || account.idTokenClaims?.name,
-                    email: account.username,
+                    id: account.homeAccountId || 'azure-user',
+                    name: account.name || account.idTokenClaims?.name || 'Azure User',
+                    email: account.username || account.idTokenClaims?.preferred_username || '',
                     role: userRole,
                     loginTime: new Date().toISOString(),
-                    authMethod: 'azure_ad'
+                    authMethod: 'azure_ad',
+                    tenantId: account.tenantId || 'unknown'
                 };
 
                 // Store session
                 sessionStorage.setItem('csp_azure_session', JSON.stringify(currentUser));
 
-                showStatus('Authentication successful!', 'success');
+                showStatus('Sign in successful! Redirecting...', 'success');
+                
                 setTimeout(() => {
                     hideStatus();
                     showUserInfo(currentUser);
-                }, 2000);
+                    
+                    // Auto-redirect after successful login
+                    setTimeout(() => {
+                        const redirectUrl = sessionStorage.getItem('redirect_after_login');
+                        if (redirectUrl) {
+                            sessionStorage.removeItem('redirect_after_login');
+                            window.location.href = redirectUrl;
+                        } else {
+                            window.location.href = '/csp_admin_portal.html';
+                        }
+                    }, 2000);
+                }, 1500);
+
+                // Test backend connection
+                await testBackendConnection();
 
             } catch (error) {
-                console.error('Azure login failed:', error);
-                setButtonLoading(azureLoginBtn, false);
-                showStatus(`Login failed: ${error.message}`, 'error');
-                
-                setTimeout(() => {
-                    hideStatus();
-                }, 5000);
+                console.error('❌ Failed to setup Azure user:', error);
+                showStatus('Failed to complete sign in process.', 'error');
             }
         }
 
-        // Demo login
-        function demoLogin(username, password) {
-            const user = demoUsers[username.toLowerCase()];
-            
-            if (user && user.password === password) {
-                currentUser = {
-                    id: username,
-                    name: user.name,
-                    email: `${username}@demo.csp.ai`,
-                    role: user.role,
-                    loginTime: new Date().toISOString(),
-                    authMethod: 'demo'
-                };
-
-                sessionStorage.setItem('csp_demo_session', JSON.stringify(currentUser));
-                showUserInfo(currentUser);
-                showStatus('Demo login successful!', 'success');
+        // Test backend connection
+        async function testBackendConnection() {
+            try {
+                console.log('🧪 Testing backend connection...');
                 
-                setTimeout(() => {
-                    hideStatus();
-                }, 2000);
+                const account = msalInstance.getActiveAccount();
+                if (!account) return;
 
-                return true;
+                const tokenResponse = await msalInstance.acquireTokenSilent({
+                    scopes: ["User.Read"],
+                    account: account
+                });
+
+                const response = await fetch('http://localhost:8000/api/auth/me', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${tokenResponse.accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    console.log('✅ Backend connection successful:', userData);
+                } else {
+                    console.warn('⚠️ Backend connection failed:', response.status);
+                }
+
+            } catch (error) {
+                console.warn('⚠️ Backend test failed:', error);
             }
-            return false;
+        }
+
+        // Show user information
+        function showUserInfo(user) {
+            authSection.style.display = 'none';
+            userInfo.style.display = 'block';
+            actionButtons.style.display = 'flex';
+
+            userDetails.innerHTML = `
+                <div class="user-detail">
+                    <strong><i class="fas fa-user"></i> Name:</strong> 
+                    <span>${user.name}</span>
+                </div>
+                <div class="user-detail">
+                    <strong><i class="fas fa-envelope"></i> Email:</strong> 
+                    <span>${user.email}</span>
+                </div>
+                <div class="user-detail">
+                    <strong><i class="fas fa-id-badge"></i> Role:</strong> 
+                    <span class="role-badge">${user.role}</span>
+                </div>
+                <div class="user-detail">
+                    <strong><i class="fas fa-clock"></i> Login Time:</strong> 
+                    <span>${new Date(user.loginTime).toLocaleString()}</span>
+                </div>
+            `;
+
+            console.log('✅ User authenticated:', user);
         }
 
         // Logout
         async function logout() {
             try {
-                if (currentUser?.authMethod === 'azure_ad') {
+                if (currentUser?.authMethod === 'azure_ad' && msalInstance) {
                     await msalInstance.logoutPopup();
-                    sessionStorage.removeItem('csp_azure_session');
-                } else {
-                    sessionStorage.removeItem('csp_demo_session');
                 }
-
+                
+                // Clear sessions
+                sessionStorage.removeItem('csp_azure_session');
+                sessionStorage.removeItem('redirect_after_login');
+                
+                // Reset UI
                 currentUser = null;
-                isDemoMode = false;
-                hideUserInfo();
-                hideStatus();
-                demoPanel.classList.remove('active');
+                userInfo.style.display = 'none';
+                authSection.style.display = 'block';
+                
+                showStatus('Signed out successfully.', 'success');
+                setTimeout(hideStatus, 3000);
 
+                console.log('✅ Logout successful');
+                
             } catch (error) {
-                console.error('Logout failed:', error);
+                console.error('❌ Logout failed:', error);
+                showStatus('Sign out failed.', 'error');
+                setTimeout(hideStatus, 3000);
             }
         }
 
-        // Go to dashboard
-        function goToDashboard() {
-            if (currentUser) {
-                // In a real implementation, this would redirect to the actual dashboard
-                alert(`Redirecting to dashboard...\n\nUser: ${currentUser.name}\nRole: ${currentUser.role}\nAuth: ${currentUser.authMethod}`);
-                // window.location.href = '/dashboard';
-            }
+        // Show help modal
+        function showHelp() {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    border-radius: 15px;
+                    padding: 2rem;
+                    max-width: 500px;
+                    width: 90%;
+                    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+                ">
+                    <h2 style="color: #2c3e50; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-question-circle" style="color: #0078d4;"></i> Help & Support
+                    </h2>
+                    <div style="margin-bottom: 1.5rem; color: #6c757d; line-height: 1.6;">
+                        <h3 style="color: #2c3e50; margin-bottom: 0.5rem;">Sign In Issues?</h3>
+                        <p style="margin-bottom: 1rem;">• Use your organization's Microsoft account</p>
+                        <p style="margin-bottom: 1rem;">• Contact IT support if you don't have access</p>
+                        <p style="margin-bottom: 1rem;">• Ensure popups are allowed for this site</p>
+                        
+                        <h3 style="color: #2c3e50; margin: 1rem 0 0.5rem;">Need Access?</h3>
+                        <p>Contact your system administrator at <strong>admin@your-organization.com</strong></p>
+                    </div>
+                    <button onclick="document.body.removeChild(this.parentElement.parentElement)" style="
+                        background: #0078d4;
+                        color: white;
+                        border: none;
+                        padding: 0.75rem 1.5rem;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        width: 100%;
+                    ">Close</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
         }
-
-        // Check for existing session
-        function checkExistingSession() {
-            const azureSession = sessionStorage.getItem('csp_azure_session');
-            const demoSession = sessionStorage.getItem('csp_demo_session');
-
-            if (azureSession) {
-                currentUser = JSON.parse(azureSession);
-                showUserInfo(currentUser);
-            } else if (demoSession) {
-                currentUser = JSON.parse(demoSession);
-                showUserInfo(currentUser);
-                isDemoMode = true;
-            }
-        }
-
-        // Event listeners
-        azureLoginBtn.addEventListener('click', azureLogin);
-
-        demoToggleBtn.addEventListener('click', () => {
-            isDemoMode = !isDemoMode;
-            demoPanel.classList.toggle('active');
-            demoToggleBtn.textContent = isDemoMode ? 
-                '❌ Hide Demo Mode' : 
-                '🧪 Use Demo Mode (Development Only)';
-        });
-
-        // Demo credentials click handlers
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.demo-creds')) {
-                const creds = e.target.closest('.demo-creds');
-                const username = creds.dataset.username;
-                const password = creds.dataset.password;
-                
-                if (demoLogin(username, password)) {
-                    demoPanel.classList.remove('active');
-                    isDemoMode = false;
-                    demoToggleBtn.textContent = '🧪 Use Demo Mode (Development Only)';
-                }
-            }
-        });
-
-        dashboardBtn.addEventListener('click', goToDashboard);
-        logoutBtn.addEventListener('click', logout);
-
-        // Initialize application
-        async function initializeApp() {
-            try {
-                await msalInstance.initialize();
-                createParticles();
-                checkExistingSession();
-                
-                if (!currentUser) {
-                    showStatus('Ready to sign in', 'loading');
-                    setTimeout(hideStatus, 2000);
-                }
-            } catch (error) {
-                console.error('App initialization failed:', error);
-                showStatus('Initialization failed. Please refresh the page.', 'error');
-            }
-        }
-
-        // Handle redirect response from Azure AD
-        msalInstance.handleRedirectPromise().then((response) => {
-            if (response) {
-                console.log('Redirect response received:', response);
-                // Handle successful redirect login
-            }
-        }).catch((error) => {
-            console.error('Redirect error:', error);
-        });
-
-        // Start the application
-        document.addEventListener('DOMContentLoaded', initializeApp);
-
-        // Export authentication functions for use in other parts of the application
-        window.CSPAuth = {
-            getCurrentUser: () => currentUser,
-            isAuthenticated: () => currentUser !== null,
-            logout: logout,
-            getUserRole: () => currentUser?.role || USER_ROLES.USER,
-            hasPermission: (permission) => {
-                // Implement permission checking logic based on user role
-                const rolePermissions = {
-                    [USER_ROLES.SUPER_ADMIN]: ['*'],
-                    [USER_ROLES.ADMIN]: ['system.view', 'user.manage', 'ai.manage'],
-                    [USER_ROLES.DEVELOPER]: ['system.view', 'ai.view', 'quantum.view'],
-                    [USER_ROLES.ANALYST]: ['system.view', 'reports.view'],
-                    [USER_ROLES.USER]: ['system.view']
-                };
-                
-                const userPermissions = rolePermissions[currentUser?.role] || [];
-                return userPermissions.includes('*') || userPermissions.includes(permission);
-            }
-        };
     </script>
 </body>
 </html>
