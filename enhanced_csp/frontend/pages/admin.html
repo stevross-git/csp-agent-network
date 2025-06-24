@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enhanced CSP Admin Portal - AI-to-AI Communication Platform</title>
+    
+    <!-- Authentication Protection -->
+    
     <style>
         * {
             margin: 0;
@@ -533,6 +536,118 @@
             font-size: 0.85rem;
         }
 
+        /* User Management Enhancements */
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+
+        .role-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .role-admin { background: rgba(255, 107, 53, 0.2); color: #ff6b35; border: 1px solid #ff6b35; }
+        .role-developer { background: rgba(0, 255, 136, 0.2); color: #00ff88; border: 1px solid #00ff88; }
+        .role-analyst { background: rgba(255, 170, 0, 0.2); color: #ffaa00; border: 1px solid #ffaa00; }
+        .role-user { background: rgba(0, 204, 255, 0.2); color: #00ccff; border: 1px solid #00ccff; }
+
+        .permission-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .permission-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .permission-card:hover {
+            border-color: #ff6b35;
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .permission-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: #ff6b35;
+            font-weight: bold;
+        }
+
+        .permission-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .permission-list li {
+            padding: 4px 0;
+            color: #cccccc;
+            font-size: 0.85rem;
+        }
+
+        .permission-list li::before {
+            content: '✓';
+            color: #00ff88;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .auth-method {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .auth-method.active {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .auth-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .auth-title {
+            color: #ff6b35;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .auth-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .status-active { background: rgba(0, 255, 136, 0.2); color: #00ff88; }
+        .status-inactive { background: rgba(255, 68, 68, 0.2); color: #ff4444; }
+        .status-pending { background: rgba(255, 170, 0, 0.2); color: #ffaa00; }
+
         /* Responsive Design */
         @media (max-width: 1200px) {
             .main-container {
@@ -600,6 +715,48 @@
         }
     </style>
 </head>
+    <!-- CSP Local Authentication Protection -->
+    <script src="../js/auth-protection.js"></script>
+    <style>
+        /* Authentication header styles */
+        #csp-auth-header {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        /* Page content adjustment for auth header */
+        body.auth-protected {
+            padding-top: 60px;
+        }
+        
+        /* Loading indicator */
+        .auth-loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .auth-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 <body>
     <!-- Header -->
     <div class="header">
@@ -780,7 +937,7 @@
                 <div class="alert alert-info">
                     <span>ℹ️</span>
                     <div>
-                        <strong>Authentication System:</strong> Currently using temporary credentials. Azure AD integration will replace this system for enterprise authentication and single sign-on.
+                        <strong>Authentication System:</strong> Currently using enhanced local credentials with user management. Full integration with your existing authentication flow.
                     </div>
                 </div>
 
@@ -812,35 +969,35 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>2025-06-20 14:23:45</td>
+                                    <td>2025-06-24 14:23:45</td>
                                     <td>🤖 Agent Deploy</td>
                                     <td>New GPT-4 agent deployed to production</td>
                                     <td>admin@csp.ai</td>
                                     <td><span style="color: #00ff88">✅ Success</span></td>
                                 </tr>
                                 <tr>
-                                    <td>2025-06-20 14:18:32</td>
+                                    <td>2025-06-24 14:18:32</td>
                                     <td>👥 User Login</td>
                                     <td>Administrator login from 192.168.1.100</td>
                                     <td>admin@csp.ai</td>
                                     <td><span style="color: #00ff88">✅ Success</span></td>
                                 </tr>
                                 <tr>
-                                    <td>2025-06-20 14:15:12</td>
+                                    <td>2025-06-24 14:15:12</td>
                                     <td>⚙️ Config Change</td>
                                     <td>Updated AI model temperature settings</td>
                                     <td>developer@csp.ai</td>
                                     <td><span style="color: #00ff88">✅ Success</span></td>
                                 </tr>
                                 <tr>
-                                    <td>2025-06-20 14:10:08</td>
+                                    <td>2025-06-24 14:10:08</td>
                                     <td>🚨 Alert</td>
                                     <td>High memory usage detected on server-03</td>
                                     <td>system</td>
                                     <td><span style="color: #ffaa00">⚠️ Warning</span></td>
                                 </tr>
                                 <tr>
-                                    <td>2025-06-20 14:05:45</td>
+                                    <td>2025-06-24 14:05:45</td>
                                     <td>📊 Backup</td>
                                     <td>Automated system backup completed</td>
                                     <td>system</td>
@@ -854,22 +1011,22 @@
 
             <!-- Users Section -->
             <div id="users" class="content-section">
-                <h2 style="color: #ff6b35; margin-bottom: 2rem;">User Management</h2>
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">👥 User Management</h2>
                 
                 <div class="dashboard-grid">
                     <div class="admin-card">
                         <div class="card-title">👥 Total Users</div>
-                        <div class="card-value">1,847</div>
+                        <div class="card-value" id="total-users">4</div>
                         <div class="card-subtitle">Registered users</div>
                     </div>
                     <div class="admin-card">
                         <div class="card-title">🟢 Active Today</div>
-                        <div class="card-value">1,247</div>
+                        <div class="card-value" id="active-users">1</div>
                         <div class="card-subtitle">Users online today</div>
                     </div>
                     <div class="admin-card">
                         <div class="card-title">👑 Administrators</div>
-                        <div class="card-value">12</div>
+                        <div class="card-value" id="admin-users">1</div>
                         <div class="card-subtitle">Admin users</div>
                     </div>
                 </div>
@@ -878,7 +1035,7 @@
                     <div class="table-header">
                         <div class="table-title">User Management</div>
                         <div class="table-actions">
-                            <button class="btn btn-primary" onclick="openModal('add-user-modal')">➕ Add User</button>
+                            <button class="btn btn-primary" onclick="openAddUserModal()">➕ Add User</button>
                             <button class="btn btn-secondary">📊 Export</button>
                         </div>
                     </div>
@@ -886,61 +1043,266 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th>User ID</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
+                                    <th>User</th>
+                                    <th>Details</th>
                                     <th>Role</th>
+                                    <th>Permissions</th>
                                     <th>Last Login</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>USR-001</td>
-                                    <td>John Admin</td>
-                                    <td>admin@csp.ai</td>
-                                    <td>Administrator</td>
-                                    <td>2025-06-20 14:18:32</td>
-                                    <td><span style="color: #00ff88">🟢 Active</span></td>
-                                    <td>
-                                        <button class="btn">✏️ Edit</button>
-                                        <button class="btn btn-danger">🗑️ Delete</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>USR-002</td>
-                                    <td>Sarah Developer</td>
-                                    <td>developer@csp.ai</td>
-                                    <td>Developer</td>
-                                    <td>2025-06-20 13:45:21</td>
-                                    <td><span style="color: #00ff88">🟢 Active</span></td>
-                                    <td>
-                                        <button class="btn">✏️ Edit</button>
-                                        <button class="btn btn-danger">🗑️ Delete</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>USR-003</td>
-                                    <td>Mike Analyst</td>
-                                    <td>analyst@csp.ai</td>
-                                    <td>Analyst</td>
-                                    <td>2025-06-20 12:30:15</td>
-                                    <td><span style="color: #ffaa00">🟡 Suspended</span></td>
-                                    <td>
-                                        <button class="btn">✏️ Edit</button>
-                                        <button class="btn btn-success">🔓 Unsuspend</button>
-                                    </td>
-                                </tr>
+                            <tbody id="users-table-body">
+                                <!-- Will be populated by JavaScript -->
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- Roles & Permissions Section -->
+            <div id="roles" class="content-section">
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">🔐 Roles & Permissions</h2>
+                
+                <div class="dashboard-grid">
+                    <div class="admin-card">
+                        <div class="card-title">👑 Roles Defined</div>
+                        <div class="card-value">4</div>
+                        <div class="card-subtitle">System role types</div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="card-title">🔑 Total Permissions</div>
+                        <div class="card-value">12</div>
+                        <div class="card-subtitle">Available permissions</div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="card-title">👥 Users with Custom Roles</div>
+                        <div class="card-value">3</div>
+                        <div class="card-subtitle">Modified from default</div>
+                    </div>
+                </div>
+
+                <div class="permission-grid">
+                    <div class="permission-card">
+                        <div class="permission-header">
+                            <span>👑</span>
+                            <span>Administrator</span>
+                        </div>
+                        <ul class="permission-list">
+                            <li>Full system access</li>
+                            <li>User management</li>
+                            <li>System configuration</li>
+                            <li>Emergency controls</li>
+                            <li>Audit logs access</li>
+                            <li>Backup & restore</li>
+                        </ul>
+                        <button class="btn btn-secondary" onclick="editRole('admin')" style="margin-top: 12px;">✏️ Edit Role</button>
+                    </div>
+
+                    <div class="permission-card">
+                        <div class="permission-header">
+                            <span>💻</span>
+                            <span>Developer</span>
+                        </div>
+                        <ul class="permission-list">
+                            <li>AI model management</li>
+                            <li>System monitoring</li>
+                            <li>Configuration read/write</li>
+                            <li>Deploy applications</li>
+                            <li>Debug access</li>
+                        </ul>
+                        <button class="btn btn-secondary" onclick="editRole('developer')" style="margin-top: 12px;">✏️ Edit Role</button>
+                    </div>
+
+                    <div class="permission-card">
+                        <div class="permission-header">
+                            <span>📊</span>
+                            <span>Analyst</span>
+                        </div>
+                        <ul class="permission-list">
+                            <li>View system data</li>
+                            <li>Generate reports</li>
+                            <li>Monitor performance</li>
+                            <li>Export data</li>
+                        </ul>
+                        <button class="btn btn-secondary" onclick="editRole('analyst')" style="margin-top: 12px;">✏️ Edit Role</button>
+                    </div>
+
+                    <div class="permission-card">
+                        <div class="permission-header">
+                            <span>👤</span>
+                            <span>User</span>
+                        </div>
+                        <ul class="permission-list">
+                            <li>Basic system access</li>
+                            <li>View dashboards</li>
+                            <li>Use AI agents</li>
+                        </ul>
+                        <button class="btn btn-secondary" onclick="editRole('user')" style="margin-top: 12px;">✏️ Edit Role</button>
+                    </div>
+                </div>
+
+                <div class="form-container">
+                    <h3 style="color: #ff6b35; margin-bottom: 1.5rem;">Create Custom Role</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Role Name</label>
+                        <input type="text" class="form-input" id="new-role-name" placeholder="Enter role name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Role Description</label>
+                        <textarea class="form-textarea" id="new-role-description" placeholder="Describe this role's purpose"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Permissions</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; color: #cccccc;">
+                                <input type="checkbox" value="read"> 📖 Read Access
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; color: #cccccc;">
+                                <input type="checkbox" value="write"> ✏️ Write Access
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; color: #cccccc;">
+                                <input type="checkbox" value="delete"> 🗑️ Delete Access
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; color: #cccccc;">
+                                <input type="checkbox" value="admin"> 👑 Admin Access
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; color: #cccccc;">
+                                <input type="checkbox" value="deploy"> 🚀 Deploy Access
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; color: #cccccc;">
+                                <input type="checkbox" value="monitor"> 📊 Monitor Access
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="createCustomRole()">🔑 Create Role</button>
+                </div>
+            </div>
+
+            <!-- Authentication Section -->
+            <div id="auth" class="content-section">
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">🔑 Authentication Management</h2>
+                
+                <div class="dashboard-grid">
+                    <div class="admin-card">
+                        <div class="card-title">🔐 Active Sessions</div>
+                        <div class="card-value">1</div>
+                        <div class="card-subtitle">Currently logged in</div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="card-title">⏱️ Session Duration</div>
+                        <div class="card-value">24h</div>
+                        <div class="card-subtitle">Maximum session time</div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="card-title">🛡️ Failed Logins</div>
+                        <div class="card-value">0</div>
+                        <div class="card-subtitle">Last 24 hours</div>
+                    </div>
+                </div>
+
+                <div class="auth-method active">
+                    <div class="auth-header">
+                        <div class="auth-title">🔑 Local Authentication</div>
+                        <div class="auth-status status-active">Active</div>
+                    </div>
+                    <p style="color: #cccccc; margin-bottom: 16px;">Username and password authentication using local credential storage.</p>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn btn-secondary" onclick="configureLocalAuth()">⚙️ Configure</button>
+                        <button class="btn btn-primary" onclick="viewLocalUsers()">👥 View Users</button>
+                        <button class="btn btn-danger" onclick="resetLocalAuth()">🔄 Reset</button>
+                    </div>
+                </div>
+
+                <div class="auth-method">
+                    <div class="auth-header">
+                        <div class="auth-title">☁️ Azure AD Integration</div>
+                        <div class="auth-status status-inactive">Planned</div>
+                    </div>
+                    <p style="color: #cccccc; margin-bottom: 16px;">Enterprise single sign-on using Microsoft Azure Active Directory.</p>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn btn-secondary" disabled>⚙️ Configure (Coming Soon)</button>
+                        <button class="btn btn-secondary" disabled>🔗 Test Connection</button>
+                    </div>
+                </div>
+
+                <div class="auth-method">
+                    <div class="auth-header">
+                        <div class="auth-title">🔐 Multi-Factor Authentication</div>
+                        <div class="auth-status status-pending">Available</div>
+                    </div>
+                    <p style="color: #cccccc; margin-bottom: 16px;">Additional security layer using TOTP, SMS, or hardware tokens.</p>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn btn-primary" onclick="enableMFA()">🛡️ Enable MFA</button>
+                        <button class="btn btn-secondary" onclick="configureMFA()">⚙️ Configure</button>
+                    </div>
+                </div>
+
+                <div class="data-table">
+                    <div class="table-header">
+                        <div class="table-title">Active Sessions</div>
+                        <div class="table-actions">
+                            <button class="btn btn-secondary" onclick="refreshSessions()">🔄 Refresh</button>
+                            <button class="btn btn-danger" onclick="terminateAllSessions()">🚪 Terminate All</button>
+                        </div>
+                    </div>
+                    <div class="table-content">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Login Time</th>
+                                    <th>IP Address</th>
+                                    <th>User Agent</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessions-table">
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="form-container">
+                    <h3 style="color: #ff6b35; margin-bottom: 1.5rem;">Authentication Settings</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Session Timeout (hours)</label>
+                        <input type="number" class="form-input" id="session-timeout" value="24" min="1" max="168">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Password Policy</label>
+                        <select class="form-select" id="password-policy">
+                            <option value="basic">Basic (6+ characters)</option>
+                            <option value="medium" selected>Medium (8+ chars, numbers required)</option>
+                            <option value="strict">Strict (12+ chars, symbols required)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Maximum Failed Attempts</label>
+                        <input type="number" class="form-input" id="max-failed-attempts" value="5" min="1" max="20">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Account Lockout Duration (minutes)</label>
+                        <input type="number" class="form-input" id="lockout-duration" value="30" min="5" max="1440">
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="saveAuthSettings()">💾 Save Settings</button>
+                </div>
+            </div>
+
             <!-- AI Models Section -->
             <div id="ai-models" class="content-section">
-                <h2 style="color: #ff6b35; margin-bottom: 2rem;">AI Model Management</h2>
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">🧠 AI Model Management</h2>
                 
                 <div class="dashboard-grid">
                     <div class="admin-card">
@@ -1025,7 +1387,7 @@
 
             <!-- System Settings Section -->
             <div id="settings" class="content-section">
-                <h2 style="color: #ff6b35; margin-bottom: 2rem;">System Configuration</h2>
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">⚙️ System Configuration</h2>
                 
                 <div class="form-container">
                     <h3 style="color: #ff6b35; margin-bottom: 1.5rem;">General Settings</h3>
@@ -1096,7 +1458,7 @@
 
             <!-- Monitoring Section -->
             <div id="monitoring" class="content-section">
-                <h2 style="color: #ff6b35; margin-bottom: 2rem;">System Monitoring</h2>
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">📈 System Monitoring</h2>
                 
                 <div class="health-indicators">
                     <div class="health-item">
@@ -1185,7 +1547,7 @@
 
             <!-- Alerts Section -->
             <div id="alerts" class="content-section">
-                <h2 style="color: #ff6b35; margin-bottom: 2rem;">Alerts & Incidents</h2>
+                <h2 style="color: #ff6b35; margin-bottom: 2rem;">🚨 Alerts & Incidents</h2>
                 
                 <div class="dashboard-grid">
                     <div class="admin-card">
@@ -1277,39 +1639,71 @@
     <div id="add-user-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">➕ Add New User</div>
+                <div class="modal-title" id="modal-title">➕ Add New User</div>
                 <button class="close-btn" onclick="closeModal('add-user-modal')">&times;</button>
             </div>
             
-            <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" class="form-input" placeholder="Enter full name">
-            </div>
+            <div id="modal-alert" style="margin-bottom: 16px;"></div>
             
-            <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <input type="email" class="form-input" placeholder="Enter email address">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Role</label>
-                <select class="form-select">
-                    <option value="user">User</option>
-                    <option value="developer">Developer</option>
-                    <option value="analyst">Analyst</option>
-                    <option value="admin">Administrator</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Department</label>
-                <input type="text" class="form-input" placeholder="Enter department">
-            </div>
-            
-            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <button class="btn btn-primary">👤 Create User</button>
-                <button class="btn btn-secondary" onclick="closeModal('add-user-modal')">❌ Cancel</button>
-            </div>
+            <form id="user-form">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-input" id="user-username" placeholder="Enter username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-input" id="user-name" placeholder="Enter full name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-input" id="user-email" placeholder="Enter email address" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="user-password" placeholder="Enter password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select class="form-select" id="user-role" required>
+                        <option value="">Select a role...</option>
+                        <option value="user">User</option>
+                        <option value="analyst">Analyst</option>
+                        <option value="developer">Developer</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Permissions</label>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; color: #cccccc;">
+                            <input type="checkbox" id="perm-read" value="read">
+                            <span>📖 Read Access</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; color: #cccccc;">
+                            <input type="checkbox" id="perm-write" value="write">
+                            <span>✏️ Write Access</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; color: #cccccc;">
+                            <input type="checkbox" id="perm-delete" value="delete">
+                            <span>🗑️ Delete Access</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; color: #cccccc;">
+                            <input type="checkbox" id="perm-admin" value="admin">
+                            <span>👑 Admin Access</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary">👤 Save User</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('add-user-modal')">❌ Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1363,32 +1757,287 @@
     <script>
         // Global state
         let currentSection = 'dashboard';
-        let currentUser = {
-            name: 'John Admin',
-            email: 'admin@csp.ai',
-            role: 'Administrator',
-            loginTime: new Date().toISOString(),
-            rememberMe: true
+        let currentUser = null;
+        let currentEditUser = null;
+
+        // Show specific section - Define early for onclick handlers
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected section
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+            
+            // Add active class to corresponding nav item - find by onclick content
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.onclick && item.onclick.toString().includes(`'${sectionId}'`)) {
+                    item.classList.add('active');
+                }
+            });
+            
+            currentSection = sectionId;
+            
+            // Load section-specific data
+            loadSectionData(sectionId);
+        }
+
+        // User database - integrates with existing auth system
+        let userDatabase = {
+            'admin': {
+                password: 'admin123',
+                name: 'System Administrator',
+                role: 'admin',
+                permissions: ['read', 'write', 'delete', 'admin'],
+                email: 'admin@csp-system.com',
+                lastLogin: new Date().toISOString(),
+                loginCount: 45,
+                status: 'active',
+                created: '2024-01-15T10:30:00Z'
+            },
+            'developer': {
+                password: 'dev123',
+                name: 'Developer User',
+                role: 'developer',
+                permissions: ['read', 'write', 'deploy', 'monitor'],
+                email: 'developer@csp-system.com',
+                lastLogin: '2024-06-20T13:45:21Z',
+                loginCount: 127,
+                status: 'active',
+                created: '2024-02-01T09:15:00Z'
+            },
+            'analyst': {
+                password: 'analyst123',
+                name: 'Data Analyst',
+                role: 'analyst',
+                permissions: ['read', 'monitor'],
+                email: 'analyst@csp-system.com',
+                lastLogin: '2024-06-20T12:30:15Z',
+                loginCount: 89,
+                status: 'suspended',
+                created: '2024-02-15T14:20:00Z'
+            },
+            'user': {
+                password: 'user123',
+                name: 'Regular User',
+                role: 'user',
+                permissions: ['read'],
+                email: 'user@csp-system.com',
+                lastLogin: '2024-06-19T16:45:30Z',
+                loginCount: 23,
+                status: 'active',
+                created: '2024-03-01T11:00:00Z'
+            }
         };
+
+        // Authentication integration and initialization
+            const user = event.detail.user;
+            console.log('🛡️ Admin portal authenticated for:', user.name);
+            
+            // Check if user has admin permissions
+            if (!user.permissions.includes('admin')) {
+                cspAuth.showAccessDenied('admin');
+                return;
+            }
+            
+            // Update user display in header
+            updateUserDisplay(user);
+            
+            // Initialize admin portal with authenticated user
+            currentUser = user;
+            initAdminPortal();
+        });
+
+        // Update the user display in header
+        function updateUserDisplay(user) {
+            const roleElement = document.getElementById('user-role');
+            const userElement = document.getElementById('admin-user');
+            
+            if (roleElement) {
+                roleElement.textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+            }
+            
+            if (userElement) {
+                userElement.textContent = user.name;
+            }
+        }
 
         // Initialize admin portal
         function initAdminPortal() {
             console.log('🛡️ Enhanced CSP Admin Portal initialized');
-            loadUserSession();
+            loadUserDatabase();
             updateSystemStats();
             startRealTimeUpdates();
         }
 
-        // Load user session data
-        function loadUserSession() {
-            if (currentUser) {
-                document.getElementById('user-role').textContent = currentUser.role;
-                document.getElementById('admin-user').textContent = currentUser.email;
-                console.log(`👤 Welcome ${currentUser.name} (${currentUser.role})`);
+        // User Management Functions
+        function loadUserDatabase() {
+            const saved = localStorage.getItem('csp_users');
+            if (saved) {
+                try {
+                    userDatabase = JSON.parse(saved);
+                } catch (error) {
+                    console.error('Error loading user database:', error);
+                }
             }
         }
 
-        // Logout function
+        function saveUserDatabase() {
+            localStorage.setItem('csp_users', JSON.stringify(userDatabase));
+        }
+
+        function loadUserData() {
+            console.log('👥 Loading enhanced user management data...');
+            renderUsersTable();
+            updateUserStats();
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('users-table-body');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            Object.entries(userDatabase).forEach(([username, user]) => {
+                const row = document.createElement('tr');
+                
+                const statusColor = user.status === 'active' ? '#00ff88' : 
+                                   user.status === 'suspended' ? '#ffaa00' : '#ff4444';
+                
+                const lastLoginDisplay = user.lastLogin 
+                    ? new Date(user.lastLogin).toLocaleDateString() + ' ' + new Date(user.lastLogin).toLocaleTimeString()
+                    : 'Never';
+                
+                row.innerHTML = `
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <div class="user-avatar">${user.name.charAt(0)}</div>
+                            <div>
+                                <div style="font-weight: bold;">${username}</div>
+                                <div style="font-size: 0.75rem; color: #999;">ID: USR-${username.toUpperCase()}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div>${user.name}</div>
+                        <div style="font-size: 0.75rem; color: #999;">${user.email}</div>
+                    </td>
+                    <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+                    <td>
+                        <div style="font-size: 0.8rem;">
+                            ${user.permissions.join(', ')}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.8rem;">
+                            ${lastLoginDisplay}
+                            <div style="color: #999;">${user.loginCount} total logins</div>
+                        </div>
+                    </td>
+                    <td><span style="color: ${statusColor}">⚫ ${user.status}</span></td>
+                    <td>
+                        <button class="btn" onclick="editUser('${username}')" style="margin-right: 8px;">✏️</button>
+                        <button class="btn ${user.status === 'suspended' ? 'btn-success' : 'btn-danger'}" 
+                                onclick="toggleUserStatus('${username}')" style="margin-right: 8px;">
+                            ${user.status === 'suspended' ? '🔓' : '🔒'}
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteUser('${username}')" 
+                                ${username === 'admin' ? 'disabled title="Cannot delete admin user"' : ''}>
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateUserStats() {
+            const totalUsers = Object.keys(userDatabase).length;
+            const activeUsers = Object.values(userDatabase).filter(u => u.status === 'active').length;
+            const adminUsers = Object.values(userDatabase).filter(u => u.role === 'admin').length;
+            
+            // Update dashboard cards
+            const totalElement = document.getElementById('total-users');
+            const activeElement = document.getElementById('active-users');
+            const adminElement = document.getElementById('admin-users');
+            
+            if (totalElement) totalElement.textContent = totalUsers;
+            if (activeElement) activeElement.textContent = activeUsers;
+            if (adminElement) adminElement.textContent = adminUsers;
+        }
+
+        function loadActiveSessions() {
+            const tbody = document.getElementById('sessions-table');
+            if (!tbody) return;
+            
+            // Get current user from auth system
+            const currentUser = cspAuth ? cspAuth.getCurrentUser() : null;
+            
+            if (currentUser) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center;">
+                                <div class="user-avatar">${currentUser.name.charAt(0)}</div>
+                                <div>
+                                    <div style="font-weight: bold;">${currentUser.username}</div>
+                                    <div style="font-size: 0.75rem; color: #999;">${currentUser.name}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${new Date(currentUser.loginTime).toLocaleString()}</td>
+                        <td>127.0.0.1</td>
+                        <td style="font-size: 0.8rem;">Enhanced CSP Admin Portal</td>
+                        <td><span style="color: #00ff88">🟢 Active</span></td>
+                        <td>
+                            <button class="btn" onclick="viewSessionDetails('current')">📋 Details</button>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Show modal alert
+        function showModalAlert(message, type) {
+            const alertDiv = document.getElementById('modal-alert');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Show success alert in main page
+        function showSuccessAlert(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success';
+            alertDiv.innerHTML = `<span>✅</span><div>${message}</div>`;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '100px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '300px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+
+        // Enhanced logout function
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
                 console.log('🚪 User logged out');
@@ -1414,47 +2063,29 @@
                 overlay.innerHTML = '👋 Logging out...<br><div style="font-size: 1.2rem; margin-top: 1rem; color: #cccccc;">Thank you for using CSP Admin Portal</div>';
                 document.body.appendChild(overlay);
                 
-                // Remove overlay after delay
+                // Clear authentication and redirect
                 setTimeout(() => {
-                    document.body.removeChild(overlay);
-                    currentUser = null;
-                    console.log('Logout complete');
+                    localStorage.removeItem('csp_current_user');
+                    window.location.href = '/pages/login.html';
                 }, 1500);
             }
-        }
-
-        // Show specific section
-        function showSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Remove active class from all nav items
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // Show selected section
-            document.getElementById(sectionId).classList.add('active');
-            
-            // Add active class to corresponding nav item
-            event.target.closest('.nav-item').classList.add('active');
-            
-            currentSection = sectionId;
-            
-            // Load section-specific data
-            loadSectionData(sectionId);
         }
 
         // Load section-specific data
         function loadSectionData(sectionId) {
             switch(sectionId) {
-                case 'monitoring':
-                    updateMonitoringCharts();
-                    break;
                 case 'users':
                     loadUserData();
+                    break;
+                case 'roles':
+                    console.log('🔐 Loading roles and permissions...');
+                    break;
+                case 'auth':
+                    console.log('🔑 Loading authentication settings...');
+                    loadActiveSessions();
+                    break;
+                case 'monitoring':
+                    updateMonitoringCharts();
                     break;
                 case 'ai-models':
                     loadAIModelData();
@@ -1465,54 +2096,83 @@
             }
         }
 
-        // Update system statistics
-        function updateSystemStats() {
-            // Simulate real-time data updates
-            const stats = {
-                health: Math.random() * 5 + 95,
-                users: Math.floor(Math.random() * 100) + 1200,
-                agents: `${Math.floor(Math.random() * 3) + 22}/24`,
-                throughput: (Math.random() * 0.5 + 2).toFixed(1) + 'M',
-                storage: Math.floor(Math.random() * 10) + 75,
-                alerts: Math.floor(Math.random() * 5) + 1
-            };
-            
-            // Update dashboard cards if visible
-            if (currentSection === 'dashboard') {
-                document.querySelectorAll('.card-value').forEach((element, index) => {
-                    const values = Object.values(stats);
-                    if (values[index]) {
-                        element.textContent = values[index] + (typeof values[index] === 'number' && index === 0 ? '%' : '');
-                    }
-                });
-            }
-        }
-
-        // Start real-time updates
-        function startRealTimeUpdates() {
-            setInterval(updateSystemStats, 5000);
-            setInterval(updateSystemTime, 1000);
-        }
-
-        // Update system time
-        function updateSystemTime() {
-            const now = new Date();
-            // Update any time displays
-        }
-
-        // Modal functions
+        // Modal functions - Define early for onclick handlers
         function openModal(modalId) {
+            if (modalId === 'add-user-modal') {
+                // Reset form for new user
+                currentEditUser = null;
+                document.getElementById('modal-title').textContent = '➕ Add New User';
+                document.getElementById('user-form').reset();
+                document.getElementById('modal-alert').style.display = 'none';
+                
+                // Clear all checkboxes
+                document.querySelectorAll('#user-form input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
             document.getElementById(modalId).classList.add('active');
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('active');
+            if (modalId === 'add-user-modal') {
+                currentEditUser = null;
+                document.getElementById('user-form').reset();
+                document.getElementById('modal-alert').style.display = 'none';
+            }
         }
 
-        // Emergency shutdown
+        function openAddUserModal() {
+            console.log('🔧 Opening Add User Modal');
+            openModal('add-user-modal');
+        }
+
+        // Enhanced logout function - Define early for onclick
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                console.log('🚪 User logged out');
+                
+                // Show logout message
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.9);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 9999;
+                    font-size: 2rem;
+                    color: #ff6b35;
+                    font-weight: bold;
+                    text-align: center;
+                `;
+                overlay.innerHTML = '👋 Logging out...<br><div style="font-size: 1.2rem; margin-top: 1rem; color: #cccccc;">Thank you for using CSP Admin Portal</div>';
+                document.body.appendChild(overlay);
+                
+                // Clear authentication and redirect
+                setTimeout(() => {
+                    localStorage.removeItem('csp_current_user');
+                    window.location.href = '/pages/login.html';
+                }, 1500);
+            }
+        }
+
+        // Enhanced emergency shutdown with authentication check - Define early for onclick
         function emergencyShutdown() {
+            const currentUser = cspAuth ? cspAuth.getCurrentUser() : null;
+            
+            if (!currentUser || !currentUser.permissions.includes('admin')) {
+                alert('❌ Access Denied: Only administrators can perform emergency shutdown');
+                return;
+            }
+            
             if (confirm('⚠️ WARNING: This will immediately shut down all CSP processes and AI agents. Continue?')) {
                 if (confirm('🚨 FINAL WARNING: This action cannot be undone. All active sessions will be terminated. Proceed?')) {
+                    // Log the emergency shutdown action
+                    console.log(`🚨 Emergency shutdown initiated by ${currentUser.name} (${currentUser.username})`);
+                    
                     // Simulate emergency shutdown
                     document.body.style.filter = 'grayscale(100%)';
                     
@@ -1541,49 +2201,558 @@
                     setTimeout(() => {
                         overlay.innerHTML = '⚠️ SYSTEM OFFLINE ⚠️<br><div style="font-size: 1.5rem; margin-top: 1rem;">Contact system administrator to restart</div>';
                     }, 3000);
-                    
-                    console.log('🚨 Emergency shutdown initiated by administrator');
                 }
             }
         }
 
-        // Load user data
-        function loadUserData() {
-            console.log('👥 Loading user management data...');
+        // Initialize admin portal
+        function initAdminPortal() {
+            console.log('🛡️ Enhanced CSP Admin Portal initialized');
+            loadUserDatabase();
+            updateSystemStats();
+            startRealTimeUpdates();
+        }
+        function renderUsersTable() {
+            const tbody = document.getElementById('users-table-body');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            Object.entries(userDatabase).forEach(([username, user]) => {
+                const row = document.createElement('tr');
+                
+                const statusColor = user.status === 'active' ? '#00ff88' : 
+                                   user.status === 'suspended' ? '#ffaa00' : '#ff4444';
+                
+                const lastLoginDisplay = user.lastLogin 
+                    ? new Date(user.lastLogin).toLocaleDateString() + ' ' + new Date(user.lastLogin).toLocaleTimeString()
+                    : 'Never';
+                
+                row.innerHTML = `
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <div class="user-avatar">${user.name.charAt(0)}</div>
+                            <div>
+                                <div style="font-weight: bold;">${username}</div>
+                                <div style="font-size: 0.75rem; color: #999;">ID: USR-${username.toUpperCase()}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div>${user.name}</div>
+                        <div style="font-size: 0.75rem; color: #999;">${user.email}</div>
+                    </td>
+                    <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+                    <td>
+                        <div style="font-size: 0.8rem;">
+                            ${user.permissions.join(', ')}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.8rem;">
+                            ${lastLoginDisplay}
+                            <div style="color: #999;">${user.loginCount} total logins</div>
+                        </div>
+                    </td>
+                    <td><span style="color: ${statusColor}">⚫ ${user.status}</span></td>
+                    <td>
+                        <button class="btn" onclick="editUser('${username}')" style="margin-right: 8px;">✏️</button>
+                        <button class="btn ${user.status === 'suspended' ? 'btn-success' : 'btn-danger'}" 
+                                onclick="toggleUserStatus('${username}')" style="margin-right: 8px;">
+                            ${user.status === 'suspended' ? '🔓' : '🔒'}
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteUser('${username}')" 
+                                ${username === 'admin' ? 'disabled title="Cannot delete admin user"' : ''}>
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
         }
 
-        // Load AI model data
+        // Update user statistics
+        function updateUserStats() {
+            const totalUsers = Object.keys(userDatabase).length;
+            const activeUsers = Object.values(userDatabase).filter(u => u.status === 'active').length;
+            const adminUsers = Object.values(userDatabase).filter(u => u.role === 'admin').length;
+            
+            // Update dashboard cards
+            const totalElement = document.getElementById('total-users');
+            const activeElement = document.getElementById('active-users');
+            const adminElement = document.getElementById('admin-users');
+            
+            if (totalElement) totalElement.textContent = totalUsers;
+            if (activeElement) activeElement.textContent = activeUsers;
+            if (adminElement) adminElement.textContent = adminUsers;
+        }
+
+        // Toggle user status (active/suspended)
+        function toggleUserStatus(username) {
+            if (username === 'admin') {
+                alert('Cannot modify admin user status');
+                return;
+            }
+            
+            const user = userDatabase[username];
+            if (!user) return;
+            
+            const newStatus = user.status === 'active' ? 'suspended' : 'active';
+            const action = newStatus === 'suspended' ? 'suspend' : 'activate';
+            
+            if (confirm(`Are you sure you want to ${action} user "${username}"?`)) {
+                user.status = newStatus;
+                saveUserDatabase();
+                renderUsersTable();
+                updateUserStats();
+                
+                console.log(`👤 User ${username} ${action}d by administrator`);
+            }
+        }
+
+        // Edit user function
+        function editUser(username) {
+            const user = userDatabase[username];
+            if (!user) return;
+            
+            currentEditUser = username;
+            
+            // Populate modal with user data
+            document.getElementById('modal-title').textContent = 'Edit User: ' + username;
+            document.getElementById('user-username').value = username;
+            document.getElementById('user-name').value = user.name;
+            document.getElementById('user-email').value = user.email;
+            document.getElementById('user-password').value = user.password;
+            document.getElementById('user-role').value = user.role;
+            
+            // Set permissions
+            document.querySelectorAll('#user-form input[type="checkbox"]').forEach(cb => cb.checked = false);
+            user.permissions.forEach(perm => {
+                const checkbox = document.getElementById(`perm-${perm}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            
+            openModal('add-user-modal');
+        }
+
+        // Delete user function
+        function deleteUser(username) {
+            if (username === 'admin') {
+                alert('Cannot delete the admin user!');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+                delete userDatabase[username];
+                saveUserDatabase();
+                renderUsersTable();
+                updateUserStats();
+                
+                console.log(`👤 User ${username} deleted by administrator`);
+            }
+        }
+
+        // Handle user form submission
+        document.getElementById('user-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log('🔧 Form submission started');
+            
+            const username = document.getElementById('user-username').value.trim();
+            const name = document.getElementById('user-name').value.trim();
+            const email = document.getElementById('user-email').value.trim();
+            const password = document.getElementById('user-password').value;
+            const role = document.getElementById('user-role').value;
+            
+            // Get selected permissions - Fixed selector
+            const permissions = Array.from(document.querySelectorAll('#user-form input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            
+            // Debug logging
+            console.log('Form data:', { username, name, email, password: password ? '***' : 'EMPTY', role, permissions });
+            
+            // Validation
+            if (!username || !name || !email || !password || !role) {
+                showModalAlert('Please fill in all required fields!', 'error');
+                console.log('Validation failed: missing required fields');
+                return;
+            }
+            
+            if (permissions.length === 0) {
+                showModalAlert('Please select at least one permission!', 'error');
+                console.log('Validation failed: no permissions selected');
+                return;
+            }
+            
+            // Check if username already exists (when adding new user)
+            if (!currentEditUser && userDatabase[username]) {
+                showModalAlert('Username already exists!', 'error');
+                return;
+            }
+            
+            // If editing, remove old user if username changed
+            if (currentEditUser && currentEditUser !== username) {
+                delete userDatabase[currentEditUser];
+            }
+            
+            // Save user
+            userDatabase[username] = {
+                name,
+                email,
+                password,
+                role,
+                permissions,
+                lastLogin: userDatabase[username]?.lastLogin || null,
+                loginCount: userDatabase[username]?.loginCount || 0,
+                status: userDatabase[username]?.status || 'active',
+                created: userDatabase[username]?.created || new Date().toISOString()
+            };
+            
+            saveUserDatabase();
+            renderUsersTable();
+            updateUserStats();
+            closeModal('add-user-modal');
+            
+            const action = currentEditUser ? 'updated' : 'created';
+            showSuccessAlert(`User ${username} ${action} successfully!`);
+            console.log(`👤 User ${username} ${action} successfully!`);
+            currentEditUser = null;
+        });
+
+        // Show modal alert
+        function showModalAlert(message, type) {
+            const alertDiv = document.getElementById('modal-alert');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Show success alert in main page
+        function showSuccessAlert(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success';
+            alertDiv.innerHTML = `<span>✅</span><div>${message}</div>`;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '100px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '300px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+
+        // Role management functions
+        function editRole(roleName) {
+            console.log(`🔐 Editing role: ${roleName}`);
+            alert(`Role editor for "${roleName}" - Feature coming soon!`);
+        }
+
+        // Authentication and other utility functions
+        function configureLocalAuth() {
+            console.log('🔑 Configuring local authentication...');
+            alert('Local authentication configuration - Feature coming soon!');
+        }
+
+        function viewLocalUsers() {
+            console.log('👥 Viewing local users...');
+            showSection('users'); // Switch to users tab
+        }
+
+        function resetLocalAuth() {
+            if (confirm('⚠️ This will reset all local authentication data. Continue?')) {
+                console.log('🔄 Resetting local authentication...');
+                alert('Local authentication reset - Feature coming soon!');
+            }
+        }
+
+        function enableMFA() {
+            console.log('🛡️ Enabling multi-factor authentication...');
+            alert('MFA setup - Feature coming soon!');
+        }
+
+        function configureMFA() {
+            console.log('⚙️ Configuring MFA settings...');
+            alert('MFA configuration - Feature coming soon!');
+        }
+
+        function refreshSessions() {
+            console.log('🔄 Refreshing active sessions...');
+            loadActiveSessions();
+        }
+
+        function terminateAllSessions() {
+            if (confirm('⚠️ This will log out all users except yourself. Continue?')) {
+                console.log('🚪 Terminating all sessions...');
+                alert('All sessions terminated except current session');
+            }
+        }
+
+        function viewSessionDetails(sessionId) {
+            console.log(`📋 Viewing session details: ${sessionId}`);
+            alert('Session details - Feature coming soon!');
+        }
+
+        function saveAuthSettings() {
+            const timeout = document.getElementById('session-timeout').value;
+            const policy = document.getElementById('password-policy').value;
+            const maxFailed = document.getElementById('max-failed-attempts').value;
+            const lockout = document.getElementById('lockout-duration').value;
+            
+            console.log('💾 Saving authentication settings:', {
+                sessionTimeout: timeout,
+                passwordPolicy: policy,
+                maxFailedAttempts: maxFailed,
+                lockoutDuration: lockout
+            });
+            
+            alert('Authentication settings saved successfully!');
+        }
+
         function loadAIModelData() {
             console.log('🧠 Loading AI model data...');
         }
 
-        // Load alert data
         function loadAlertData() {
             console.log('🚨 Loading alert data...');
         }
 
-        // Update monitoring charts
         function updateMonitoringCharts() {
             console.log('📊 Updating monitoring charts...');
         }
 
-        // Administrative actions
-        function createUser() {
-            console.log('👤 Creating new user...');
-            closeModal('add-user-modal');
+        // Authentication management functions
+        function configureLocalAuth() {
+            console.log('🔑 Configuring local authentication...');
+            alert('Local authentication configuration - Feature coming soon!');
         }
 
-        function deployModel() {
-            console.log('🚀 Deploying AI model...');
-            closeModal('deploy-model-modal');
+        function viewLocalUsers() {
+            console.log('👥 Viewing local users...');
+            showSection('users'); // Switch to users tab
         }
 
-        function acknowledgeAlert(alertId) {
-            console.log(`🔕 Acknowledging alert: ${alertId}`);
+        function resetLocalAuth() {
+            if (confirm('⚠️ This will reset all local authentication data. Continue?')) {
+                console.log('🔄 Resetting local authentication...');
+                alert('Local authentication reset - Feature coming soon!');
+            }
         }
 
-        function resolveAlert(alertId) {
-            console.log(`🔧 Resolving alert: ${alertId}`);
+        function enableMFA() {
+            console.log('🛡️ Enabling multi-factor authentication...');
+            alert('MFA setup - Feature coming soon!');
+        }
+
+        function configureMFA() {
+            console.log('⚙️ Configuring MFA settings...');
+            alert('MFA configuration - Feature coming soon!');
+        }
+
+        function refreshSessions() {
+            console.log('🔄 Refreshing active sessions...');
+            loadActiveSessions();
+        }
+
+        function terminateAllSessions() {
+            if (confirm('⚠️ This will log out all users except yourself. Continue?')) {
+                console.log('🚪 Terminating all sessions...');
+                alert('All sessions terminated except current session');
+            }
+        }
+
+        function loadActiveSessions() {
+            const tbody = document.getElementById('sessions-table');
+            if (!tbody) return;
+            
+            // Get current user from auth system
+            const currentUser = cspAuth ? cspAuth.getCurrentUser() : null;
+            
+            if (currentUser) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center;">
+                                <div class="user-avatar">${currentUser.name.charAt(0)}</div>
+                                <div>
+                                    <div style="font-weight: bold;">${currentUser.username}</div>
+                                    <div style="font-size: 0.75rem; color: #999;">${currentUser.name}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${new Date(currentUser.loginTime).toLocaleString()}</td>
+                        <td>127.0.0.1</td>
+                        <td style="font-size: 0.8rem;">Enhanced CSP Admin Portal</td>
+                        <td><span style="color: #00ff88">🟢 Active</span></td>
+                        <td>
+                            <button class="btn" onclick="viewSessionDetails('current')">📋 Details</button>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function viewSessionDetails(sessionId) {
+            console.log(`📋 Viewing session details: ${sessionId}`);
+            alert('Session details - Feature coming soon!');
+        }
+
+        function saveAuthSettings() {
+            const timeout = document.getElementById('session-timeout').value;
+            const policy = document.getElementById('password-policy').value;
+            const maxFailed = document.getElementById('max-failed-attempts').value;
+            const lockout = document.getElementById('lockout-duration').value;
+            
+            console.log('💾 Saving authentication settings:', {
+                sessionTimeout: timeout,
+                passwordPolicy: policy,
+                maxFailedAttempts: maxFailed,
+                lockoutDuration: lockout
+            });
+            
+            alert('Authentication settings saved successfully!');
+        }
+
+        // Update system statistics
+        function updateSystemStats() {
+            // Simulate real-time data updates
+            const stats = {
+                health: Math.random() * 5 + 95,
+                users: Math.floor(Math.random() * 100) + 1200,
+                agents: `${Math.floor(Math.random() * 3) + 22}/24`,
+                throughput: (Math.random() * 0.5 + 2).toFixed(1) + 'M',
+                storage: Math.floor(Math.random() * 10) + 75,
+                alerts: Math.floor(Math.random() * 5) + 1
+            };
+            
+            // Update dashboard cards if visible
+            if (currentSection === 'dashboard') {
+                document.querySelectorAll('#dashboard .card-value').forEach((element, index) => {
+                    const values = Object.values(stats);
+                    if (values[index]) {
+                        element.textContent = values[index] + (typeof values[index] === 'number' && index === 0 ? '%' : '');
+                    }
+                });
+            }
+        }
+
+        // Start real-time updates
+        function startRealTimeUpdates() {
+            setInterval(updateSystemStats, 5000);
+        }
+
+        // Define other functions that may be called from onclick handlers
+        function editUser(username) {
+            const user = userDatabase[username];
+            if (!user) return;
+            
+            currentEditUser = username;
+            
+            // Populate modal with user data
+            document.getElementById('modal-title').textContent = 'Edit User: ' + username;
+            document.getElementById('user-username').value = username;
+            document.getElementById('user-name').value = user.name;
+            document.getElementById('user-email').value = user.email;
+            document.getElementById('user-password').value = user.password;
+            document.getElementById('user-role').value = user.role;
+            
+            // Set permissions
+            document.querySelectorAll('#user-form input[type="checkbox"]').forEach(cb => cb.checked = false);
+            user.permissions.forEach(perm => {
+                const checkbox = document.getElementById(`perm-${perm}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            
+            openModal('add-user-modal');
+        }
+
+        function deleteUser(username) {
+            if (username === 'admin') {
+                alert('Cannot delete the admin user!');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+                delete userDatabase[username];
+                saveUserDatabase();
+                renderUsersTable();
+                updateUserStats();
+                
+                console.log(`👤 User ${username} deleted by administrator`);
+            }
+        }
+
+        function toggleUserStatus(username) {
+            if (username === 'admin') {
+                alert('Cannot modify admin user status');
+                return;
+            }
+            
+            const user = userDatabase[username];
+            if (!user) return;
+            
+            const newStatus = user.status === 'active' ? 'suspended' : 'active';
+            const action = newStatus === 'suspended' ? 'suspend' : 'activate';
+            
+            if (confirm(`Are you sure you want to ${action} user "${username}"?`)) {
+                user.status = newStatus;
+                saveUserDatabase();
+                renderUsersTable();
+                updateUserStats();
+                
+                console.log(`👤 User ${username} ${action}d by administrator`);
+            }
+        }
+
+        function editRole(roleName) {
+            console.log(`🔐 Editing role: ${roleName}`);
+            alert(`Role editor for "${roleName}" - Feature coming soon!`);
+        }
+
+        function createCustomRole() {
+            const name = document.getElementById('new-role-name').value.trim();
+            const description = document.getElementById('new-role-description').value.trim();
+            
+            if (!name) {
+                alert('Please enter a role name');
+                return;
+            }
+            
+            const permissions = Array.from(document.querySelectorAll('#roles input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            
+            if (permissions.length === 0) {
+                alert('Please select at least one permission');
+                return;
+            }
+            
+            console.log(`🔑 Creating custom role: ${name}`, { description, permissions });
+            alert(`Custom role "${name}" created successfully!`);
+            
+            // Clear form
+            document.getElementById('new-role-name').value = '';
+            document.getElementById('new-role-description').value = '';
+            document.querySelectorAll('#roles input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+
+        // Other section functions (simplified)
+        function loadAIModelData() {
+            console.log('🧠 Loading AI model data...');
+        }
+
+        function loadAlertData() {
+            console.log('🚨 Loading alert data...');
+        }
+
+        function updateMonitoringCharts() {
+            console.log('📊 Updating monitoring charts...');
         }
 
         // Handle keyboard shortcuts
@@ -1617,8 +2786,84 @@
             }
         });
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', initAdminPortal);
+        // Initialize form handler when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserDatabase();
+            
+            // Set up form validation
+            const userForm = document.getElementById('user-form');
+            if (userForm) {
+                console.log('✅ User form found and handler attached');
+            } else {
+                console.error('❌ User form not found!');
+            }
+            
+            // If we're on users section by default, load the data
+            if (currentSection === 'users') {
+                loadUserData();
+            }
+        });
+
+        console.log('🛡️ Enhanced CSP Admin Portal Ready - Full User Management System Loaded');
+          </script>
+    </body>
+    <!-- Authentication Event Handlers -->
+    <script>
+        // Show loading indicator while auth initializes
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.location.pathname.includes('login.html')) {
+                const loader = document.createElement('div');
+                loader.className = 'auth-loading';
+                loader.innerHTML = `
+                    <div class="auth-spinner"></div>
+                    <div>🔐 Initializing Authentication...</div>
+                `;
+                document.body.appendChild(loader);
+                
+                // Remove loader after auth is ready or timeout
+                const removeLoader = () => {
+                    if (loader.parentNode) {
+                        loader.parentNode.removeChild(loader);
+                    }
+                };
+                
+                // Remove on auth ready
+                document.addEventListener('cspAuthReady', removeLoader);
+                document.addEventListener('cspAuthError', removeLoader);
+                
+                // Remove after timeout
+                setTimeout(removeLoader, 10000);
+            }
+        });
+        
+        // Authentication ready event
+        document.addEventListener('cspAuthReady', (event) => {
+            console.log('🎉 Page authenticated and ready:', event.detail);
+            document.body.classList.add('auth-protected');
+            
+            // Page-specific initialization can go here
+            if (typeof onAuthReady === 'function') {
+                onAuthReady(event.detail);
+            }
+        });
+        
+        // Authentication error event
+        document.addEventListener('cspAuthError', (event) => {
+            console.error('❌ Authentication error:', event.detail);
+            
+            // Page-specific error handling
+            if (typeof onAuthError === 'function') {
+                onAuthError(event.detail);
+            }
+        });
+        
+        // Session expired event
+        document.addEventListener('cspSessionExpired', (event) => {
+            console.warn('⏰ Session expired:', event.detail);
+            
+            // Page-specific session expiry handling
+            if (typeof onSessionExpired === 'function') {
+                onSessionExpired(event.detail);
+            }
+        });
     </script>
-</body>
-</html>

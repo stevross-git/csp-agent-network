@@ -600,10 +600,49 @@
         }
     </style>
 </head>
+    <!-- CSP Local Authentication Protection -->
+    <script src="../js/auth-protection.js"></script>
+    <style>
+        /* Authentication header styles */
+        #csp-auth-header {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        /* Page content adjustment for auth header */
+        body.auth-protected {
+            padding-top: 60px;
+        }
+        
+        /* Loading indicator */
+        .auth-loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .auth-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
     <!-- CSP Unified Authentication -->
-    <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
-    <script src="../js/auth-wrapper.js"></script>
-    <link rel="stylesheet" href="../css/auth-wrapper.css">
 <body>
     <!-- Header -->
     <div class="header">
@@ -1582,6 +1621,66 @@
         document.addEventListener('DOMContentLoaded', initAdminPortal);
     </script>
 </body>
+    <!-- Authentication Event Handlers -->
+    <script>
+        // Show loading indicator while auth initializes
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.location.pathname.includes('login.html')) {
+                const loader = document.createElement('div');
+                loader.className = 'auth-loading';
+                loader.innerHTML = `
+                    <div class="auth-spinner"></div>
+                    <div>🔐 Initializing Authentication...</div>
+                `;
+                document.body.appendChild(loader);
+                
+                // Remove loader after auth is ready or timeout
+                const removeLoader = () => {
+                    if (loader.parentNode) {
+                        loader.parentNode.removeChild(loader);
+                    }
+                };
+                
+                // Remove on auth ready
+                document.addEventListener('cspAuthReady', removeLoader);
+                document.addEventListener('cspAuthError', removeLoader);
+                
+                // Remove after timeout
+                setTimeout(removeLoader, 10000);
+            }
+        });
+        
+        // Authentication ready event
+        document.addEventListener('cspAuthReady', (event) => {
+            console.log('🎉 Page authenticated and ready:', event.detail);
+            document.body.classList.add('auth-protected');
+            
+            // Page-specific initialization can go here
+            if (typeof onAuthReady === 'function') {
+                onAuthReady(event.detail);
+            }
+        });
+        
+        // Authentication error event
+        document.addEventListener('cspAuthError', (event) => {
+            console.error('❌ Authentication error:', event.detail);
+            
+            // Page-specific error handling
+            if (typeof onAuthError === 'function') {
+                onAuthError(event.detail);
+            }
+        });
+        
+        // Session expired event
+        document.addEventListener('cspSessionExpired', (event) => {
+            console.warn('⏰ Session expired:', event.detail);
+            
+            // Page-specific session expiry handling
+            if (typeof onSessionExpired === 'function') {
+                onSessionExpired(event.detail);
+            }
+        });
+    </script>
     <!-- Authentication Ready Handler -->
     <script>
         document.addEventListener('cspAuthReady', (event) => {

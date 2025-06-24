@@ -1,0 +1,329 @@
+/* 
+ * Enhanced CSP System - Authentication Protection Styles
+ * Provides consistent styling for authentication elements
+ */
+
+/* Authentication Header */
+#csp-auth-header {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#csp-auth-header button {
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+#csp-auth-header button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Page content adjustment */
+body.auth-protected {
+    padding-top: 60px !important;
+}
+
+/* Ensure main content doesn't overlap with auth header */
+.main-content,
+.container,
+.page-content {
+    margin-top: 0 !important;
+    padding-top: 1rem;
+}
+
+/* Authentication loading overlay */
+.auth-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.auth-loading-content {
+    background: white;
+    padding: 2rem 3rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.auth-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.auth-loading-text {
+    color: #495057;
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Access denied styles */
+.access-denied-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 2rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.access-denied-card {
+    background: white;
+    padding: 3rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.access-denied-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.8;
+}
+
+.access-denied-title {
+    color: #dc3545;
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.access-denied-message {
+    color: #6c757d;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.access-denied-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.access-denied-button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.access-denied-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.access-denied-button.primary {
+    background: #007bff;
+    color: white;
+}
+
+.access-denied-button.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+/* Profile modal styles */
+.profile-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.profile-modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.profile-modal-title {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.profile-modal-info {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.profile-modal-info strong {
+    color: #495057;
+    display: inline-block;
+    width: 100px;
+}
+
+.profile-modal-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.profile-modal-button:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+/* Role-based styling */
+[data-user-role="super_admin"] #csp-auth-header {
+    background: linear-gradient(135deg, #8b0000 0%, #dc143c 100%);
+}
+
+[data-user-role="admin"] #csp-auth-header {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
+
+[data-user-role="developer"] #csp-auth-header {
+    background: linear-gradient(135deg, #2d5a27 0%, #4a7c59 100%);
+}
+
+[data-user-role="analyst"] #csp-auth-header {
+    background: linear-gradient(135deg, #7b2cbf 0%, #9d4edd 100%);
+}
+
+[data-user-role="user"] #csp-auth-header {
+    background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    #csp-auth-header {
+        padding: 0.5rem 1rem;
+        font-size: 12px;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+    
+    body.auth-protected {
+        padding-top: 80px !important;
+    }
+    
+    .access-denied-card {
+        padding: 2rem;
+        margin: 1rem;
+    }
+    
+    .access-denied-actions {
+        flex-direction: column;
+    }
+    
+    .access-denied-button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Smooth transitions for page load */
+body {
+    transition: padding-top 0.3s ease;
+}
+
+/* Hide scrollbars during auth loading */
+body.auth-loading {
+    overflow: hidden;
+}
+
+/* Toast notification compatibility */
+.toast-container {
+    z-index: 10001 !important;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .auth-spinner {
+        animation: none;
+    }
+    
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    #csp-auth-header {
+        border-bottom: 2px solid #000;
+    }
+    
+    .access-denied-card {
+        border: 2px solid #000;
+    }
+}
+
+/* Print styles */
+@media print {
+    #csp-auth-header,
+    .auth-loading,
+    .profile-modal-overlay {
+        display: none !important;
+    }
+    
+    body.auth-protected {
+        padding-top: 0 !important;
+    }
+}

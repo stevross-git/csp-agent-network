@@ -1064,7 +1064,6 @@ async def logout_unified(
         "user_id": current_user.user_id,
         "auth_method": current_user.auth_method  # NEW
     }
-
 # ============================================================================
 # NEW - LOCAL AUTHENTICATION ENDPOINTS
 # ============================================================================

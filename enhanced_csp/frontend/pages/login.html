@@ -1,30 +1,10 @@
-<!-- frontend/pages/login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <!-- Basic CSP – still allows inline styles (needed for now) but blocks remote JS except MSAL -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://login.microsoftonline.com; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://alcdn.msauth.net; font-src 'self';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔐 Enhanced CSP System – Login</title>
-
-    <!-- Enhanced inline styles (kept for single‑file drop‑in replacement) -->
+    <title>🔐 CSP System - Login</title>
     <style>
-        :root {
-            --primary-color: #3b82f6;
-            --primary-hover: #2563eb;
-            --success-color: #10b981;
-            --error-color: #ef4444;
-            --warning-color: #f59e0b;
-            --gray-50: #f9fafb;
-            --gray-100: #f3f4f6;
-            --gray-300: #d1d5db;
-            --gray-500: #6b7280;
-            --gray-700: #374151;
-            --gray-900: #111827;
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -44,28 +24,28 @@
         .login-container {
             background: #fff;
             border-radius: 16px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.10);
             width: 100%;
             max-width: 450px;
             overflow: hidden;
         }
 
         .login-header {
-            background: var(--gray-50);
+            background: #f9fafb;
             padding: 32px 32px 24px;
             text-align: center;
-            border-bottom: 1px solid var(--gray-100);
+            border-bottom: 1px solid #f3f4f6;
         }
 
         .login-title {
             font-size: 28px;
             font-weight: 700;
-            color: var(--gray-900);
+            color: #111827;
             margin-bottom: 8px;
         }
 
         .login-subtitle {
-            color: var(--gray-500);
+            color: #6b7280;
             font-size: 14px;
         }
 
@@ -73,41 +53,14 @@
             padding: 32px;
         }
 
-        .auth-tabs {
-            display: flex;
-            background: var(--gray-100);
-            border-radius: 8px;
-            padding: 4px;
-            margin-bottom: 24px;
+        .form-group {
+            margin-bottom: 20px;
         }
-
-        .auth-tab {
-            flex: 1;
-            background: none;
-            border: none;
-            padding: 12px 16px;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: var(--gray-500);
-        }
-
-        .auth-tab.active {
-            background: #fff;
-            color: var(--primary-color);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.10);
-        }
-
-        .auth-form { display: none; }
-        .auth-form.active { display: block; }
-
-        .form-group { margin-bottom: 20px; }
 
         .form-label {
             display: block;
             font-weight: 500;
-            color: var(--gray-700);
+            color: #374151;
             margin-bottom: 6px;
             font-size: 14px;
         }
@@ -115,47 +68,22 @@
         .form-input {
             width: 100%;
             padding: 12px 16px;
-            border: 2px solid var(--gray-300);
+            border: 2px solid #d1d5db;
             border-radius: 8px;
             font-size: 16px;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.2s;
             background: #fff;
         }
+
         .form-input:focus {
             outline: none;
-            border-color: var(--primary-color);
+            border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10);
-        }
-        .form-input.error { border-color: var(--error-color); }
-
-        .form-error {
-            color: var(--error-color);
-            font-size: 12px;
-            margin-top: 4px;
-            display: none;
-        }
-
-        .form-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 24px;
-        }
-
-        .checkbox-input {
-            width: 16px;
-            height: 16px;
-            accent-color: var(--primary-color);
-        }
-
-        .checkbox-label {
-            font-size: 14px;
-            color: var(--gray-700);
         }
 
         .form-button {
             width: 100%;
-            background: var(--primary-color);
+            background: #3b82f6;
             color: #fff;
             border: none;
             padding: 14px 20px;
@@ -163,394 +91,238 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-            margin-bottom: 16px;
-        }
-        .form-button:hover { background: var(--primary-hover); }
-        .form-button:active { transform: translateY(1px); }
-        .form-button:disabled {
-            background: var(--gray-300);
-            cursor: not-allowed;
-            transform: none;
-        }
-        .form-button.loading {
-            position: relative;
-            color: transparent;
-        }
-        .form-button.loading::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 20px;
-            margin: -10px 0 0 -10px;
-            border: 2px solid #fff;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            margin: 24px 0;
-            color: var(--gray-500);
-            font-size: 14px;
-        }
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--gray-300);
-        }
-        .divider::before { margin-right: 16px; }
-        .divider::after  { margin-left: 16px; }
-
-        .azure-button {
-            width: 100%;
-            background: #0078d4;
-            color: #fff;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
             transition: background-color 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
         }
-        .azure-button:hover { background: #106ebe; }
 
-        .forgot-password { text-align: center; margin-top: 16px; }
-        .forgot-password a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-size: 14px;
+        .form-button:hover {
+            background: #2563eb;
         }
-        .forgot-password a:hover { text-decoration: underline; }
 
-        .login-footer {
-            background: var(--gray-50);
-            padding: 20px 32px;
-            text-align: center;
-            border-top: 1px solid var(--gray-100);
-            font-size: 14px;
-            color: var(--gray-500);
+        .form-button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
         }
-        .login-footer a { color: var(--primary-color); text-decoration: none; }
-        .login-footer a:hover { text-decoration: underline; }
 
-        .success-message {
-            background: var(--success-color);
-            color: #fff;
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
             padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 20px;
             font-size: 14px;
+            border: 1px solid #fecaca;
+            display: none;
         }
 
-        @media (max-width: 480px) {
-            .login-container {
-                margin: 0;
-                border-radius: 0;
-                min-height: 100vh;
-            }
-            .login-header,
-            .login-body,
-            .login-footer { padding-left: 20px; padding-right: 20px; }
+        .demo-users {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .demo-users h4 {
+            color: #0c4a6e;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .demo-user {
+            background: #fff;
+            border: 1px solid #e0f2fe;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 13px;
+        }
+
+        .demo-user:hover {
+            background: #f0f9ff;
+        }
+
+        .demo-user:last-child {
+            margin-bottom: 0;
+        }
+
+        .demo-user strong {
+            color: #0c4a6e;
+        }
+
+        .demo-user span {
+            color: #64748b;
+            font-family: monospace;
         }
     </style>
 </head>
 <body>
     <div class="login-container">
-        <!-- Header -->
         <div class="login-header">
-            <h1 class="login-title">🚀 Welcome Back</h1>
-            <p class="login-subtitle">Enhanced CSP Visual Designer</p>
+            <h1 class="login-title">🚀 CSP System</h1>
+            <p class="login-subtitle">Enhanced Content Security Policy Management</p>
         </div>
 
-        <!-- Body -->
         <div class="login-body">
-            <!-- Auth Method Tabs -->
-            <div class="auth-tabs">
-                <button class="auth-tab active" data-tab="local">Email/Password</button>
-                <button class="auth-tab" data-tab="azure">Azure AD</button>
-            </div>
+            <div id="error-message" class="error-message"></div>
 
-            <!-- Success Message -->
-            <div id="success-message" class="success-message" aria-live="polite" style="display:none;"></div>
-
-            <!-- Local Authentication Form -->
-            <form id="local-auth-form" class="auth-form active" novalidate>
+            <form id="login-form">
                 <div class="form-group">
-                    <label class="form-label" for="email">Email Address</label>
-                    <input type="email" id="email" class="form-input" placeholder="Enter your email" required autocomplete="username">
-                    <div class="form-error" id="email-error"></div>
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" id="username" class="form-input" placeholder="Enter your username" required>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="password">Password</label>
-                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
-                    <div class="form-error" id="password-error"></div>
-                </div>
-
-                <div class="form-checkbox">
-                    <input type="checkbox" id="remember-me" class="checkbox-input">
-                    <label class="checkbox-label" for="remember-me">Remember me for 30 days</label>
+                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
                 </div>
 
                 <button type="submit" class="form-button" id="login-button">Sign In</button>
-
-                <div class="forgot-password">
-                    <a href="#" id="forgot-password-link">Forgot your password?</a>
-                </div>
             </form>
 
-            <!-- Azure AD Authentication -->
-            <div id="azure-auth-form" class="auth-form">
-                <p style="color:var(--gray-500);margin-bottom:20px;text-align:center;">Sign in with your organisation account</p>
-                <button type="button" class="azure-button" id="azure-login-button">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 0h7.5v7.5H0V0zm8.5 0H16v7.5H8.5V0zM0 8.5h7.5V16H0V8.5zm8.5 0H16V16H8.5V8.5z"/></svg>
-                    Continue with Microsoft
-                </button>
+            <div class="demo-users">
+                <h4>👤 Demo Accounts (Click to use)</h4>
+                <div class="demo-user" data-username="admin" data-password="admin123">
+                    <strong>Administrator:</strong> <span>admin / admin123</span>
+                </div>
+                <div class="demo-user" data-username="developer" data-password="dev123">
+                    <strong>Developer:</strong> <span>developer / dev123</span>
+                </div>
+                <div class="demo-user" data-username="analyst" data-password="analyst123">
+                    <strong>Analyst:</strong> <span>analyst / analyst123</span>
+                </div>
+                <div class="demo-user" data-username="user" data-password="user123">
+                    <strong>User:</strong> <span>user / user123</span>
+                </div>
             </div>
-
-            <!-- Registration toggle -->
-            <div class="divider">Don't have an account?</div>
-            <button type="button" class="form-button" id="show-register" style="background:var(--gray-100);color:var(--gray-700);">Create New Account</button>
-        </div>
-
-        <!-- Footer -->
-        <div class="login-footer">
-            <p>Need help? <a href="/support">Contact Support</a></p>
-            <p><a href="/docs">API Documentation</a> | <a href="/health">System Status</a></p>
         </div>
     </div>
 
-    <!-- Registration Modal -->
-    <div id="registration-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px;">
-        <div style="background:#fff;border-radius:16px;width:100%;max-width:450px;max-height:90vh;overflow-y:auto;">
-            <div style="padding:24px 32px;border-bottom:1px solid var(--gray-100);">
-                <h2 style="font-size:24px;font-weight:700;color:var(--gray-900);margin-bottom:8px;">Create Account</h2>
-                <p style="color:var(--gray-500);font-size:14px;">Join the CSP Visual Designer platform</p>
-            </div>
-            <form id="registration-form" style="padding:32px;" novalidate>
-                <div class="form-group">
-                    <label class="form-label" for="reg-full-name">Full Name</label>
-                    <input type="text" id="reg-full-name" class="form-input" placeholder="Enter your full name" required autocomplete="name">
-                    <div class="form-error" id="reg-full-name-error"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="reg-email">Email Address</label>
-                    <input type="email" id="reg-email" class="form-input" placeholder="Enter your email" required autocomplete="email">
-                    <div class="form-error" id="reg-email-error"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="reg-password">Password</label>
-                    <input type="password" id="reg-password" class="form-input" placeholder="Create a strong password" required autocomplete="new-password">
-                    <div class="form-error" id="reg-password-error"></div>
-                    <div style="font-size:12px;color:var(--gray-500);margin-top:4px;">Must be at least 8 characters with uppercase, lowercase, number & special character</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="reg-confirm-password">Confirm Password</label>
-                    <input type="password" id="reg-confirm-password" class="form-input" placeholder="Confirm your password" required autocomplete="new-password">
-                    <div class="form-error" id="reg-confirm-password-error"></div>
-                </div>
-                <div style="display:flex;gap:12px;margin-top:24px;">
-                    <button type="button" class="form-button" id="cancel-registration" style="background:var(--gray-300);color:var(--gray-700);flex:1;">Cancel</button>
-                    <button type="submit" class="form-button" id="register-button" style="flex:2;">Create Account</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <script>
+        // Simple local authentication system
+        const users = {
+            'admin': {
+                password: 'admin123',
+                name: 'System Administrator',
+                role: 'admin',
+                permissions: ['read', 'write', 'delete', 'admin']
+            },
+            'developer': {
+                password: 'dev123',
+                name: 'Developer User',
+                role: 'developer',
+                permissions: ['read', 'write']
+            },
+            'analyst': {
+                password: 'analyst123',
+                name: 'Data Analyst',
+                role: 'analyst',
+                permissions: ['read']
+            },
+            'user': {
+                password: 'user123',
+                name: 'Regular User',
+                role: 'user',
+                permissions: ['read']
+            }
+        };
 
-    <!-- External scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4.13.1/dist/msal-browser.min.js" type="text/javascript"></script>
-    <script type="module" src="../components/ToastProvider.js"></script>
-    <script type="module" src="../services/authService.js"></script>
+        // DOM elements
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-button');
+        const errorMessage = document.getElementById('error-message');
+        const demoUsers = document.querySelectorAll('.demo-user');
 
-    <!-- Inline module – handles page logic; kept inline to avoid adding another file for now. -->
-    <script type="module">
-        class LoginPage {
-            constructor() {
-                this.currentTab = 'local';
-                this.isLoading = false;
-                this.init();
-            }
-            init() {
-                this.setupTabSwitching();
-                this.setupLocalAuth();
-                this.setupAzureAuth();
-                this.setupRegistration();
-                this.setupPasswordReset();
-                this.handleUrlParameters();
-                console.log('🔐 Login page initialised');
-            }
-            /* ---------- UI helpers ---------- */
-            setupTabSwitching() {
-                const tabs = document.querySelectorAll('.auth-tab');
-                const forms = document.querySelectorAll('.auth-form');
-                tabs.forEach(tab => {
-                    tab.addEventListener('click', () => {
-                        const tabType = tab.dataset.tab;
-                        tabs.forEach(t => t.classList.remove('active'));
-                        tab.classList.add('active');
-                        forms.forEach(f => f.classList.remove('active'));
-                        document.getElementById(`${tabType}-auth-form`).classList.add('active');
-                        this.currentTab = tabType;
-                    });
-                });
-            }
-            /* ---------- Local email/password ---------- */
-            setupLocalAuth() {
-                const form   = document.getElementById('local-auth-form');
-                const button = document.getElementById('login-button');
-                form.addEventListener('submit', async e => {
-                    e.preventDefault();
-                    if (this.isLoading) return;
-                    const email      = document.getElementById('email').value.trim();
-                    const password   = document.getElementById('password').value;
-                    const rememberMe = document.getElementById('remember-me').checked;
-                    if (!this.validateLocalLogin(email, password)) return;
-                    this.setLoading(true);
-                    try {
-                        await window.authService.loginLocal(email, password, rememberMe);
-                        const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/pages/dashboard.html';
-                        window.location.href = redirectUrl;
-                    } catch (err) {
-                        console.error('Login failed:', err);
-                        /* toast handled by authService */
-                    } finally { this.setLoading(false); }
-                });
-            }
-            /* ---------- Azure AD OAuth ---------- */
-            setupAzureAuth() {
-                const btn = document.getElementById('azure-login-button');
-                btn.addEventListener('click', async () => {
-                    if (this.isLoading) return;
-                    this.setLoading(true);
-                    try {
-                        await window.authService.loginWithAzure();
-                        const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/pages/dashboard.html';
-                        window.location.href = redirectUrl;
-                    } catch (err) {
-                        console.error('Azure login failed:', err);
-                    } finally { this.setLoading(false); }
-                });
-            }
-            /* ---------- Registration ---------- */
-            setupRegistration() {
-                const showBtn = document.getElementById('show-register');
-                const modal   = document.getElementById('registration-modal');
-                const cancel  = document.getElementById('cancel-registration');
-                const form    = document.getElementById('registration-form');
-                showBtn.addEventListener('click', () => modal.style.display = 'flex');
-                cancel.addEventListener('click', () => { modal.style.display = 'none'; this.clearRegistrationForm(); });
-                modal.addEventListener('click', e => { if (e.target === modal) { modal.style.display = 'none'; this.clearRegistrationForm(); } });
-                form.addEventListener('submit', async e => {
-                    e.preventDefault();
-                    if (this.isLoading) return;
-                    const fullName = document.getElementById('reg-full-name').value.trim();
-                    const email    = document.getElementById('reg-email').value.trim();
-                    const pwd      = document.getElementById('reg-password').value;
-                    const confirm  = document.getElementById('reg-confirm-password').value;
-                    if (!this.validateRegistration(fullName, email, pwd, confirm)) return;
-                    this.setLoading(true);
-                    try {
-                        await window.authService.registerLocal(email, pwd, confirm, fullName);
-                        modal.style.display = 'none';
-                        this.clearRegistrationForm();
-                        this.showSuccessMessage('Registration successful! Please verify your email.');
-                    } catch (err) {
-                        console.error('Registration failed:', err);
-                    } finally { this.setLoading(false); }
-                });
-            }
-            /* ---------- Forgot password ---------- */
-            setupPasswordReset() {
-                const link = document.getElementById('forgot-password-link');
-                link.addEventListener('click', async e => {
-                    e.preventDefault();
-                    const email = document.getElementById('email').value.trim();
-                    if (!email) {
-                        window.toast.warning('Email Required', 'Please enter your email address first');
-                        document.getElementById('email').focus();
-                        return;
-                    }
-                    try { await window.authService.requestPasswordReset(email); }
-                    catch (err) { console.error('Password reset error:', err); }
-                });
-            }
-            /* ---------- Validation ---------- */
-            validateLocalLogin(email, password) {
-                let valid = true;
-                this.clearFieldError('email');
-                this.clearFieldError('password');
-                if (!email) { this.showFieldError('email', 'Email is required'); valid = false; }
-                if (!password) { this.showFieldError('password', 'Password is required'); valid = false; }
-                return valid;
-            }
-            validateRegistration(name, email, pwd, confirm) {
-                let valid = true;
-                ['reg-full-name', 'reg-email', 'reg-password', 'reg-confirm-password'].forEach(this.clearFieldError.bind(this));
-                if (!name || name.length < 2) { this.showFieldError('reg-full-name', 'Full name must be at least 2 characters'); valid = false; }
-                if (!email || !email.includes('@')) { this.showFieldError('reg-email', 'Please enter a valid email address'); valid = false; }
-                if (!pwd || pwd.length < 8) {
-                    this.showFieldError('reg-password', 'Password must be at least 8 characters'); valid = false;
-                } else {
-                    const hasUpper=/[A-Z]/.test(pwd), hasLower=/[a-z]/.test(pwd), hasDigit=/\d/.test(pwd), hasSpecial=/[!@#$%^&*()_+\-=[\]{}|;:,.<>?]/.test(pwd);
-                    if (!hasUpper||!hasLower||!hasDigit||!hasSpecial) {
-                        this.showFieldError('reg-password', 'Password requires upper, lower, number & special char'); valid = false;
-                    }
-                }
-                if (pwd !== confirm) { this.showFieldError('reg-confirm-password', 'Passwords do not match'); valid = false; }
-                return valid;
-            }
-            /* ---------- Field helpers ---------- */
-            showFieldError(id, msg) {
-                const field = document.getElementById(id);
-                const errEl = document.getElementById(`${id}-error`);
-                if (field && errEl) {
-                    field.classList.add('error');
-                    field.setAttribute('aria-invalid', 'true');
-                    errEl.textContent = msg;
-                    errEl.style.display = 'block';
-                }
-            }
-            clearFieldError(id) {
-                const field = document.getElementById(id);
-                const errEl = document.getElementById(`${id}-error`);
-                if (field && errEl) {
-                    field.classList.remove('error');
-                    field.removeAttribute('aria-invalid');
-                    errEl.style.display = 'none';
-                }
-            }
-            clearRegistrationForm() { document.getElementById('registration-form').reset(); ['reg-full-name','reg-email','reg-password','reg-confirm-password'].forEach(this.clearFieldError.bind(this)); }
-            /* ---------- UI state ---------- */
-            setLoading(state) {
-                this.isLoading = state;
-                ['login-button','azure-login-button','register-button'].forEach(id=>{
-                    const btn=document.getElementById(id); if(!btn) return; btn.disabled=state; btn.classList.toggle('loading', state);
-                });
-            }
-            showSuccessMessage(msg) {
-                const box=document.getElementById('success-message'); box.textContent=msg; box.style.display='block'; setTimeout(()=>{box.style.display='none';}, 10000);
-            }
-            handleUrlParameters() {
-                const p=new URLSearchParams(window.location.search);
-                if (p.get('verified')==='true')   this.showSuccessMessage('Email verified successfully! You can now sign in.');
-                if (p.get('reset')==='true')     this.showSuccessMessage('Password reset successfully! You can now sign in.');
-                if (p.get('registered')==='true') this.showSuccessMessage('Registration successful! Please verify your email.');
-            }
+        // Check if already logged in
+        const currentUser = localStorage.getItem('csp_current_user');
+        if (currentUser) {
+            // Already logged in, redirect to admin
+            window.location.href = '/pages/admin.html';
         }
-        document.addEventListener('DOMContentLoaded', () => new LoginPage());
+
+        // Demo user click handlers
+        demoUsers.forEach(demoUser => {
+            demoUser.addEventListener('click', () => {
+                const username = demoUser.dataset.username;
+                const password = demoUser.dataset.password;
+                
+                usernameInput.value = username;
+                passwordInput.value = password;
+                
+                // Auto-submit after a short delay
+                setTimeout(() => {
+                    loginForm.dispatchEvent(new Event('submit'));
+                }, 300);
+            });
+        });
+
+        // Login form handler
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+            
+            // Hide previous errors
+            errorMessage.style.display = 'none';
+            
+            // Validate credentials
+            if (!username || !password) {
+                showError('Please enter both username and password');
+                return;
+            }
+            
+            // Check against user database
+            const user = users[username];
+            if (!user || user.password !== password) {
+                showError('Invalid username or password');
+                return;
+            }
+            
+            // Success! Store user session
+            const userSession = {
+                username: username,
+                name: user.name,
+                role: user.role,
+                permissions: user.permissions,
+                loginTime: new Date().toISOString()
+            };
+            
+            localStorage.setItem('csp_current_user', JSON.stringify(userSession));
+            
+            // Show success and redirect
+            loginButton.textContent = 'Success! Redirecting...';
+            loginButton.disabled = true;
+            
+            setTimeout(() => {
+                window.location.href = '/pages/admin.html';
+            }, 1000);
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            
+            // Clear error after 5 seconds
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        // Add some keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + Enter to submit
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                loginForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        console.log('🔐 Simple CSP Login System Ready');
+        console.log('👤 Available users:', Object.keys(users));
     </script>
+    <script>console.log("📄 Login page loaded - no auth protection needed");</script>
 </body>
 </html>
