@@ -4,14 +4,16 @@
  */
 
 import React from 'react';
-import { Container, Row, Col, Card, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Badge, Form } from 'react-bootstrap';
 import { Activity, Users, Shield, Cpu } from 'lucide-react';
 
 import { useUserProfile } from '../hooks/useUserProfile';
 import RoleGuard from '../components/RoleGuard';
+import { useAppStore } from '../stores/appStore';
 
 const Dashboard = () => {
     const { userProfile, loading } = useUserProfile();
+    const { darkMode, toggleDarkMode } = useAppStore();
 
     if (loading) {
         return (
@@ -22,14 +24,23 @@ const Dashboard = () => {
     }
 
     return (
-        <Container className="mt-4">
+        <Container className={`mt-4 ${darkMode ? 'bg-dark text-white' : ''}`}>
             <Row>
                 <Col>
                     <h2>Welcome to Enhanced CSP System</h2>
                     <p className="text-muted">
-                        Hello, {userProfile?.displayName || 'User'}! 
+                        Hello, {userProfile?.displayName || 'User'}!
                         Your role: <Badge bg="primary">{userProfile?.roles?.[0] || 'User'}</Badge>
                     </p>
+                </Col>
+                <Col className="text-end" md="auto">
+                    <Form.Check
+                        type="switch"
+                        id="dark-mode-toggle"
+                        label="Dark Mode"
+                        checked={darkMode}
+                        onChange={toggleDarkMode}
+                    />
                 </Col>
             </Row>
 
