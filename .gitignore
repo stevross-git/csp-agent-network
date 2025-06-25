@@ -101,3 +101,9 @@ enhanced_csp/backend/ai/__pycache__/quantum_knowledge.cpython-310.pyc
 enhanced_csp/backend/ai/__pycache__/temporal_entanglement.cpython-310.pyc
 enhanced_csp/backend/ai/__pycache__/wisdom_convergence.cpython-310.pyc
 enhanced_csp/frontend/pages/frontend-performance-dashboard.html.backup
+enhanced_csp/backend/api/endpoints/ai_coordination.py.backup.20250625_194642
+enhanced_csp/backend/api/endpoints/ai_coordination.py.backup.20250625_194654
+enhanced_csp/backend/api/endpoints/ai_coordination.py.backup.fix.20250625_195018
+enhanced_csp/backend/main.py.backup.20250625_200200
+enhanced_csp/backend/main.py.backup.cors.20250625_195018
+enhanced_csp/backend/main.py.backup.structure.20250625_200531

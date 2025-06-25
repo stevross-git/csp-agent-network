@@ -46,6 +46,23 @@ except ImportError as e:
     from fastapi import APIRouter
     ai_coordination_router = APIRouter()
 
+# CORS middleware with explicit configuration for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://localhost:8000"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600
+)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -59,7 +76,7 @@ logger = logging.getLogger(__name__)
 
 AZURE_TENANT_ID = os.getenv("AZURE_TENANT_ID", "622a5fe0-fac1-4213-9cf7-d5f6defdf4c4")
 AZURE_CLIENT_ID = os.getenv("AZURE_CLIENT_ID", "53537e30-ae6b-48f7-9c7c-4db20fc27850")
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001,http://localhost:8000").split(",")
 
 # NEW - Local authentication configuration
 LOCAL_AUTH_SECRET_KEY = os.getenv("LOCAL_AUTH_SECRET_KEY", "your-secret-key-here-change-in-production")
@@ -902,6 +919,28 @@ async def lifespan(app: FastAPI):
 # ============================================================================
 
 app = FastAPI(
+    title="Enhanced CSP Visual Designer API",
+
+# ============================================================================
+# CORS MIDDLEWARE CONFIGURATION
+# ============================================================================
+
+# CORS middleware with explicit configuration for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://localhost:8000"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600
+)
     title="Enhanced CSP Visual Designer API",
     description="Advanced AI-Powered CSP Process Designer Backend with Dual Authentication",
     version="2.2.0",  # NEW - Updated version
