@@ -236,11 +236,15 @@
         const errorMessage = document.getElementById('error-message');
         const demoUsers = document.querySelectorAll('.demo-user');
 
-        // Check if already logged in
+        // Get redirect URL from query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectUrl = urlParams.get('redirect');
+
+        // Check if already logged in (optional - remove if you don't want auto-redirect)
         const currentUser = localStorage.getItem('csp_current_user');
         if (currentUser) {
-            // Already logged in, redirect to admin
-            window.location.href = '/pages/admin.html';
+            // Already logged in - you can uncomment the line below if you want auto-redirect
+            // window.location.href = 'http://localhost:3000/pages/index.html';
         }
 
         // Demo user click handlers
@@ -282,7 +286,7 @@
                 return;
             }
             
-            // Success! Store user session
+            // Success! Store user session in multiple formats for compatibility
             const userSession = {
                 username: username,
                 name: user.name,
@@ -291,14 +295,51 @@
                 loginTime: new Date().toISOString()
             };
             
+            // Store session data for the auth protection system
             localStorage.setItem('csp_current_user', JSON.stringify(userSession));
+            
+            // Create a mock token that will work with auth-protection.js
+            const mockToken = btoa(JSON.stringify({
+                user: {
+                    username: username,
+                    email: username + '@demo.local',
+                    full_name: user.name,
+                    role: user.role,
+                    permissions: user.permissions
+                },
+                exp: Date.now() + (8 * 60 * 60 * 1000), // 8 hours
+                iat: Date.now()
+            }));
+            
+            // Store in the format auth-protection.js expects
+            localStorage.setItem('local_access_token', mockToken);
+            localStorage.setItem('local_refresh_token', 'mock_refresh_' + Date.now());
+            
+            // Store a flag to indicate this is a mock session (for debugging)
+            localStorage.setItem('csp_mock_session', 'true');
             
             // Show success and redirect
             loginButton.textContent = 'Success! Redirecting...';
             loginButton.disabled = true;
             
+            // Determine where to redirect
+            let destination;
+            if (redirectUrl) {
+                // Use the redirect parameter, prepend localhost if it's a relative path
+                if (redirectUrl.startsWith('/')) {
+                    destination = `http://localhost:3000${redirectUrl}`;
+                } else {
+                    destination = redirectUrl;
+                }
+            } else {
+                // Default redirect
+                destination = 'http://localhost:3000/pages/index.html';
+            }
+            
+            console.log('Redirecting to:', destination);
+            
             setTimeout(() => {
-                window.location.href = '/pages/admin.html';
+                window.location.href = destination;
             }, 1000);
         });
 
@@ -322,6 +363,43 @@
 
         console.log('🔐 Simple CSP Login System Ready');
         console.log('👤 Available users:', Object.keys(users));
+        console.log('🔗 Redirect parameter:', redirectUrl || 'none');
+        
+        // Override fetch for auth validation to work without backend
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            // Intercept auth validation requests
+            if (url.includes('/api/auth/validate')) {
+                console.log('🎭 Mocking auth validation API call');
+                
+                // Check if we have a mock token
+                const token = localStorage.getItem('local_access_token');
+                if (token && localStorage.getItem('csp_mock_session')) {
+                    try {
+                        const userData = JSON.parse(atob(token));
+                        return Promise.resolve({
+                            ok: true,
+                            json: () => Promise.resolve({
+                                user: userData.user,
+                                valid: true
+                            })
+                        });
+                    } catch (e) {
+                        console.error('Error parsing mock token:', e);
+                    }
+                }
+                
+                // Invalid token
+                return Promise.resolve({
+                    ok: false,
+                    status: 401,
+                    json: () => Promise.resolve({ error: 'Invalid token' })
+                });
+            }
+            
+            // For all other requests, use original fetch
+            return originalFetch.apply(this, arguments);
+        };
     </script>
     <script>console.log("📄 Login page loaded - no auth protection needed");</script>
 </body>
