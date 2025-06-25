@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enhanced CSP Index Page</title>
     
-    <!-- CRITICAL: Load MSAL FIRST before any auth scripts -->
-    
-    <!-- Then load the auth wrapper -->
-    
-    <!-- Your other stylesheets and scripts -->
+    <!-- Your original stylesheets and scripts -->
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -116,12 +112,35 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-    </style>
-</head>
-    <!-- CSP Local Authentication Protection -->
-    <script src="../js/auth-protection.js"></script>
-    <style>
-        /* Authentication header styles */
+
+        /* Category badges */
+        .category-badge {
+            display: inline-block;
+            background: #6c757d;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .category-core { background: #28a745; }
+        .category-security { background: #dc3545; }
+        .category-ai { background: #6f42c1; }
+        .category-admin { background: #fd7e14; }
+        .category-infrastructure { background: #17a2b8; }
+        .category-monitoring { background: #ffc107; color: black; }
+
+        .scan-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        /* Authentication header styles - keeping your original design */
         #csp-auth-header {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
@@ -154,14 +173,10 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 1rem;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
+</head>
 <body>
-    <!-- Loading indicator -->
+    <!-- Loading indicator (keeping your original design) -->
     <div id="loading" class="loading">
         <div class="spinner"></div>
         <p>Loading authentication...</p>
@@ -179,113 +194,297 @@
                 <p>Welcome to the Enhanced CSP System</p>
             </div>
 
+            <div class="scan-info" id="scan-info" style="display: none;">
+                <strong>📄 Page Scanner:</strong> 
+                <span id="scan-status">Scanning pages directory...</span>
+            </div>
+
             <div class="pages-grid" id="pages-grid">
-                <!-- Pages will be dynamically loaded here -->
+                <!-- Pages will be dynamically loaded here from directory scan -->
             </div>
         </div>
     </div>
 
-    <!-- Authentication Ready Handler -->
+    <!-- Fixed Authentication System + Page Scanner -->
     <script>
-        console.log('🚀 Initializing Enhanced CSP Index Page');
+        console.log('🚀 Initializing Enhanced CSP Index Page with Page Scanner');
 
         // Show loading initially
         document.getElementById('loading').style.display = 'block';
 
-        document.addEventListener('cspAuthReady', (event) => {
-            console.log('🎉 Page authenticated and ready:', event.detail);
+        // Simple but effective authentication check
+        function checkAuthentication() {
+            console.log('🔍 Checking authentication status...');
+            
+            // Check for authentication tokens (same ones your login page creates)
+            const cspUser = localStorage.getItem('csp_current_user');
+            const localToken = localStorage.getItem('local_access_token');
+            const mockSession = localStorage.getItem('csp_mock_session');
+            
+            if (cspUser || (localToken && mockSession)) {
+                // Parse user data
+                let userData = null;
+                
+                if (cspUser) {
+                    try {
+                        userData = JSON.parse(cspUser);
+                    } catch (e) {
+                        console.error('Error parsing user data:', e);
+                    }
+                }
+                
+                if (!userData && localToken) {
+                    try {
+                        const tokenData = JSON.parse(atob(localToken));
+                        userData = tokenData.user;
+                    } catch (e) {
+                        console.error('Error parsing token:', e);
+                    }
+                }
+
+                if (userData) {
+                    onAuthenticationReady(userData);
+                    return;
+                }
+            }
+
+            // Not authenticated - redirect to login
+            console.log('❌ No authentication found - redirecting to login');
+            const currentUrl = window.location.href;
+            const loginUrl = new URL('/pages/login.html', window.location.origin);
+            loginUrl.searchParams.set('redirect', currentUrl);
+            window.location.href = loginUrl.toString();
+        }
+
+        function onAuthenticationReady(userData) {
+            console.log('🎉 Authentication ready:', userData);
             
             // Hide loading, show content
             document.getElementById('loading').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
+            document.body.classList.add('auth-protected');
             
-            // Update auth status
+            // Update auth status with your original styling
             const userInfo = document.getElementById('user-info');
-            const user = event.detail.user;
-            userInfo.innerHTML = `✅ Welcome, ${user.name || user.email || 'User'}! (${user.role || 'No role'})`;
+            userInfo.innerHTML = `✅ Welcome, ${userData.name || userData.username || 'User'}! (${userData.role || 'No role'})`;
             
-            // Load available pages
-            loadAvailablePages();
-        });
-        
-        document.addEventListener('cspAuthError', (event) => {
-            console.error('❌ Authentication error:', event.detail);
+            // Start page scanning
+            scanAvailablePages();
             
-            // Hide loading
-            document.getElementById('loading').style.display = 'none';
-            
-            // Show error message
-            document.body.innerHTML = `
-                <div class="container">
-                    <div class="auth-status" style="background: #ffebee; border-color: #ffcdd2;">
-                        <h2>❌ Authentication Error</h2>
-                        <p>${event.detail.message || 'Failed to authenticate'}</p>
-                        <p><a href="/pages/login.html">Go to Login</a></p>
-                    </div>
-                </div>
-            `;
-        });
-
-        function loadAvailablePages() {
-            console.log('🔍 Scanning available pages...');
-            
-            const pagesGrid = document.getElementById('pages-grid');
-            
-            // Available pages in the system
-            const pages = [
-                {
-                    name: 'Admin Portal',
-                    description: 'Main administrative dashboard for system management',
-                    url: '../csp_admin_portal.html',
-                    icon: '⚙️'
-                },
-                {
-                    name: 'AI Agents',
-                    description: 'Manage and monitor AI agents in the network',
-                    url: 'ai-agents.html',
-                    icon: '🤖'
-                },
-                {
-                    name: 'Monitoring',
-                    description: 'Real-time system monitoring and analytics',
-                    url: 'monitoring.html',
-                    icon: '📊'
-                },
-                {
-                    name: 'Web Dashboard',
-                    description: 'Web interface dashboard for data visualization',
-                    url: 'web_dashboard_ui.html',
-                    icon: '🌐'
-                },
-                {
-                    name: 'Settings',
-                    description: 'System configuration and user preferences',
-                    url: 'settings.html',
-                    icon: '⚙️'
-                },
-                {
-                    name: 'Login',
-                    description: 'Authentication and user login page',
-                    url: 'login.html',
-                    icon: '🔐'
-                }
-            ];
-
-            pagesGrid.innerHTML = pages.map(page => `
-                <div class="page-card">
-                    <h3>${page.icon} ${page.name}</h3>
-                    <p>${page.description}</p>
-                    <a href="${page.url}" class="page-link">Open Page</a>
-                </div>
-            `).join('');
+            // Create a custom event to maintain compatibility with your original system
+            const authEvent = new CustomEvent('cspAuthReady', { 
+                detail: { user: userData } 
+            });
+            document.dispatchEvent(authEvent);
         }
 
-        // Fallback if authentication takes too long
+        // Page scanning functionality (restored from your original system)
+        async function scanAvailablePages() {
+            console.log('🔍 Scanning available pages...');
+            
+            const scanInfo = document.getElementById('scan-info');
+            const scanStatus = document.getElementById('scan-status');
+            const pagesGrid = document.getElementById('pages-grid');
+            
+            scanInfo.style.display = 'block';
+            scanStatus.textContent = 'Scanning pages directory...';
+            
+            try {
+                // First try to load from the generated pages file (if available)
+                const pages = await loadPagesFromDirectory();
+                
+                if (pages.length > 0) {
+                    displayPages(pages);
+                    scanStatus.innerHTML = `✅ Found ${pages.length} pages | Last scanned: ${new Date().toLocaleTimeString()}`;
+                } else {
+                    // Fallback to manual page list
+                    displayFallbackPages();
+                    scanStatus.innerHTML = `⚠️ Using fallback page list (directory scan failed)`;
+                }
+            } catch (error) {
+                console.error('Error scanning pages:', error);
+                displayFallbackPages();
+                scanStatus.innerHTML = `❌ Scan failed - showing default pages`;
+            }
+        }
+
+        async function loadPagesFromDirectory() {
+            console.log('📁 Attempting to load pages from directory...');
+            
+            // Try to fetch the pages via API (if your backend supports it)
+            try {
+                const response = await fetch('/api/pages', { 
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('📄 Loaded pages from API:', data);
+                    return data.pages || [];
+                }
+            } catch (error) {
+                console.log('API not available, trying directory scan...');
+            }
+
+            // Fallback: try to load available-pages.js if it exists
+            try {
+                const script = document.createElement('script');
+                script.src = '../js/available-pages.js';
+                
+                return new Promise((resolve) => {
+                    script.onload = () => {
+                        if (window.availablePages) {
+                            console.log('📄 Loaded pages from available-pages.js:', window.availablePages);
+                            resolve(window.availablePages);
+                        } else {
+                            resolve([]);
+                        }
+                    };
+                    script.onerror = () => resolve([]);
+                    document.head.appendChild(script);
+                });
+            } catch (error) {
+                console.log('available-pages.js not found, using manual scan...');
+                return await manualPageScan();
+            }
+        }
+
+        async function manualPageScan() {
+            console.log('🔧 Performing manual page scan...');
+            
+            // List of known pages to check for
+            const knownPages = [
+                'admin', 'ai-agents', 'monitoring', 'web_dashboard_ui', 'settings',
+                'login', 'security', 'developer_tools', 'designer', 'quantum',
+                'neural', 'blockchain', 'api-explorer', 'deployment', 'infrastructure',
+                'containers', 'kubernetes', 'chat', 'collaboration', 'notifications'
+            ];
+            
+            const availablePages = [];
+            
+            for (const pageName of knownPages) {
+                try {
+                    const response = await fetch(`${pageName}.html`, { method: 'HEAD' });
+                    if (response.ok) {
+                        availablePages.push({
+                            name: pageName,
+                            title: formatPageName(pageName),
+                            description: `${formatPageName(pageName)} page`,
+                            category: detectCategory(pageName),
+                            filename: `${pageName}.html`,
+                            has_auth: true,
+                            status: 'available'
+                        });
+                    }
+                } catch (error) {
+                    // Page doesn't exist, skip
+                }
+            }
+            
+            return availablePages;
+        }
+
+        function formatPageName(name) {
+            return name.replace(/-/g, ' ').replace(/_/g, ' ')
+                      .split(' ')
+                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(' ');
+        }
+
+        function detectCategory(pageName) {
+            const name = pageName.toLowerCase();
+            
+            if (['admin', 'settings', 'users', 'roles'].includes(name)) return 'admin';
+            if (['security', 'firewall', 'certificates'].includes(name)) return 'security';
+            if (['ai-agents', 'neural', 'quantum', 'blockchain'].includes(name)) return 'ai';
+            if (['monitoring', 'alerts', 'logs', 'analytics'].includes(name)) return 'monitoring';
+            if (['deployment', 'infrastructure', 'containers', 'kubernetes'].includes(name)) return 'infrastructure';
+            if (['login', 'index', 'home'].includes(name)) return 'core';
+            
+            return 'other';
+        }
+
+        function getPageIcon(category, pageName) {
+            const icons = {
+                'admin': '👑', 'ai-agents': '🤖', 'monitoring': '📊', 'web_dashboard_ui': '🌐',
+                'settings': '⚙️', 'login': '🔐', 'security': '🛡️', 'developer_tools': '🛠️',
+                'designer': '🎨', 'quantum': '⚛️', 'neural': '🧠', 'blockchain': '⛓️',
+                'api-explorer': '🔍', 'deployment': '🚀', 'infrastructure': '🏗️',
+                'containers': '📦', 'kubernetes': '☸️', 'chat': '💬',
+                'collaboration': '🤝', 'notifications': '🔔'
+            };
+            
+            return icons[pageName] || icons[category] || '📄';
+        }
+
+        function displayPages(pages) {
+            const pagesGrid = document.getElementById('pages-grid');
+            
+            if (pages.length === 0) {
+                pagesGrid.innerHTML = '<p>No pages found in directory scan.</p>';
+                return;
+            }
+            
+            // Group pages by category
+            const categorized = {};
+            pages.forEach(page => {
+                const cat = page.category || 'other';
+                if (!categorized[cat]) categorized[cat] = [];
+                categorized[cat].push(page);
+            });
+            
+            // Sort categories
+            const sortedCategories = Object.keys(categorized).sort();
+            
+            pagesGrid.innerHTML = sortedCategories.map(category => {
+                const categoryPages = categorized[category];
+                return categoryPages.map(page => {
+                    const icon = getPageIcon(page.category, page.name);
+                    const authBadge = page.has_auth ? '🔐' : '🔓';
+                    
+                    return `
+                        <div class="page-card">
+                            <h3>${icon} ${authBadge} ${page.title || formatPageName(page.name)}
+                                <span class="category-badge category-${page.category}">${page.category}</span>
+                            </h3>
+                            <p>${page.description || `${page.title || page.name} page`}</p>
+                            <a href="${page.filename}" class="page-link">Open Page</a>
+                        </div>
+                    `;
+                }).join('');
+            }).join('');
+        }
+
+        function displayFallbackPages() {
+            const fallbackPages = [
+                { name: 'admin', title: 'Admin Portal', category: 'admin', icon: '👑' },
+                { name: 'ai-agents', title: 'AI Agents', category: 'ai', icon: '🤖' },
+                { name: 'monitoring', title: 'Monitoring', category: 'monitoring', icon: '📊' },
+                { name: 'web_dashboard_ui', title: 'Web Dashboard', category: 'core', icon: '🌐' },
+                { name: 'settings', title: 'Settings', category: 'admin', icon: '⚙️' },
+                { name: 'security', title: 'Security', category: 'security', icon: '🛡️' }
+            ];
+            
+            displayPages(fallbackPages.map(page => ({
+                ...page,
+                description: `${page.title} management interface`,
+                filename: `${page.name}.html`,
+                has_auth: true,
+                status: 'available'
+            })));
+        }
+
+        // Start authentication check when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(checkAuthentication, 100);
+        });
+
+        // Fallback timeout (keeping your original timeout logic)
         setTimeout(() => {
             if (document.getElementById('loading').style.display !== 'none') {
                 console.warn('⚠️ Authentication taking longer than expected...');
                 
-                // Show a different message
                 document.getElementById('loading').innerHTML = `
                     <div class="spinner"></div>
                     <p>Authentication is taking longer than expected...</p>
@@ -293,11 +492,39 @@
                 `;
             }
         }, 10000); // 10 seconds
+
+        // Keep your original event system for compatibility
+        document.addEventListener('cspAuthReady', (event) => {
+            console.log('🎉 Page authenticated and ready:', event.detail);
+            
+            // Page-specific initialization can go here
+            if (typeof onAuthReady === 'function') {
+                onAuthReady(event.detail);
+            }
+        });
+        
+        document.addEventListener('cspAuthError', (event) => {
+            console.error('❌ Authentication error:', event.detail);
+            
+            // Page-specific error handling
+            if (typeof onAuthError === 'function') {
+                onAuthError(event.detail);
+            }
+        });
+        
+        document.addEventListener('cspSessionExpired', (event) => {
+            console.warn('⏰ Session expired:', event.detail);
+            
+            // Page-specific session expiry handling
+            if (typeof onSessionExpired === 'function') {
+                onSessionExpired(event.detail);
+            }
+        });
     </script>
-</body>
-    <!-- Authentication Event Handlers -->
+
+    <!-- Keep your original authentication event handlers for compatibility -->
     <script>
-        // Show loading indicator while auth initializes
+        // Show loading indicator while auth initializes (keeping your original logic)
         document.addEventListener('DOMContentLoaded', () => {
             if (!window.location.pathname.includes('login.html')) {
                 const loader = document.createElement('div');
@@ -323,35 +550,6 @@
                 setTimeout(removeLoader, 10000);
             }
         });
-        
-        // Authentication ready event
-        document.addEventListener('cspAuthReady', (event) => {
-            console.log('🎉 Page authenticated and ready:', event.detail);
-            document.body.classList.add('auth-protected');
-            
-            // Page-specific initialization can go here
-            if (typeof onAuthReady === 'function') {
-                onAuthReady(event.detail);
-            }
-        });
-        
-        // Authentication error event
-        document.addEventListener('cspAuthError', (event) => {
-            console.error('❌ Authentication error:', event.detail);
-            
-            // Page-specific error handling
-            if (typeof onAuthError === 'function') {
-                onAuthError(event.detail);
-            }
-        });
-        
-        // Session expired event
-        document.addEventListener('cspSessionExpired', (event) => {
-            console.warn('⏰ Session expired:', event.detail);
-            
-            // Page-specific session expiry handling
-            if (typeof onSessionExpired === 'function') {
-                onSessionExpired(event.detail);
-            }
-        });
     </script>
+</body>
+</html>

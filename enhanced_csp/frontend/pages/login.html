@@ -240,13 +240,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         const redirectUrl = urlParams.get('redirect');
 
-        // Check if already logged in (optional - remove if you don't want auto-redirect)
-        const currentUser = localStorage.getItem('csp_current_user');
-        if (currentUser) {
-            // Already logged in - you can uncomment the line below if you want auto-redirect
-            // window.location.href = 'http://localhost:3000/pages/index.html';
-        }
-
         // Demo user click handlers
         demoUsers.forEach(demoUser => {
             demoUser.addEventListener('click', () => {
@@ -336,7 +329,7 @@
                 destination = 'http://localhost:3000/pages/index.html';
             }
             
-            console.log('Redirecting to:', destination);
+            console.log('🔐 Login successful! Redirecting to:', destination);
             
             setTimeout(() => {
                 window.location.href = destination;
@@ -361,9 +354,9 @@
             }
         });
 
-        console.log('🔐 Simple CSP Login System Ready');
+        console.log('🔐 CSP Login System Ready - NO AUTH PROTECTION ON LOGIN PAGE');
         console.log('👤 Available users:', Object.keys(users));
-        console.log('🔗 Redirect parameter:', redirectUrl || 'none');
+        console.log('🔗 Redirect parameter:', redirectUrl || 'default: /pages/index.html');
         
         // Override fetch for auth validation to work without backend
         const originalFetch = window.fetch;
@@ -401,6 +394,5 @@
             return originalFetch.apply(this, arguments);
         };
     </script>
-    <script>console.log("📄 Login page loaded - no auth protection needed");</script>
 </body>
 </html>
