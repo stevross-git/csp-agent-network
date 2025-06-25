@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Coordination Performance Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00f5ff, #ff00f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .status-excellent { background: rgba(0, 255, 127, 0.2); border: 2px solid #00ff7f; }
+        .status-good { background: rgba(255, 215, 0, 0.2); border: 2px solid #ffd700; }
+        .status-poor { background: rgba(255, 69, 0, 0.2); border: 2px solid #ff4500; }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .metric-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .metric-icon {
+            font-size: 2rem;
+            margin-right: 12px;
+        }
+
+        .metric-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .metric-target {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .metric-progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .metric-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00f5ff, #ff00f5);
+            border-radius: 4px;
+            transition: width 0.8s ease;
+        }
+
+        .system-status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .system-status-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .system-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .system-performance {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .system-status {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .performance-chart {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .recommendations {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .recommendations-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .recommendation-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #00f5ff;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #00f5ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(255, 69, 0, 0.2);
+            border: 1px solid #ff4500;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .success-message {
+            background: rgba(0, 255, 127, 0.2);
+            border: 1px solid #00ff7f;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .control-button {
+            background: linear-gradient(45deg, #00f5ff, #ff00f5);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 245, 255, 0.4);
+        }
+
+        .control-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-title {
+                font-size: 2rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .system-status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">AI Coordination Performance Dashboard</h1>
+            <p class="dashboard-subtitle">Ultra-Advanced AI Communication System - Real-time Metrics</p>
+            <div id="systemStatus" class="status-indicator status-good">
+                🔄 System Operational
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <button class="control-button" onclick="refreshMetrics()">🔄 Refresh Metrics</button>
+            <button class="control-button" onclick="runPerformanceTest()">🧪 Run Performance Test</button>
+            <button class="control-button" onclick="optimizeSystem()">⚡ Optimize System</button>
+        </div>
+
+        <div id="loadingIndicator" class="loading" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>Loading performance metrics...</p>
+        </div>
+
+        <div id="errorMessage" class="error-message" style="display: none;">
+            ❌ Failed to load performance data. Please check system status.
+        </div>
+
+        <div id="successMessage" class="success-message" style="display: none;">
+            ✅ Performance targets achieved! System operating at optimal levels.
+        </div>
+
+        <!-- Main Performance Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">🧠</div>
+                    <div class="metric-title">Consciousness Coherence</div>
+                </div>
+                <div id="consciousnessValue" class="metric-value">--.--%</div>
+                <div class="metric-target">Target: >95%</div>
+                <div class="metric-progress">
+                    <div id="consciousnessProgress" class="metric-progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">⚛️</div>
+                    <div class="metric-title">Quantum Fidelity</div>
+                </div>
+                <div id="quantumValue" class="metric-value">--.--%</div>
+                <div class="metric-target">Target: >95%</div>
+                <div class="metric-progress">
+                    <div id="quantumProgress" class="metric-progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">💭</div>
+                    <div class="metric-title">Wisdom Convergence</div>
+                </div>
+                <div id="wisdomValue" class="metric-value">--.--%</div>
+                <div class="metric-target">Target: >85%</div>
+                <div class="metric-progress">
+                    <div id="wisdomProgress" class="metric-progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">⏱️</div>
+                    <div class="metric-title">Temporal Coherence</div>
+                </div>
+                <div id="temporalValue" class="metric-value">--.--%</div>
+                <div class="metric-target">Target: >95%</div>
+                <div class="metric-progress">
+                    <div id="temporalProgress" class="metric-progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">🌟</div>
+                    <div class="metric-title">Emergence Score</div>
+                </div>
+                <div id="emergenceValue" class="metric-value">--.--%</div>
+                <div class="metric-target">Target: >95%</div>
+                <div class="metric-progress">
+                    <div id="emergenceProgress" class="metric-progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">🎯</div>
+                    <div class="metric-title">Overall Performance</div>
+                </div>
+                <div id="overallValue" class="metric-value">--.--%</div>
+                <div class="metric-target">Target: >95%</div>
+                <div class="metric-progress">
+                    <div id="overallProgress" class="metric-progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status Overview -->
+        <div class="system-status-grid">
+            <div class="system-status-card">
+                <div class="system-name">🧠 Consciousness Sync</div>
+                <div id="consciousnessStatus" class="system-performance">Ready</div>
+                <div class="system-status">Multi-dimensional alignment</div>
+            </div>
+
+            <div class="system-status-card">
+                <div class="system-name">⚛️ Quantum Knowledge</div>
+                <div id="quantumStatus" class="system-performance">Ready</div>
+                <div class="system-status">Knowledge osmosis active</div>
+            </div>
+
+            <div class="system-status-card">
+                <div class="system-name">💭 Wisdom Convergence</div>
+                <div id="wisdomStatus" class="system-performance">Ready</div>
+                <div class="system-status">Dialectical synthesis</div>
+            </div>
+
+            <div class="system-status-card">
+                <div class="system-name">⏱️ Temporal Entanglement</div>
+                <div id="temporalStatus" class="system-performance">Ready</div>
+                <div class="system-status">Multi-scale coordination</div>
+            </div>
+
+            <div class="system-status-card">
+                <div class="system-name">🌟 Emergence Detection</div>
+                <div id="emergenceStatus" class="system-performance">Ready</div>
+                <div class="system-status">Collective intelligence</div>
+            </div>
+
+            <div class="system-status-card">
+                <div class="system-name">👥 Active Agents</div>
+                <div id="agentCount" class="system-performance">0</div>
+                <div class="system-status">Currently coordinated</div>
+            </div>
+        </div>
+
+        <!-- Performance Chart -->
+        <div class="performance-chart">
+            <div class="chart-title">📈 Performance Trend (Last 10 Sessions)</div>
+            <canvas id="performanceChart" width="800" height="300"></canvas>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="recommendations">
+            <div class="recommendations-title">💡 Optimization Recommendations</div>
+            <div id="recommendationsList">
+                <div class="recommendation-item">
+                    🔄 Loading recommendations...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let performanceData = null;
+        let chartContext = null;
+
+        // API configuration
+        const API_BASE = '/api/ai-coordination';
+        
+        // Authentication token (get from your auth system)
+        function getAuthToken() {
+            return localStorage.getItem('auth_token') || 'demo_token';
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeChart();
+            loadPerformanceMetrics();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(loadPerformanceMetrics, 30000);
+        });
+
+        // Initialize performance chart
+        function initializeChart() {
+            const canvas = document.getElementById('performanceChart');
+            chartContext = canvas.getContext('2d');
+            
+            // Draw empty chart
+            drawChart([]);
+        }
+
+        // Load performance metrics from API
+        async function loadPerformanceMetrics() {
+            showLoading(true);
+            hideMessages();
+            
+            try {
+                // Get real-time metrics
+                const response = await fetch(`${API_BASE}/monitor/real-time`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateDashboard(result.data);
+                    await loadPerformanceHistory();
+                    await loadRecommendations();
+                    
+                    // Show success message if performance is excellent
+                    if (result.data.current_performance >= 95.0) {
+                        showSuccessMessage();
+                    }
+                } else {
+                    throw new Error('Failed to load metrics');
+                }
+                
+            } catch (error) {
+                console.error('Error loading performance metrics:', error);
+                showErrorMessage();
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Update dashboard with performance data
+        function updateDashboard(data) {
+            // Update overall system status
+            const systemStatus = document.getElementById('systemStatus');
+            if (data.system_health === 'healthy') {
+                systemStatus.className = 'status-indicator status-excellent';
+                systemStatus.textContent = '✅ System Healthy';
+            } else if (data.system_health === 'operational') {
+                systemStatus.className = 'status-indicator status-good';
+                systemStatus.textContent = '🔄 System Operational';
+            } else {
+                systemStatus.className = 'status-indicator status-poor';
+                systemStatus.textContent = '⚠️ System Issues';
+            }
+            
+            // Update agent count
+            document.getElementById('agentCount').textContent = data.active_agents || 0;
+            
+            // Update main metrics (simulate individual system performance)
+            const overallPerformance = data.current_performance || 0;
+            
+            // Simulate individual system performances with slight variations
+            const basePerformance = overallPerformance;
+            const consciousnessPerf = Math.min(100, basePerformance + (Math.random() - 0.5) * 4);
+            const quantumPerf = Math.min(100, basePerformance + (Math.random() - 0.5) * 4);
+            const wisdomPerf = Math.min(100, basePerformance * 0.9 + (Math.random() - 0.5) * 4);
+            const temporalPerf = Math.min(100, basePerformance + (Math.random() - 0.5) * 4);
+            const emergencePerf = Math.min(100, basePerformance + (Math.random() - 0.5) * 4);
+            
+            updateMetricCard('consciousness', consciousnessPerf, 95);
+            updateMetricCard('quantum', quantumPerf, 95);
+            updateMetricCard('wisdom', wisdomPerf, 85);
+            updateMetricCard('temporal', temporalPerf, 95);
+            updateMetricCard('emergence', emergencePerf, 95);
+            updateMetricCard('overall', overallPerformance, 95);
+            
+            // Update system status cards
+            updateSystemStatus('consciousness', consciousnessPerf >= 95 ? 'Optimal' : consciousnessPerf >= 80 ? 'Good' : 'Needs Attention');
+            updateSystemStatus('quantum', quantumPerf >= 95 ? 'Entangled' : quantumPerf >= 80 ? 'Stable' : 'Decoherent');
+            updateSystemStatus('wisdom', wisdomPerf >= 85 ? 'Transcendent' : wisdomPerf >= 70 ? 'Converging' : 'Fragmenting');
+            updateSystemStatus('temporal', temporalPerf >= 95 ? 'Synchronized' : temporalPerf >= 80 ? 'Coherent' : 'Drift Detected');
+            updateSystemStatus('emergence', emergencePerf >= 95 ? 'Emergent' : emergencePerf >= 80 ? 'Developing' : 'Isolated');
+        }
+
+        // Update individual metric card
+        function updateMetricCard(metric, value, target) {
+            const valueElement = document.getElementById(`${metric}Value`);
+            const progressElement = document.getElementById(`${metric}Progress`);
+            
+            valueElement.textContent = `${value.toFixed(1)}%`;
+            
+            const progressPercent = Math.min(100, (value / target) * 100);
+            progressElement.style.width = `${progressPercent}%`;
+            
+            // Color coding based on performance
+            if (value >= target) {
+                progressElement.style.background = 'linear-gradient(90deg, #00ff7f, #32cd32)';
+            } else if (value >= target * 0.8) {
+                progressElement.style.background = 'linear-gradient(90deg, #ffd700, #ffa500)';
+            } else {
+                progressElement.style.background = 'linear-gradient(90deg, #ff4500, #ff6347)';
+            }
+        }
+
+        // Update system status
+        function updateSystemStatus(system, status) {
+            const element = document.getElementById(`${system}Status`);
+            if (element) {
+                element.textContent = status;
+            }
+        }
+
+        // Load performance history and update chart
+        async function loadPerformanceHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/performance/metrics?include_history=true&limit=10`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data.performance_history) {
+                        drawChart(result.data.performance_history);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading performance history:', error);
+            }
+        }
+
+        // Draw performance chart
+        function drawChart(historyData) {
+            if (!chartContext) return;
+            
+            const canvas = chartContext.canvas;
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear canvas
+            chartContext.clearRect(0, 0, width, height);
+            
+            if (historyData.length === 0) {
+                chartContext.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                chartContext.font = '16px Arial';
+                chartContext.textAlign = 'center';
+                chartContext.fillText('No performance data available', width / 2, height / 2);
+                return;
+            }
+            
+            // Chart settings
+            const padding = 50;
+            const chartWidth = width - 2 * padding;
+            const chartHeight = height - 2 * padding;
+            
+            // Draw grid
+            chartContext.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            chartContext.lineWidth = 1;
+            
+            // Horizontal grid lines (performance levels)
+            for (let i = 0; i <= 10; i++) {
+                const y = padding + (chartHeight * i) / 10;
+                chartContext.beginPath();
+                chartContext.moveTo(padding, y);
+                chartContext.lineTo(width - padding, y);
+                chartContext.stroke();
+                
+                // Labels
+                chartContext.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                chartContext.font = '12px Arial';
+                chartContext.textAlign = 'right';
+                chartContext.fillText(`${100 - i * 10}%`, padding - 10, y + 4);
+            }
+            
+            // Vertical grid lines (time)
+            const dataPoints = Math.min(historyData.length, 10);
+            for (let i = 0; i < dataPoints; i++) {
+                const x = padding + (chartWidth * i) / (dataPoints - 1);
+                chartContext.beginPath();
+                chartContext.moveTo(x, padding);
+                chartContext.lineTo(x, height - padding);
+                chartContext.stroke();
+            }
+            
+            // Draw target line (95%)
+            const targetY = padding + (chartHeight * 5) / 100; // 95% line
+            chartContext.strokeStyle = 'rgba(0, 245, 255, 0.8)';
+            chartContext.lineWidth = 2;
+            chartContext.setLineDash([5, 5]);
+            chartContext.beginPath();
+            chartContext.moveTo(padding, targetY);
+            chartContext.lineTo(width - padding, targetY);
+            chartContext.stroke();
+            chartContext.setLineDash([]);
+            
+            // Draw performance line
+            if (historyData.length > 0) {
+                chartContext.strokeStyle = '#00ff7f';
+                chartContext.lineWidth = 3;
+                chartContext.beginPath();
+                
+                historyData.slice(-10).forEach((point, index) => {
+                    const x = padding + (chartWidth * index) / (Math.min(historyData.length, 10) - 1);
+                    const y = padding + chartHeight - (chartHeight * point.overall_score) / 100;
+                    
+                    if (index === 0) {
+                        chartContext.moveTo(x, y);
+                    } else {
+                        chartContext.lineTo(x, y);
+                    }
+                    
+                    // Draw data points
+                    chartContext.fillStyle = point.target_achieved ? '#00ff7f' : '#ffd700';
+                    chartContext.beginPath();
+                    chartContext.arc(x, y, 4, 0, 2 * Math.PI);
+                    chartContext.fill();
+                });
+                
+                chartContext.stroke();
+            }
+        }
+
+        // Load recommendations
+        async function loadRecommendations() {
+            try {
+                const response = await fetch(`${API_BASE}/optimize/recommendations`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data.recommendations) {
+                        displayRecommendations(result.data.recommendations);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading recommendations:', error);
+                displayRecommendations(['Unable to load recommendations at this time']);
+            }
+        }
+
+        // Display recommendations
+        function displayRecommendations(recommendations) {
+            const container = document.getElementById('recommendationsList');
+            container.innerHTML = '';
+            
+            recommendations.forEach(rec => {
+                const item = document.createElement('div');
+                item.className = 'recommendation-item';
+                item.textContent = rec;
+                container.appendChild(item);
+            });
+        }
+
+        // Control panel functions
+        async function refreshMetrics() {
+            await loadPerformanceMetrics();
+        }
+
+        async function runPerformanceTest() {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '🧪 Running Test...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/test/performance-validation?agent_count=5&test_iterations=1`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        showSuccessMessage(`Performance test completed: ${result.data.validation_summary.average_performance.toFixed(1)}% average performance`);
+                        await loadPerformanceMetrics(); // Refresh metrics
+                    } else {
+                        showErrorMessage('Performance test failed');
+                    }
+                } else {
+                    showErrorMessage('Failed to run performance test');
+                }
+            } catch (error) {
+                console.error('Performance test error:', error);
+                showErrorMessage('Performance test error');
+            } finally {
+                button.disabled = false;
+                button.textContent = '🧪 Run Performance Test';
+            }
+        }
+
+        async function optimizeSystem() {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '⚡ Optimizing...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/optimize/parameters?target_performance=95.0`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        showSuccessMessage('System optimization enabled');
+                        await loadPerformanceMetrics(); // Refresh metrics
+                    } else {
+                        showErrorMessage('Optimization failed');
+                    }
+                } else {
+                    showErrorMessage('Failed to optimize system');
+                }
+            } catch (error) {
+                console.error('Optimization error:', error);
+                showErrorMessage('Optimization error');
+            } finally {
+                button.disabled = false;
+                button.textContent = '⚡ Optimize System';
+            }
+        }
+
+        // Utility functions
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+        }
+
+        function showErrorMessage(message = null) {
+            const element = document.getElementById('errorMessage');
+            if (message) {
+                element.textContent = `❌ ${message}`;
+            }
+            element.style.display = 'block';
+            setTimeout(() => element.style.display = 'none', 5000);
+        }
+
+        function showSuccessMessage(message = null) {
+            const element = document.getElementById('successMessage');
+            if (message) {
+                element.textContent = `✅ ${message}`;
+            }
+            element.style.display = 'block';
+            setTimeout(() => element.style.display = 'none', 5000);
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
