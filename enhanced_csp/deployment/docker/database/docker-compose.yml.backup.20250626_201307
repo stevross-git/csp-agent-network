@@ -1,0 +1,532 @@
+# docker-compose.yml - Complete Database Setup for Enhanced CSP Project
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # PRIMARY DATABASE - POSTGRESQL
+  # ==========================================================================
+  
+  postgres:
+    image: postgres:15-alpine
+    container_name: csp_postgres
+    environment:
+      POSTGRES_DB: csp_visual_designer
+      POSTGRES_USER: csp_user
+      POSTGRES_PASSWORD: csp_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/pgdata
+      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/backups:/backups
+    ports:
+      - "5432:5432"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U csp_user -d csp_visual_designer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      postgres 
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+
+  # ==========================================================================
+  # CACHE & SESSION STORE - REDIS
+  # ==========================================================================
+  
+  redis:
+    image: redis:7-alpine
+    container_name: csp_redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - redis_data:/data
+      - ./database/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    sysctls:
+      - net.core.somaxconn=1024
+
+  # ==========================================================================
+  # AI MODELS DATABASE - DEDICATED POSTGRES INSTANCE
+  # ==========================================================================
+  
+  postgres_ai_models:
+    image: postgres:15-alpine
+    container_name: csp_ai_models_db
+    environment:
+      POSTGRES_DB: ai_models_db
+      POSTGRES_USER: ai_models_user
+      POSTGRES_PASSWORD: ai_models_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_ai_models_data:/var/lib/postgresql/data/pgdata
+      - ./database/ai_models_init:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_models_user -d ai_models_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # MONGODB - FOR DOCUMENT STORAGE (OPTIONAL)
+  # ==========================================================================
+  
+  mongodb:
+    image: mongo:7
+    container_name: csp_mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: csp_mongo_user
+      MONGO_INITDB_ROOT_PASSWORD: csp_mongo_password
+      MONGO_INITDB_DATABASE: csp_documents
+    volumes:
+      - mongodb_data:/data/db
+      - ./database/mongodb/init:/docker-entrypoint-initdb.d
+    ports:
+      - "27017:27017"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # ==========================================================================
+  # ELASTICSEARCH - FOR SEARCH & ANALYTICS (OPTIONAL)
+  # ==========================================================================
+  
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: csp_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.name=csp-cluster
+      - node.name=csp-node-1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ==========================================================================
+  # TIMESERIES DATABASE - INFLUXDB
+  # ==========================================================================
+  
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: csp_influxdb
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: csp_admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: csp_influx_password
+      DOCKER_INFLUXDB_INIT_ORG: csp_org
+      DOCKER_INFLUXDB_INIT_BUCKET: csp_metrics
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: csp_admin_token_change_in_production
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    ports:
+      - "8086:8086"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # VECTOR DATABASES
+  # ==========================================================================
+  
+  # Chroma - Primary Vector Database for AI Embeddings
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: csp_chroma
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - CHROMA_SERVER_CORS_ALLOW_ORIGINS=["*"]
+      - ANONYMIZED_TELEMETRY=False
+    volumes:
+      - chroma_data:/chroma/chroma
+      - ./database/chroma/init:/chroma/init
+    ports:
+      - "8200:8000"  # Different port to avoid conflicts
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    command: uvicorn chromadb.app:app --host 0.0.0.0 --port 8000 --log-config log_config.yml
+
+  # Weaviate - Advanced Vector Database with GraphQL API
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.23.7
+    container_name: csp_weaviate
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai'
+      CLUSTER_HOSTNAME: 'node1'
+      OPENAI_APIKEY: '${OPENAI_API_KEY:-}'
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    ports:
+      - "8080:8080"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Qdrant - High-performance Vector Search Engine
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: csp_qdrant
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    volumes:
+      - qdrant_data:/qdrant/storage
+      - ./database/qdrant/config:/qdrant/config
+    ports:
+      - "6333:6333"  # HTTP API
+      - "6334:6334"  # gRPC API
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Milvus - Standalone Vector Database (Alternative option)
+  milvus-standalone:
+    image: milvusdb/milvus:v2.3.4
+    container_name: csp_milvus
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      - milvus_data:/var/lib/milvus
+      - ./database/milvus/configs:/milvus/configs
+    ports:
+      - "19530:19530"  # Milvus server port
+      - "9091:9091"    # Metrics port
+    networks:
+      - csp-network
+    depends_on:
+      - etcd
+      - minio
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    profiles:
+      - milvus  # Optional profile
+
+  # Supporting services for Milvus
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: csp_etcd
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - etcd_data:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    networks:
+      - csp-network
+    profiles:
+      - milvus
+
+  minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    container_name: csp_minio
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - minio_data:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - csp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    profiles:
+      - milvus
+
+  # Pinecone Alternative - pgvector (Vector extension for PostgreSQL)
+  postgres_vector:
+    image: pgvector/pgvector:pg15
+    container_name: csp_postgres_vector
+    environment:
+      POSTGRES_DB: vector_db
+      POSTGRES_USER: vector_user
+      POSTGRES_PASSWORD: vector_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_vector_data:/var/lib/postgresql/data/pgdata
+      - ./database/pgvector/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5434:5432"  # Different port
+    networks:
+      - csp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vector_user -d vector_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # DATABASE ADMINISTRATION TOOLS
+  # ==========================================================================
+  
+  # PostgreSQL Admin (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: csp_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@csp.com
+      PGADMIN_DEFAULT_PASSWORD: pgadmin_password
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./database/pgadmin/servers.json:/pgadmin4/servers.json
+    ports:
+      - "5050:80"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - postgres_ai_models
+
+  # Redis Admin (RedisInsight)
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    container_name: csp_redis_insight
+    volumes:
+      - redis_insight_data:/db
+    ports:
+      - "8001:8001"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  # MongoDB Admin (Mongo Express)
+  mongo-express:
+    image: mongo-express:latest
+    container_name: csp_mongo_express
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: csp_mongo_user
+      ME_CONFIG_MONGODB_ADMINPASSWORD: csp_mongo_password
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_BASICAUTH_USERNAME: mongo_admin
+      ME_CONFIG_BASICAUTH_PASSWORD: mongo_admin_password
+    ports:
+      - "8081:8081"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+
+  # ==========================================================================
+  # BACKUP SERVICE
+  # ==========================================================================
+  
+  backup-service:
+    image: postgres:15-alpine
+    container_name: csp_backup_service
+    environment:
+      PGPASSWORD: csp_password
+      AI_MODELS_PGPASSWORD: ai_models_password
+    volumes:
+      - ./database/backups:/backups
+      - ./database/scripts:/scripts
+    networks:
+      - csp-network
+    depends_on:
+      - postgres
+      - postgres_ai_models
+    restart: "no"
+    command: >
+      sh -c "
+        echo 'Setting up backup cron job...'
+        echo '0 2 * * * /scripts/backup.sh' > /etc/crontabs/root
+        crond -f
+      "
+
+  # ==========================================================================
+  # MONITORING & METRICS
+  # ==========================================================================
+  
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: csp_prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: csp_grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: grafana_admin_password
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3000:3000"
+    networks:
+      - csp-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+# =============================================================================
+# NETWORKS AND VOLUMES
+# =============================================================================
+
+networks:
+  csp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  # PostgreSQL volumes
+  postgres_data:
+    driver: local
+  postgres_ai_models_data:
+    driver: local
+  postgres_vector_data:
+    driver: local
+  
+  # Redis volume
+  redis_data:
+    driver: local
+  
+  # MongoDB volume
+  mongodb_data:
+    driver: local
+  
+  # Elasticsearch volume
+  elasticsearch_data:
+    driver: local
+  
+  # InfluxDB volumes
+  influxdb_data:
+    driver: local
+  influxdb_config:
+    driver: local
+  
+  # Vector Database volumes
+  chroma_data:
+    driver: local
+  weaviate_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  milvus_data:
+    driver: local
+  etcd_data:
+    driver: local
+  minio_data:
+    driver: local
+  
+  # Admin tool volumes
+  pgadmin_data:
+    driver: local
+  redis_insight_data:
+    driver: local
+  
+  # Monitoring volumes
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

@@ -26,6 +26,7 @@ class AdminPage extends BaseComponent {
     
     async loadDependencies() {
         // Check for required dependencies
+        
         if (!window.ApiClient) {
             console.warn('ApiClient not available - API calls will be mocked');
         }
@@ -43,12 +44,12 @@ class AdminPage extends BaseComponent {
     async loadSharedComponents() {
         // Load Toast system
         if (!window.toastSystem) {
-            await this.loadScript('../shared/Toast.js');
+            await this.loadScript('../js/shared/Toast.js');
         }
         
         // Load Modal system
         if (!window.Modal) {
-            await this.loadScript('../shared/Modal.js');
+            await this.loadScript('../js/shared/Modal.js');
         }
         
         log_info("Shared components loaded");
@@ -70,14 +71,14 @@ class AdminPage extends BaseComponent {
     
     async loadComponents() {
         try {
-            // Load admin-specific components
-            await this.loadScript('./components/AgentManagement/AgentGrid.js');
-            await this.loadScript('./components/AgentManagement/AgentCard.js');
-            await this.loadScript('./components/Dashboard/StatsGrid.js');
-            
+            // Load admin-specific components with absolute paths
+            await this.loadScript('/js/pages/admin/components/AgentManagement/AgentGrid.js');
+            await this.loadScript('/js/pages/admin/components/AgentManagement/AgentCard.js');
+            await this.loadScript('/js/pages/admin/components/StatsGrid.js');
+        
             // Initialize components based on current section
             await this.initializeComponents();
-            
+        
             log_info("Components loaded for admin");
         } catch (error) {
             log_error("Failed to load components: " + error.message);
@@ -128,14 +129,89 @@ class AdminPage extends BaseComponent {
         // Initialize stats grid if available
         const statsContainer = document.getElementById('dashboard-stats');
         if (statsContainer && window.StatsGrid) {
-            const statsGrid = new StatsGrid('dashboard-stats');
+            const statsGrid = new StatsGrid('dashboard-stats', {
+                autoRefresh: true,
+                refreshInterval: 30000,
+                // Callback functions instead of events
+                onStatRefresh: (data) => {
+                    if (data.statId === 'active-agents') {
+                        const activeCount = this.agentData.filter(a => a.status === 'active').length;
+                        statsGrid.updateStat('active-agents', { value: activeCount });
+                    }
+                    
+                    if (data.statId === 'total-tasks') {
+                        const totalTasks = this.agentData.reduce((sum, a) => sum + a.tasksCompleted, 0);
+                        statsGrid.updateStat('total-tasks', { value: totalTasks });
+                    }
+                },
+                onRefreshAll: () => {
+                    this.updateStatsGridData(statsGrid);
+                },
+                onAutoRefresh: () => {
+                    this.updateStatsGridData(statsGrid);
+                },
+                onStatClick: (data) => {
+                    console.log('Stat clicked:', data);
+                    // Handle stat card clicks here if needed
+                }
+            });
+            
             this.components.set('dashboardStats', statsGrid);
             await statsGrid.init();
+            
+            // Initial data load
+            this.updateStatsGridData(statsGrid);
         }
         
         // Populate tables
         this.populateRecentActivityTable();
         this.updateDashboardStats();
+    }
+
+    // Helper method to update stats grid data
+    updateStatsGridData(statsGrid) {
+    const activeAgents = this.agentData.filter(a => a.status === 'active').length;
+    const totalTasks = this.agentData.reduce((sum, a) => sum + a.tasksCompleted, 0);
+    const errorAgents = this.agentData.filter(a => a.status === 'error').length;
+
+    statsGrid.updateStats([
+        {
+            id: 'active-agents',
+            title: 'Active Agents',
+            value: activeAgents,
+            icon: '🤖',
+            color: 'var(--success)',
+            trend: null,
+            description: 'Currently running agents'
+        },
+        {
+            id: 'total-tasks',
+            title: 'Tasks Completed',
+            value: totalTasks,
+            icon: '✅',
+            color: 'var(--info)',
+            trend: null,
+            description: 'Total tasks processed'
+        },
+        {
+            id: 'system-health',
+            title: 'System Health',
+            value: errorAgents === 0 ? '100%' : `${Math.round((1 - errorAgents / this.agentData.length) * 100)}%`,
+            icon: errorAgents === 0 ? '⚡' : '⚠️',
+            color: errorAgents === 0 ? 'var(--success)' : 'var(--warning)',
+            trend: null,
+            description: 'System health status'
+        },
+        {
+            id: 'total-agents',
+            title: 'Total Agents',
+            value: this.agentData.length,
+            icon: '🔧',
+            color: 'var(--primary)',
+            trend: null,
+            description: 'All configured agents'
+        }
+    ]);
     }
     
     async initializeAgentManagement() {

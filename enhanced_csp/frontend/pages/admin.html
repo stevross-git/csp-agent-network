@@ -1377,29 +1377,281 @@
             <section id="ai-models" class="content-section">
                 <h2 style="color: var(--primary); margin-bottom: 2rem;">🧠 AI Models</h2>
                 
-                <!-- AI Models Dashboard -->
-                <div class="stats-grid mb-3">
-                    <div class="stat-card">
-                        <span class="stat-icon">🤖</span>
-                        <div class="stat-value">12</div>
-                        <div class="stat-label">Active Models</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-icon">⚡</span>
-                        <div class="stat-value">4</div>
-                        <div class="stat-label">High Performance</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-icon">💾</span>
-                        <div class="stat-value">2.4TB</div>
-                        <div class="stat-label">Total Storage</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-icon">🔥</span>
-                        <div class="stat-value">89%</div>
-                        <div class="stat-label">Avg Utilization</div>
-                    </div>
-                </div>
+                    <div class="stats-grid mb-3">
+        <div class="stat-card">
+            <span class="stat-icon">🤖</span>
+            <div class="stat-content">
+                <div class="stat-value">12</div>
+                <div class="stat-label">Active Models</div>
+                <div class="stat-change positive">↗️ +2 this week</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <span class="stat-icon">📊</span>
+            <div class="stat-content">
+                <div class="stat-value">4.2K</div>
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-change positive">↗️ +15% today</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <span class="stat-icon">⚡</span>
+            <div class="stat-content">
+                <div class="stat-value">1.8s</div>
+                <div class="stat-label">Avg Response</div>
+                <div class="stat-change neutral">→ Stable</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <span class="stat-icon">✅</span>
+            <div class="stat-content">
+                <div class="stat-value">98.9%</div>
+                <div class="stat-label">Success Rate</div>
+                <div class="stat-change positive">↗️ Excellent</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI Models Management Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🧠 Model Registry</h3>
+            <div class="card-actions">
+                <button id="add-model-btn" class="btn btn-primary">
+                    ➕ Add Model
+                </button>
+                <button id="load-all-models-btn" class="btn btn-secondary">
+                    📥 Load All
+                </button>
+                <button id="refresh-models-btn" class="btn btn-secondary">
+                    🔄 Refresh
+                </button>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Status</th>
+                        <th>Requests/Hour</th>
+                        <th>Avg Response Time</th>
+                        <th>Success Rate</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ai-models-tbody">
+                    <!-- Models will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Model Performance Chart -->
+    <div class="card mt-3">
+        <div class="card-header">
+            <h3>📈 Performance Overview</h3>
+        </div>
+        <div class="chart-container">
+            <div class="chart-placeholder">
+                <p>📊 Model performance charts would be displayed here</p>
+                <small>Integration with Chart.js or similar charting library recommended</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* AI Models specific styles */
+.stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-change {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.stat-change.positive { color: #28a745; }
+.stat-change.negative { color: #dc3545; }
+.stat-change.neutral { color: #6c757d; }
+
+.model-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.model-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.model-type {
+    font-size: 0.85rem;
+    color: #666;
+    background: #f8f9fa;
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.status-badge.active {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-badge.paused {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.status-badge.loading {
+    background-color: #cce7ff;
+    color: #004085;
+    border: 1px solid #b8d4ff;
+}
+
+.status-badge.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.metric-cell {
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    min-width: auto;
+}
+
+.chart-container {
+    padding: 2rem;
+}
+
+.chart-placeholder {
+    text-align: center;
+    padding: 3rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+.card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.data-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+    
+    .card-actions {
+        justify-content: center;
+    }
+    
+    .action-buttons {
+        justify-content: center;
+    }
+}
+</style>
 
                 <div class="card">
                     <h3>📊 Model Performance Overview</h3>

@@ -970,6 +970,575 @@ class DataTable extends BaseComponent {
     }
 }
 
+
+
+// =================================================================
+// DATA TABLE COMPONENT
+// =================================================================
+class DataTable {
+    constructor(containerId, options = {}) {
+        this.containerId = containerId;
+        this.options = {
+            selectable: false,
+            sortable: true,
+            filterable: false,
+            pagination: false,
+            pageSize: 10,
+            ...options
+        };
+        
+        this.data = [];
+        this.filteredData = [];
+        this.columns = [];
+        this.selectedRows = new Set();
+        this.sortColumn = null;
+        this.sortDirection = 'asc';
+        this.currentPage = 1;
+        
+        this.container = document.getElementById(containerId);
+        this.init();
+    }
+    
+    init() {
+        if (this.container) {
+            this.render();
+        }
+    }
+    
+    setData(data) {
+        this.data = data;
+        this.filteredData = [...data];
+        this.render();
+    }
+    
+    setColumns(columns) {
+        this.columns = columns;
+        this.render();
+    }
+    
+    render() {
+        if (!this.container) return;
+        
+        let html = '<div class="data-table-wrapper">';
+        
+        // Add filter if enabled
+        if (this.options.filterable) {
+            html += this.renderFilter();
+        }
+        
+        // Add table
+        html += '<table class="data-table">';
+        html += this.renderHeader();
+        html += this.renderBody();
+        html += '</table>';
+        
+        // Add pagination if enabled
+        if (this.options.pagination) {
+            html += this.renderPagination();
+        }
+        
+        html += '</div>';
+        
+        this.container.innerHTML = html;
+        this.setupEventListeners();
+    }
+    
+    renderFilter() {
+        return `
+            <div class="table-filter">
+                <input type="text" 
+                       class="filter-input" 
+                       placeholder="Search..." 
+                       onkeyup="this.closest('.data-table-wrapper').dispatchEvent(new CustomEvent('filter', {detail: this.value}))">
+            </div>
+        `;
+    }
+    
+    renderHeader() {
+        let html = '<thead><tr>';
+        
+        if (this.options.selectable) {
+            html += '<th><input type="checkbox" class="select-all"></th>';
+        }
+        
+        this.columns.forEach(column => {
+            const sortable = this.options.sortable && column.sortable !== false;
+            const sortClass = this.sortColumn === column.key ? `sorted-${this.sortDirection}` : '';
+            
+            html += `
+                <th class="${sortable ? 'sortable' : ''} ${sortClass}" 
+                    ${sortable ? `data-column="${column.key}"` : ''}>
+                    ${column.title || this.formatColumnTitle(column.key)}
+                    ${sortable ? '<span class="sort-indicator"></span>' : ''}
+                </th>
+            `;
+        });
+        
+        html += '</tr></thead>';
+        return html;
+    }
+    
+    renderBody() {
+        let html = '<tbody>';
+        
+        const dataToRender = this.options.pagination 
+            ? this.getPaginatedData() 
+            : this.filteredData;
+        
+        dataToRender.forEach((row, index) => {
+            const rowId = this.getRowId(row, index);
+            const selected = this.selectedRows.has(rowId);
+            
+            html += `<tr class="${selected ? 'selected' : ''}" data-row-id="${rowId}">`;
+            
+            if (this.options.selectable) {
+                html += `<td><input type="checkbox" class="row-select" ${selected ? 'checked' : ''}></td>`;
+            }
+            
+            this.columns.forEach(column => {
+                const value = row[column.key];
+                const formattedValue = this.formatCellValue(value, column, row);
+                html += `<td>${formattedValue}</td>`;
+            });
+            
+            html += '</tr>';
+        });
+        
+        html += '</tbody>';
+        return html;
+    }
+    
+    renderPagination() {
+        const totalPages = Math.ceil(this.filteredData.length / this.options.pageSize);
+        
+        if (totalPages <= 1) return '';
+        
+        let html = '<div class="table-pagination">';
+        
+        // Previous button
+        html += `<button class="page-btn" ${this.currentPage === 1 ? 'disabled' : ''} 
+                         onclick="this.closest('.data-table-wrapper').dispatchEvent(new CustomEvent('page', {detail: ${this.currentPage - 1}}))">
+                    Previous
+                 </button>`;
+        
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            html += `<button class="page-btn ${i === this.currentPage ? 'active' : ''}" 
+                             onclick="this.closest('.data-table-wrapper').dispatchEvent(new CustomEvent('page', {detail: ${i}}))">
+                        ${i}
+                     </button>`;
+        }
+        
+        // Next button
+        html += `<button class="page-btn" ${this.currentPage === totalPages ? 'disabled' : ''} 
+                         onclick="this.closest('.data-table-wrapper').dispatchEvent(new CustomEvent('page', {detail: ${this.currentPage + 1}}))">
+                    Next
+                 </button>`;
+        
+        html += '</div>';
+        return html;
+    }
+    
+    setupEventListeners() {
+        // Sort handlers
+        if (this.options.sortable) {
+            this.container.querySelectorAll('th.sortable').forEach(th => {
+                th.addEventListener('click', () => {
+                    const column = th.dataset.column;
+                    this.sort(column);
+                });
+            });
+        }
+        
+        // Selection handlers
+        if (this.options.selectable) {
+            const selectAll = this.container.querySelector('.select-all');
+            if (selectAll) {
+                selectAll.addEventListener('change', (e) => {
+                    this.selectAll(e.target.checked);
+                });
+            }
+            
+            this.container.querySelectorAll('.row-select').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const row = e.target.closest('tr');
+                    const rowId = row.dataset.rowId;
+                    this.selectRow(rowId, e.target.checked);
+                });
+            });
+        }
+        
+        // Filter handler
+        this.container.addEventListener('filter', (e) => {
+            this.filter(e.detail);
+        });
+        
+        // Pagination handler
+        this.container.addEventListener('page', (e) => {
+            this.goToPage(e.detail);
+        });
+    }
+    
+    sort(column) {
+        if (this.sortColumn === column) {
+            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortColumn = column;
+            this.sortDirection = 'asc';
+        }
+        
+        this.filteredData.sort((a, b) => {
+            const aVal = a[column];
+            const bVal = b[column];
+            
+            if (aVal < bVal) return this.sortDirection === 'asc' ? -1 : 1;
+            if (aVal > bVal) return this.sortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+        
+        this.render();
+    }
+    
+    filter(searchTerm) {
+        if (!searchTerm) {
+            this.filteredData = [...this.data];
+        } else {
+            this.filteredData = this.data.filter(row => {
+                return Object.values(row).some(value => 
+                    String(value).toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            });
+        }
+        
+        this.currentPage = 1;
+        this.render();
+    }
+    
+    selectRow(rowId, selected) {
+        if (selected) {
+            this.selectedRows.add(rowId);
+        } else {
+            this.selectedRows.delete(rowId);
+        }
+        
+        this.updateRowSelection(rowId, selected);
+    }
+    
+    selectAll(selected) {
+        this.selectedRows.clear();
+        
+        if (selected) {
+            this.filteredData.forEach((row, index) => {
+                const rowId = this.getRowId(row, index);
+                this.selectedRows.add(rowId);
+            });
+        }
+        
+        this.render();
+    }
+    
+    updateRowSelection(rowId, selected) {
+        const row = this.container.querySelector(`tr[data-row-id="${rowId}"]`);
+        if (row) {
+            row.classList.toggle('selected', selected);
+            const checkbox = row.querySelector('.row-select');
+            if (checkbox) {
+                checkbox.checked = selected;
+            }
+        }
+    }
+    
+    goToPage(page) {
+        const totalPages = Math.ceil(this.filteredData.length / this.options.pageSize);
+        
+        if (page >= 1 && page <= totalPages) {
+            this.currentPage = page;
+            this.render();
+        }
+    }
+    
+    getPaginatedData() {
+        const start = (this.currentPage - 1) * this.options.pageSize;
+        const end = start + this.options.pageSize;
+        return this.filteredData.slice(start, end);
+    }
+    
+    // Helper methods
+    getColumnCount() {
+        return this.columns ? this.columns.length : 0;
+    }
+    
+    getRowId(row, index) {
+        return row.id || row._id || index;
+    }
+    
+    formatColumnTitle(key) {
+        return key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+    }
+    
+    formatCellValue(value, column, row) {
+        if (column.formatter && typeof column.formatter === 'function') {
+            return column.formatter(value, row);
+        }
+        
+        if (value === null || value === undefined) {
+            return '<span class="null-value">—</span>';
+        }
+        
+        return String(value);
+    }
+    
+    // Public API
+    getSelectedRows() {
+        return Array.from(this.selectedRows);
+    }
+    
+    clearSelection() {
+        this.selectedRows.clear();
+        this.render();
+    }
+    
+    refresh() {
+        this.render();
+    }
+}
+
+// =================================================================
+// LOADING SPINNER COMPONENT
+// =================================================================
+class LoadingSpinner {
+    static show(containerId, message = 'Loading...') {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <div class="loading-message">${message}</div>
+                </div>
+            `;
+        }
+    }
+    
+    static hide(containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            const spinner = container.querySelector('.loading-spinner');
+            if (spinner) {
+                spinner.remove();
+            }
+        }
+    }
+}
+
+// Add shared component styles
+if (!document.querySelector('#shared-component-styles')) {
+    const style = document.createElement('style');
+    style.id = 'shared-component-styles';
+    style.textContent = `
+        /* Navigation Styles */
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            background: #1f2937;
+            color: white;
+        }
+        
+        .nav-brand a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .nav-toggle {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+        }
+        
+        .nav-toggle span {
+            width: 25px;
+            height: 3px;
+            background: white;
+            margin: 3px 0;
+            transition: 0.3s;
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav-link {
+            color: #d1d5db;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover,
+        .nav-link.active {
+            background: #374151;
+            color: white;
+        }
+        
+        /* Data Table Styles */
+        .data-table-wrapper {
+            overflow-x: auto;
+        }
+        
+        .table-filter {
+            margin-bottom: 15px;
+        }
+        
+        .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            width: 300px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .data-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            position: relative;
+        }
+        
+        .data-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .data-table th.sortable:hover {
+            background: #f3f4f6;
+        }
+        
+        .sort-indicator::after {
+            content: '↕';
+            position: absolute;
+            right: 8px;
+            opacity: 0.5;
+        }
+        
+        .data-table th.sorted-asc .sort-indicator::after {
+            content: '↑';
+            opacity: 1;
+        }
+        
+        .data-table th.sorted-desc .sort-indicator::after {
+            content: '↓';
+            opacity: 1;
+        }
+        
+        .data-table tr.selected {
+            background: #eff6ff;
+        }
+        
+        .table-pagination {
+            margin-top: 15px;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            background: #f3f4f6;
+        }
+        
+        .page-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Loading Spinner Styles */
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loading-message {
+            margin-top: 15px;
+            color: #6b7280;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-toggle {
+                display: flex;
+            }
+            
+            .nav-menu {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: #1f2937;
+                flex-direction: column;
+                padding: 20px;
+            }
+            
+            .nav-menu:not(.collapsed) {
+                display: flex;
+            }
+            
+            .filter-input {
+                width: 100%;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+
+
 // =================================================================
 // INITIALIZE GLOBAL INSTANCES
 // =================================================================

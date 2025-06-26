@@ -1,0 +1,2 @@
+export DOCKER_COMPOSE_FILE='deployment/docker/database/docker-compose.yml'
+export COMPOSE_CMD='docker-compose'

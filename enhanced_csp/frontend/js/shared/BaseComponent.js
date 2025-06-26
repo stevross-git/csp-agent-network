@@ -1,4 +1,4 @@
-// js/shared/BaseComponent.js
+// js/shared/BaseComponent.js (Enhanced with EventEmitter)
 class BaseComponent {
     constructor(containerId, options = {}) {
         this.containerId = containerId;
@@ -13,10 +13,56 @@ class BaseComponent {
         this.eventListeners = [];
         this.components = new Map();
         
+        // EventEmitter functionality
+        this.events = new Map();
+        
         // Auto-initialize if requested
         if (this.options.autoInit) {
             this.init();
         }
+    }
+    
+    // EventEmitter methods
+    on(eventName, callback) {
+        if (!this.events.has(eventName)) {
+            this.events.set(eventName, []);
+        }
+        this.events.get(eventName).push(callback);
+        return this;
+    }
+    
+    off(eventName, callback) {
+        if (this.events.has(eventName)) {
+            const callbacks = this.events.get(eventName);
+            const index = callbacks.indexOf(callback);
+            if (index > -1) {
+                callbacks.splice(index, 1);
+            }
+        }
+        return this;
+    }
+    
+    emit(eventName, ...args) {
+        if (this.events.has(eventName)) {
+            const callbacks = this.events.get(eventName);
+            callbacks.forEach(callback => {
+                try {
+                    callback.apply(this, args);
+                } catch (error) {
+                    console.error(`Error in event handler for '${eventName}':`, error);
+                }
+            });
+        }
+        return this;
+    }
+    
+    once(eventName, callback) {
+        const onceWrapper = (...args) => {
+            this.off(eventName, onceWrapper);
+            callback.apply(this, args);
+        };
+        this.on(eventName, onceWrapper);
+        return this;
     }
     
     async init() {
@@ -65,54 +111,6 @@ class BaseComponent {
     onError(error) {
         // Override in subclasses for error handling
         console.error(`${this.constructor.name} error:`, error);
-        
-        // Show user-friendly error message
-        if (window.toastSystem) {
-            window.toastSystem.error(`Component initialization failed: ${error.message}`);
-        }
-    }
-    
-    // Helper method to load external scripts
-    async loadScript(src) {
-        return new Promise((resolve, reject) => {
-            // Check if script is already loaded
-            const existingScript = document.querySelector(`script[src="${src}"]`);
-            if (existingScript) {
-                resolve();
-                return;
-            }
-            
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = () => resolve();
-            script.onerror = (error) => {
-                console.error(`Failed to load script: ${src}`, error);
-                reject(new Error(`Failed to load script: ${src}`));
-            };
-            document.head.appendChild(script);
-        });
-    }
-    
-    // Helper method to load CSS files
-    async loadCSS(href) {
-        return new Promise((resolve, reject) => {
-            // Check if CSS is already loaded
-            const existingLink = document.querySelector(`link[href="${href}"]`);
-            if (existingLink) {
-                resolve();
-                return;
-            }
-            
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = href;
-            link.onload = () => resolve();
-            link.onerror = (error) => {
-                console.error(`Failed to load CSS: ${href}`, error);
-                reject(new Error(`Failed to load CSS: ${href}`));
-            };
-            document.head.appendChild(link);
-        });
     }
     
     // Event listener management
@@ -188,58 +186,41 @@ class BaseComponent {
         return this.container ? this.container.querySelectorAll(selector) : [];
     }
     
-    // Clean up resources
+    // Load external scripts
+    loadScript(src) {
+        return new Promise((resolve, reject) => {
+            if (document.querySelector(`script[src="${src}"]`)) {
+                resolve();
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+    
+    // Cleanup
     destroy() {
-        // Remove event listeners
+        // Remove all event listeners
         this.eventListeners.forEach(({ element, event, handler, options }) => {
             element.removeEventListener(event, handler, options);
         });
         this.eventListeners = [];
         
+        // Clear custom events
+        this.events.clear();
+        
         // Destroy child components
         this.components.forEach(component => {
-            if (component && typeof component.destroy === 'function') {
+            if (component.destroy) {
                 component.destroy();
             }
         });
         this.components.clear();
         
-        // Clean up container
-        if (this.container) {
-            this.container.innerHTML = '';
-        }
-        
         this.isInitialized = false;
-        this.onDestroy();
-    }
-    
-    onDestroy() {
-        // Override in subclasses for cleanup logic
-        console.log(`${this.constructor.name} destroyed`);
     }
 }
-
-// Global helper functions for logging
-window.log_info = function(message) {
-    if (console && console.log) {
-        console.log(`[INFO] ${message}`);
-    }
-};
-
-window.log_error = function(message) {
-    if (console && console.error) {
-        console.error(`[ERROR] ${message}`);
-    }
-};
-
-window.log_success = function(message) {
-    if (console && console.log) {
-        console.log(`[SUCCESS] ✅ ${message}`);
-    }
-};
-
-window.log_warning = function(message) {
-    if (console && console.warn) {
-        console.warn(`[WARNING] ⚠️ ${message}`);
-    }
-};
