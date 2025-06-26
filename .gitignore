@@ -112,7 +112,7 @@ enhanced_csp/backend/api/endpoints/__pycache__/ai_coordination_monitoring.cpytho
 enhanced_csp/anydesk-7.0.0-amd64.tar.gz
 enhanced_csp/backups/=1.3.0
 enhanced_csp/backups/=1.11.0
-enhanced_csp/backups/=3.1
+enhanced_csp/backups/**
 enhanced_csp/backups/add_monitoring_script.sh
 enhanced_csp/backups/debug-auth-loop.sh
 enhanced_csp/backups/debug-login-loop.sh
@@ -130,6 +130,10 @@ enhanced_csp/backups/production_deployment_script.sh
 enhanced_csp/backups/quick_cors_fix.sh
 enhanced_csp/backups/remove_duplicate_cors.py
 enhanced_csp/backups/setup_local_msal.sh
-enhanced_csp/backups/setup-azure-ad.sh
+enhanced_csp/backups/**
 enhanced_csp/backups/update_redirects.sh
 enhanced_csp/backups/verify-auth-deployment.sh
+enhanced_csp/backups/azure-quickstart/**
+frontend/azure-quickstart
+frontend/azure-quickstart/node_modules
+frontend/azure-quickstart/node_modules/**
