@@ -1033,6 +1033,7 @@
             <button class="nav-toggle" onclick="toggleNavigation()">☰</button>
         </div>
         
+        
         <div class="nav-content">
             <div class="nav-category">
                 <div class="category-header">System Overview</div>
@@ -1565,6 +1566,39 @@
                 console.log('✅ Enhanced Admin portal initialized with all original features');
             }
 
+            function showSection(sectionId) {
+    // Hide all sections
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => {
+        section.classList.remove('active');
+    });
+
+    // Show selected section
+    const selectedSection = document.getElementById(sectionId);
+    if (selectedSection) {
+        selectedSection.classList.add('active');
+    }
+
+    // Update navigation
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+        item.removeAttribute('aria-current');
+    });
+
+    const activeNavItem = document.querySelector(`[data-section="${sectionId}"]`);
+    if (activeNavItem) {
+        activeNavItem.classList.add('active');
+        activeNavItem.setAttribute('aria-current', 'page');
+    }
+
+    // Initialize specific sections if needed
+    if (sectionId === 'agents') {
+        renderAgents();
+        updateAgentStats();
+    }
+}
+
             loadSampleData() {
                 // Load agents from localStorage or use defaults
                 const storedAgents = localStorage.getItem('csp_agents');
@@ -1822,3 +1856,6 @@
         ]
     }
 ];
+    </script>
+</body>     
+</html>
