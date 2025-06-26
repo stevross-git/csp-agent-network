@@ -1,0 +1,3409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CSP Admin Portal - AI-to-AI Communication Platform</title>
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+    <style>
+        /* Enhanced Admin Portal Styles */
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --border: #e2e8f0;
+            --text: #334155;
+            --text-muted: #64748b;
+            --bg-card: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Mobile Toggle Button */
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem;
+            cursor: pointer;
+            font-size: 1.25rem;
+            box-shadow: var(--shadow);
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-card);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .admin-badge {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .emergency-btn {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+        .emergency-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Main Container */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-card);
+            box-shadow: var(--shadow);
+            overflow-y: auto;
+            transition: var(--transition);
+            z-index: 90;
+        }
+
+        .nav-section {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-section h3 {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: var(--light);
+            color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .nav-item.active .nav-icon {
+            transform: scale(1.1);
+        }
+
+        .nav-icon {
+            font-size: 1.25rem;
+            transition: var(--transition);
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--light);
+        }
+
+        .content-section {
+            display: none;
+            padding: 2rem;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--bg-card), #f1f5f9);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border: 1px solid var(--border);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Agent Management Specific Styles */
+        .agent-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0;
+        }
+
+        .agent-tab {
+            padding: 1rem 1.5rem;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: var(--transition);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .agent-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: var(--light);
+        }
+
+        .agent-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .search-filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            width: 250px;
+            transition: var(--transition);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1rem;
+            z-index: 1;
+        }
+
+        .filter-select {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: white;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .agent-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .agent-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .agent-info h4 {
+            color: var(--primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .agent-type {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .agent-type.autonomous {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .agent-type.collaborative {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info);
+        }
+
+        .agent-type.specialized {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .agent-type.monitoring {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .agent-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-indicator.active {
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.paused {
+            background: var(--warning);
+        }
+
+        .status-indicator.stopped {
+            background: var(--danger);
+        }
+
+        .status-indicator.error {
+            background: var(--danger);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .agent-description {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .agent-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 0.5rem;
+            background: var(--light);
+            border-radius: 6px;
+        }
+
+        .metric-value {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .agent-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .agent-actions .btn {
+            flex: 1;
+            justify-content: center;
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .priority-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-critical {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+        }
+
+        .priority-high {
+            background: rgba(245, 158, 11, 0.9);
+            color: white;
+        }
+
+        .priority-normal {
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+        }
+
+        .priority-low {
+            background: rgba(107, 114, 128, 0.9);
+            color: white;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: white;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            resize: vertical;
+            min-height: 100px;
+            transition: var(--transition);
+        }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-checkbox input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-20px);
+            animation: modalSlideUp 0.3s ease-out;
+        }
+
+        @keyframes modalSlideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--light);
+            color: var(--text);
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .data-table th {
+            background: var(--light);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table tr:hover {
+            background: var(--light);
+        }
+
+        /* Alert Styles */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .mobile-toggle {
+                display: block;
+        ];
+
+        // Agent management state
+        let agents = [...sampleAgents];
+        let currentFilter = 'all';
+        let currentAgentType = 'all';
+
+        // Initialize localStorage for agent persistence
+        function initializeAgentStorage() {
+            const storedAgents = localStorage.getItem('csp_agents');
+            if (storedAgents) {
+                try {
+                    agents = JSON.parse(storedAgents);
+                } catch (error) {
+                    console.warn('Failed to load agents from storage, using defaults');
+                    agents = [...sampleAgents];
+                }
+            } else {
+                // First time setup - save sample agents
+                saveAgents();
+            }
+        }
+
+        // Save agents to localStorage
+        function saveAgents() {
+            try {
+                localStorage.setItem('csp_agents', JSON.stringify(agents));
+            } catch (error) {
+                console.warn('Failed to save agents to storage');
+            }
+        }
+
+        // Initialize page
+        function initializePage() {
+            initializeAgentStorage();
+            renderAgents();
+            updateAgentStats();
+            
+            // Set up real-time updates
+            setInterval(() => {
+                updateAgentStats();
+                updateLastActivity();
+            }, 30000); // Update every 30 seconds
+        }
+
+        // Navigation functions
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Show selected section
+            const selectedSection = document.getElementById(sectionId);
+            if (selectedSection) {
+                selectedSection.classList.add('active');
+            }
+
+            // Update navigation
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                item.removeAttribute('aria-current');
+            });
+
+            const activeNavItem = document.querySelector(`[data-section="${sectionId}"]`);
+            if (activeNavItem) {
+                activeNavItem.classList.add('active');
+                activeNavItem.setAttribute('aria-current', 'page');
+            }
+
+            // Initialize agents section if selected
+            if (sectionId === 'agents') {
+                renderAgents();
+                updateAgentStats();
+            }
+        }
+
+        // Handle keyboard navigation
+        function handleNavKeydown(event, sectionId) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                showSection(sectionId);
+            }
+        }
+
+        // Toggle mobile sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (event) => {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // Agent Management Functions
+        function renderAgents() {
+            const grid = document.getElementById('agentsGrid');
+            if (!grid) return;
+
+            const filteredAgents = getFilteredAgents();
+            
+            if (filteredAgents.length === 0) {
+                grid.innerHTML = `
+                    <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                        <h3>🔍 No agents found</h3>
+                        <p>Try adjusting your filters or create a new agent.</p>
+                        <button class="btn btn-primary mt-2" onclick="openCreateAgentModal()">
+                            ➕ Create Agent
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filteredAgents.map(agent => `
+                <div class="agent-card" data-agent-id="${agent.id}" data-type="${agent.type}" data-status="${agent.status}">
+                    <div class="priority-badge priority-${agent.priority}">${agent.priority}</div>
+                    
+                    <div class="agent-header">
+                        <div class="agent-info">
+                            <h4>${agent.name}</h4>
+                            <span class="agent-type ${agent.type}">${getAgentTypeIcon(agent.type)} ${agent.type}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="agent-status">
+                        <span class="status-indicator ${agent.status}"></span>
+                        <span>${agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}</span>
+                        <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-muted);">
+                            ${agent.model}
+                        </span>
+                    </div>
+                    
+                    <div class="agent-description">
+                        ${agent.description}
+                    </div>
+                    
+                    <div class="agent-metrics">
+                        <div class="metric">
+                            <div class="metric-value">${agent.tasksCompleted}</div>
+                            <div class="metric-label">Tasks</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${agent.uptime}</div>
+                            <div class="metric-label">Uptime</div>
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+                        Last activity: ${agent.lastActivity}
+                    </div>
+                    
+                    <div class="agent-actions">
+                        <button class="btn btn-success" onclick="toggleAgentStatus('${agent.id}')" 
+                                title="${agent.status === 'active' ? 'Pause' : 'Start'} agent">
+                            ${agent.status === 'active' ? '⏸️' : '▶️'}
+                        </button>
+                        <button class="btn btn-primary" onclick="viewAgentDetails('${agent.id}')" title="View details">
+                            👁️
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewAgentLogs('${agent.id}')" title="View logs">
+                            📄
+                        </button>
+                        <button class="btn btn-warning" onclick="duplicateAgent('${agent.id}')" title="Duplicate">
+                            📋
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getAgentTypeIcon(type) {
+            const icons = {
+                'autonomous': '🧠',
+                'collaborative': '🤝',
+                'specialized': '⚡',
+                'monitoring': '👁️'
+            };
+            return icons[type] || '🤖';
+        }
+
+        function getFilteredAgents() {
+            return agents.filter(agent => {
+                // Type filter
+                if (currentAgentType !== 'all' && agent.type !== currentAgentType) {
+                    return false;
+                }
+                
+                // Search filter
+                const searchTerm = document.getElementById('agentSearch')?.value.toLowerCase() || '';
+                if (searchTerm && !agent.name.toLowerCase().includes(searchTerm) && 
+                    !agent.description.toLowerCase().includes(searchTerm) && 
+                    !agent.id.toLowerCase().includes(searchTerm)) {
+                    return false;
+                }
+                
+                // Status filter
+                const statusFilter = document.getElementById('statusFilter')?.value || '';
+                if (statusFilter && agent.status !== statusFilter) {
+                    return false;
+                }
+                
+                // Model filter
+                const modelFilter = document.getElementById('modelFilter')?.value || '';
+                if (modelFilter && agent.model !== modelFilter) {
+                    return false;
+                }
+                
+                // Priority filter
+                const priorityFilter = document.getElementById('priorityFilter')?.value || '';
+                if (priorityFilter && agent.priority !== priorityFilter) {
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+
+        function filterAgentsByType(type) {
+            currentAgentType = type;
+            
+            // Update tab appearance
+            const tabs = document.querySelectorAll('.agent-tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.type === type) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            renderAgents();
+        }
+
+        function filterAgents() {
+            renderAgents();
+        }
+
+        function updateAgentStats() {
+            const activeAgents = agents.filter(a => a.status === 'active').length;
+            const pausedAgents = agents.filter(a => a.status === 'paused').length;
+            const totalTasks = agents.reduce((sum, a) => sum + a.tasksCompleted, 0);
+            
+            // Update dashboard stats
+            const statCards = document.querySelectorAll('.stat-card .stat-value');
+            if (statCards.length >= 4) {
+                statCards[0].textContent = activeAgents;
+                statCards[2].textContent = totalTasks.toLocaleString();
+            }
+            
+            // Update agent section stats
+            const agentStats = document.querySelector('#agents .stats-grid');
+            if (agentStats) {
+                const agentStatValues = agentStats.querySelectorAll('.stat-value');
+                if (agentStatValues.length >= 4) {
+                    agentStatValues[0].textContent = activeAgents;
+                    agentStatValues[1].textContent = pausedAgents;
+                    agentStatValues[2].textContent = agents.length;
+                    agentStatValues[3].textContent = totalTasks.toLocaleString();
+                }
+            }
+        }
+
+        function updateLastActivity() {
+            // Simulate real-time activity updates
+            agents.forEach(agent => {
+                if (agent.status === 'active' && Math.random() < 0.3) {
+                    const activities = [
+                        'Just now', '1 minute ago', '2 minutes ago', '3 minutes ago',
+                        '5 minutes ago', '10 minutes ago'
+                    ];
+                    agent.lastActivity = activities[Math.floor(Math.random() * activities.length)];
+                    
+                    // Occasionally increment task count
+                    if (Math.random() < 0.1) {
+                        agent.tasksCompleted++;
+                    }
+                }
+            });
+            
+            saveAgents();
+            renderAgents();
+        }
+
+        // Agent Control Functions
+        function toggleAgentStatus(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (agent) {
+                if (agent.status === 'active') {
+                    agent.status = 'paused';
+                    showNotification(`Agent "${agent.name}" has been paused`, 'warning');
+                } else {
+                    agent.status = 'active';
+                    agent.lastActivity = 'Just now';
+                    showNotification(`Agent "${agent.name}" has been started`, 'success');
+                }
+                saveAgents();
+                renderAgents();
+                updateAgentStats();
+            }
+        }
+
+        function viewAgentDetails(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            const modal = document.getElementById('agentDetailsModal');
+            const content = document.getElementById('agentDetailsContent');
+            
+            content.innerHTML = `
+                <div class="agent-details">
+                    <div class="flex items-center gap-2 mb-3">
+                        <h4 style="color: var(--primary); margin: 0;">${agent.name}</h4>
+                        <span class="agent-type ${agent.type}">${getAgentTypeIcon(agent.type)} ${agent.type}</span>
+                        <span class="priority-badge priority-${agent.priority}">${agent.priority}</span>
+                    </div>
+                    
+                    <div class="agent-status mb-3">
+                        <span class="status-indicator ${agent.status}"></span>
+                        <span style="font-weight: 600;">Status: ${agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+                        <div>
+                            <strong>Model:</strong> ${agent.model}<br>
+                            <strong>Created:</strong> ${agent.created}<br>
+                            <strong>Execution Mode:</strong> ${agent.executionMode}<br>
+                            <strong>Communication:</strong> ${agent.communicationChannel}
+                        </div>
+                        <div>
+                            <strong>Tasks Completed:</strong> ${agent.tasksCompleted}<br>
+                            <strong>Uptime:</strong> ${agent.uptime}<br>
+                            <strong>Max Tasks:</strong> ${agent.maxTasks}<br>
+                            <strong>Timeout:</strong> ${agent.timeout}s
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Description:</strong><br>
+                        <p style="margin-top: 0.5rem; color: var(--text-muted);">${agent.description}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Capabilities:</strong><br>
+                        <div style="margin-top: 0.5rem;">
+                            ${agent.capabilities.map(cap => `
+                                <span style="display: inline-block; background: var(--light); padding: 0.25rem 0.5rem; 
+                                      border-radius: 12px; font-size: 0.75rem; margin: 0.25rem 0.25rem 0 0;">
+                                    ${cap.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 mt-3">
+                        <button class="btn btn-primary" onclick="editAgent('${agent.id}')">✏️ Edit</button>
+                        <button class="btn btn-success" onclick="toggleAgentStatus('${agent.id}'); closeAgentDetailsModal();">
+                            ${agent.status === 'active' ? '⏸️ Pause' : '▶️ Start'}
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewAgentLogs('${agent.id}'); closeAgentDetailsModal();">📄 View Logs</button>
+                        <button class="btn btn-danger" onclick="deleteAgent('${agent.id}')">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+        }
+
+        function viewAgentLogs(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            const modal = document.getElementById('agentLogsModal');
+            const content = document.getElementById('agentLogsContent');
+            
+            content.innerHTML = `
+                <div class="agent-logs">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 style="color: var(--primary); margin: 0;">Logs for ${agent.name}</h4>
+                        <button class="btn btn-secondary" onclick="refreshAgentLogs('${agent.id}')">🔄 Refresh</button>
+                    </div>
+                    
+                    <div style="background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 8px; 
+                                font-family: 'Courier New', monospace; font-size: 0.875rem; max-height: 400px; overflow-y: auto;">
+                        ${agent.logs.map(log => `
+                            <div style="margin-bottom: 0.5rem;">
+                                <span style="color: #64748b;">[${log.time}]</span>
+                                <span style="color: ${getLogLevelColor(log.level)}; font-weight: 600;">${log.level}</span>
+                                <span style="margin-left: 1rem;">${log.message}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label">Filter by level:</label>
+                        <select class="filter-select" onchange="filterLogs('${agent.id}', this.value)">
+                            <option value="">All Levels</option>
+                            <option value="INFO">INFO</option>
+                            <option value="SUCCESS">SUCCESS</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+        }
+
+        function getLogLevelColor(level) {
+            const colors = {
+                'INFO': '#3b82f6',
+                'SUCCESS': '#10b981',
+                'WARNING': '#f59e0b',
+                'ERROR': '#ef4444'
+            };
+            return colors[level] || '#64748b';
+        }
+
+        function duplicateAgent(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            const newAgent = {
+                ...agent,
+                id: `agent-${Date.now()}`,
+                name: `${agent.name} (Copy)`,
+                status: 'stopped',
+                tasksCompleted: 0,
+                lastActivity: 'Never',
+                created: new Date().toISOString().split('T')[0],
+                logs: [
+                    { time: new Date().toLocaleTimeString(), level: 'INFO', message: 'Agent created as duplicate' }
+                ]
+            };
+            
+            agents.push(newAgent);
+            saveAgents();
+            renderAgents();
+            updateAgentStats();
+            
+            showNotification(`Agent "${newAgent.name}" has been created`, 'success');
+        }
+
+        function deleteAgent(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            if (confirm(`Are you sure you want to delete agent "${agent.name}"? This action cannot be undone.`)) {
+                agents = agents.filter(a => a.id !== agentId);
+                saveAgents();
+                renderAgents();
+                updateAgentStats();
+                closeAgentDetailsModal();
+                
+                showNotification(`Agent "${agent.name}" has been deleted`, 'danger');
+            }
+        }
+
+        function deployAllAgents() {
+            const stoppedAgents = agents.filter(a => a.status === 'stopped' || a.status === 'paused');
+            
+            if (stoppedAgents.length === 0) {
+                showNotification('All agents are already active', 'info');
+                return;
+            }
+            
+            stoppedAgents.forEach(agent => {
+                agent.status = 'active';
+                agent.lastActivity = 'Just now';
+            });
+            
+            saveAgents();
+            renderAgents();
+            updateAgentStats();
+            
+            showNotification(`${stoppedAgents.length} agents have been deployed`, 'success');
+        }
+
+        function refreshAgents() {
+            renderAgents();
+            updateAgentStats();
+            showNotification('Agent list refreshed', 'info');
+        }
+
+        // Modal functions
+        function openCreateAgentModal() {
+            const modal = document.getElementById('createAgentModal');
+            modal.classList.add('active');
+            document.getElementById('createAgentForm').reset();
+        }
+
+        function closeCreateAgentModal() {
+            const modal = document.getElementById('createAgentModal');
+            modal.classList.remove('active');
+        }
+
+        function closeAgentDetailsModal() {
+            const modal = document.getElementById('agentDetailsModal');
+            modal.classList.remove('active');
+        }
+
+        function closeAgentLogsModal() {
+            const modal = document.getElementById('agentLogsModal');
+            modal.classList.remove('active');
+        }
+
+        // Create agent form handler
+        function createAgent(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const capabilities = Array.from(formData.getAll('capabilities'));
+            
+            const newAgent = {
+                id: `agent-${Date.now()}`,
+                name: formData.get('name'),
+                type: formData.get('type'),
+                status: formData.get('start_immediately') ? 'active' : 'stopped',
+                model: formData.get('model'),
+                priority: formData.get('priority'),
+                description: formData.get('description') || 'No description provided',
+                capabilities: capabilities,
+                tasksCompleted: 0,
+                uptime: '0%',
+                lastActivity: formData.get('start_immediately') ? 'Just now' : 'Never',
+                executionMode: formData.get('execution_mode'),
+                communicationChannel: formData.get('communication_channel'),
+                maxTasks: parseInt(formData.get('max_tasks')),
+                timeout: parseInt(formData.get('timeout')),
+                autoRestart: formData.get('auto_restart') === 'on',
+                created: new Date().toISOString().split('T')[0],
+                logs: [
+                    { 
+                        time: new Date().toLocaleTimeString(), 
+                        level: 'INFO', 
+                        message: `Agent created with ${capabilities.length} capabilities` 
+                    }
+                ]
+            };
+            
+            agents.push(newAgent);
+            saveAgents();
+            renderAgents();
+            updateAgentStats();
+            closeCreateAgentModal();
+            
+            showNotification(`Agent "${newAgent.name}" has been created successfully`, 'success');
+        }
+
+        // Utility functions
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                z-index: 2000;
+                min-width: 300px;
+                animation: slideInRight 0.3s ease-out;
+            `;
+            
+            const icons = {
+                success: '✅',
+                danger: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            notification.innerHTML = `
+                <span>${icons[type] || 'ℹ️'}</span>
+                <div>${message}</div>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; margin-left: auto; cursor: pointer; font-size: 1.2rem;">&times;</button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // AI Models Management Functions
+        function configureModel(modelId) {
+            showNotification(`Opening configuration for ${modelId}`, 'info');
+            // Here you would open a configuration modal for the specific model
+        }
+
+        function viewModelLogs(modelId) {
+            showNotification(`Viewing logs for ${modelId}`, 'info');
+            // Here you would open a logs modal for the specific model
+        }
+
+        function activateModel(modelId) {
+            showNotification(`Activating model ${modelId}`, 'success');
+            // Here you would activate the model
+        }
+
+        function loadModel(modelId) {
+            showNotification(`Loading model ${modelId}`, 'info');
+            // Here you would load the model
+        }
+
+        function deleteModel(modelId) {
+            if (confirm(`Are you sure you want to delete model "${modelId}"? This action cannot be undone.`)) {
+                showNotification(`Model ${modelId} has been deleted`, 'danger');
+            }
+        }
+
+        function openAddModelModal() {
+            showNotification('Opening model addition wizard', 'info');
+            // Here you would open the add model modal
+        }
+
+        function loadAllModels() {
+            showNotification('Loading all available models', 'success');
+            // Here you would load all models
+        }
+
+        function refreshModels() {
+            showNotification('Model list refreshed', 'info');
+            // Here you would refresh the models list
+        }
+        function emergencyShutdown() {
+            if (confirm('⚠️ This will immediately stop all active agents and system processes. Are you sure?')) {
+                agents.forEach(agent => {
+                    if (agent.status === 'active') {
+                        agent.status = 'stopped';
+                        agent.lastActivity = 'Emergency stop';
+                    }
+                });
+                
+                saveAgents();
+                renderAgents();
+                updateAgentStats();
+                
+                showNotification('🚨 Emergency shutdown executed - all agents stopped', 'danger');
+            }
+        }
+
+        // Initialize page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializePage);
+
+        // Close modals when clicking outside
+        document.addEventListener('click', (event) => {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        // Keyboard navigation for modals
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                const activeModals = document.querySelectorAll('.modal.active');
+                activeModals.forEach(modal => {
+                    modal.classList.remove('active');
+                });
+            }
+        });
+
+        // Add CSS animation for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
+
+            .header {
+                padding: 1rem;
+                margin-left: 0;
+            }
+
+            .header h1 {
+                font-size: 1.25rem;
+            }
+
+            .header-controls {
+                gap: 0.5rem;
+            }
+
+            .admin-badge {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+
+            .emergency-btn {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                height: 100vh;
+                z-index: 200;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .content {
+                margin-left: 0;
+            }
+
+            .content-section {
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .agents-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .agent-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-filters {
+                flex-direction: column;
+            }
+
+            .search-box input {
+                width: 100%;
+            }
+
+            .agent-tabs {
+                flex-wrap: wrap;
+            }
+
+            .modal-content {
+                margin: 1rem;
+                max-width: calc(100vw - 2rem);
+            }
+        }
+
+        /* Additional utility classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .mb-0 { margin-bottom: 0; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mb-3 { margin-bottom: 1.5rem; }
+        .mt-0 { margin-top: 0; }
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+        .flex { display: flex; }
+        .flex-wrap { flex-wrap: wrap; }
+        .gap-1 { gap: 0.5rem; }
+        .gap-2 { gap: 1rem; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
+    </style>
+</head>
+<body>
+    <!-- Mobile Navigation Toggle -->
+    <button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Toggle navigation menu">
+        ☰
+    </button>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>🛡️ Enhanced CSP Admin Portal</h1>
+        <div class="header-controls">
+            <div class="admin-badge">
+                🔑 Administrator
+                <span id="admin-user">admin@csp.ai</span>
+            </div>
+            <button class="emergency-btn" onclick="emergencyShutdown()">🚨 Emergency Stop</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar" id="sidebar">
+            <div class="nav-section">
+                <h3>📊 System Overview</h3>
+                <div class="nav-item active" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="dashboard"
+                     aria-current="page"
+                     onclick="showSection('dashboard')"
+                     onkeydown="handleNavKeydown(event, 'dashboard')">
+                    <span class="nav-icon">🏠</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="monitoring"
+                     onclick="showSection('monitoring')"
+                     onkeydown="handleNavKeydown(event, 'monitoring')">
+                    <span class="nav-icon">📈</span>
+                    <span>System Monitoring</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="alerts"
+                     onclick="showSection('alerts')"
+                     onkeydown="handleNavKeydown(event, 'alerts')">
+                    <span class="nav-icon">🚨</span>
+                    <span>Alerts & Incidents</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <h3>👥 User Management</h3>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="users"
+                     onclick="showSection('users')"
+                     onkeydown="handleNavKeydown(event, 'users')">
+                    <span class="nav-icon">👤</span>
+                    <span>Users</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="roles"
+                     onclick="showSection('roles')"
+                     onkeydown="handleNavKeydown(event, 'roles')">
+                    <span class="nav-icon">🔐</span>
+                    <span>Roles & Permissions</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="auth"
+                     onclick="showSection('auth')"
+                     onkeydown="handleNavKeydown(event, 'auth')">
+                    <span class="nav-icon">🔑</span>
+                    <span>Authentication</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <h3>🤖 AI Management</h3>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="ai-models"
+                     onclick="showSection('ai-models')"
+                     onkeydown="handleNavKeydown(event, 'ai-models')">
+                    <span class="nav-icon">🧠</span>
+                    <span>AI Models</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="agents"
+                     onclick="showSection('agents')"
+                     onkeydown="handleNavKeydown(event, 'agents')">
+                    <span class="nav-icon">🤖</span>
+                    <span>Agent Management</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="protocols"
+                     onclick="showSection('protocols')"
+                     onkeydown="handleNavKeydown(event, 'protocols')">
+                    <span class="nav-icon">📋</span>
+                    <span>Protocol Templates</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <h3>⚙️ System Configuration</h3>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="settings"
+                     onclick="showSection('settings')"
+                     onkeydown="handleNavKeydown(event, 'settings')">
+                    <span class="nav-icon">⚙️</span>
+                    <span>System Settings</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="infrastructure"
+                     onclick="showSection('infrastructure')"
+                     onkeydown="handleNavKeydown(event, 'infrastructure')">
+                    <span class="nav-icon">🏗️</span>
+                    <span>Infrastructure</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="integrations"
+                     onclick="showSection('integrations')"
+                     onkeydown="handleNavKeydown(event, 'integrations')">
+                    <span class="nav-icon">🔗</span>
+                    <span>Integrations</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <h3>🔧 Maintenance</h3>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="backups"
+                     onclick="showSection('backups')"
+                     onkeydown="handleNavKeydown(event, 'backups')">
+                    <span class="nav-icon">💾</span>
+                    <span>Backups</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="logs"
+                     onclick="showSection('logs')"
+                     onkeydown="handleNavKeydown(event, 'logs')">
+                    <span class="nav-icon">📄</span>
+                    <span>System Logs</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="maintenance"
+                     onclick="showSection('maintenance')"
+                     onkeydown="handleNavKeydown(event, 'maintenance')">
+                    <span class="nav-icon">🔧</span>
+                    <span>Maintenance</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <h3>📄 Administration</h3>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="licenses"
+                     onclick="showSection('licenses')"
+                     onkeydown="handleNavKeydown(event, 'licenses')">
+                    <span class="nav-icon">📜</span>
+                    <span>Licenses</span>
+                </div>
+                <div class="nav-item" 
+                     role="button" 
+                     tabindex="0" 
+                     data-section="billing"
+                     onclick="showSection('billing')"
+                     onkeydown="handleNavKeydown(event, 'billing')">
+                    <span class="nav-icon">💳</span>
+                    <span>Billing</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content">
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="content-section active">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">📊 System Dashboard</h2>
+                
+                <!-- System Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-icon">🤖</span>
+                        <div class="stat-value">127</div>
+                        <div class="stat-label">Active Agents</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">📈</span>
+                        <div class="stat-value">98.5%</div>
+                        <div class="stat-label">System Uptime</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">⚡</span>
+                        <div class="stat-value">1,243</div>
+                        <div class="stat-label">Tasks Completed Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">👥</span>
+                        <div class="stat-value">42</div>
+                        <div class="stat-label">Active Users</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card">
+                    <h3>🕐 Recent System Activity</h3>
+                    <div class="alert alert-success">
+                        <span>✅</span>
+                        <div>All AI agents are operating normally. System health: Excellent</div>
+                    </div>
+                    <div class="alert alert-info">
+                        <span>ℹ️</span>
+                        <div>Scheduled maintenance completed successfully at 02:00 UTC</div>
+                    </div>
+                    <div class="alert alert-warning">
+                        <span>⚠️</span>
+                        <div>High memory usage detected on Server Node 3 - auto-scaling initiated</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Management Section -->
+            <div id="agents" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">🤖 Agent Management</h2>
+                
+                <!-- Agent Dashboard Overview -->
+                <div class="stats-grid mb-3">
+                    <div class="stat-card">
+                        <span class="stat-icon">🟢</span>
+                        <div class="stat-value">8</div>
+                        <div class="stat-label">Active Agents</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">⏸️</span>
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Paused Agents</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">📊</span>
+                        <div class="stat-value">8</div>
+                        <div class="stat-label">Total Agents</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">✅</span>
+                        <div class="stat-value">1,243</div>
+                        <div class="stat-label">Tasks Completed</div>
+                    </div>
+                </div>
+
+                <!-- Agent Type Tabs -->
+                <div class="agent-tabs">
+                    <button class="agent-tab active" onclick="filterAgentsByType('all')" data-type="all">
+                        🤖 All Agents
+                    </button>
+                    <button class="agent-tab" onclick="filterAgentsByType('autonomous')" data-type="autonomous">
+                        🧠 Autonomous
+                    </button>
+                    <button class="agent-tab" onclick="filterAgentsByType('collaborative')" data-type="collaborative">
+                        🤝 Collaborative
+                    </button>
+                    <button class="agent-tab" onclick="filterAgentsByType('specialized')" data-type="specialized">
+                        ⚡ Specialized
+                    </button>
+                    <button class="agent-tab" onclick="filterAgentsByType('monitoring')" data-type="monitoring">
+                        👁️ Monitoring
+                    </button>
+                </div>
+
+                <!-- Agent Controls -->
+                <div class="agent-controls">
+                    <div class="search-filters">
+                        <div class="search-box">
+                            <input type="text" id="agentSearch" placeholder="Search agents by name, description, or ID..." 
+                                   oninput="filterAgents()" aria-label="Search agents">
+                        </div>
+                        <select class="filter-select" id="statusFilter" onchange="filterAgents()" aria-label="Filter by status">
+                            <option value="">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="paused">Paused</option>
+                            <option value="stopped">Stopped</option>
+                            <option value="error">Error</option>
+                        </select>
+                        <select class="filter-select" id="modelFilter" onchange="filterAgents()" aria-label="Filter by model">
+                            <option value="">All Models</option>
+                            <option value="gpt-4">GPT-4</option>
+                            <option value="claude-3">Claude-3</option>
+                            <option value="gemini">Gemini</option>
+                        </select>
+                        <select class="filter-select" id="priorityFilter" onchange="filterAgents()" aria-label="Filter by priority">
+                            <option value="">All Priorities</option>
+                            <option value="critical">Critical</option>
+                            <option value="high">High</option>
+                            <option value="normal">Normal</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-1">
+                        <button class="btn btn-primary" onclick="openCreateAgentModal()">
+                            ➕ Create Agent
+                        </button>
+                        <button class="btn btn-success" onclick="deployAllAgents()">
+                            🚀 Deploy All
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshAgents()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Agents Grid -->
+                <div class="agents-grid" id="agentsGrid">
+                    <!-- Sample agents will be populated here by JavaScript -->
+                </div>
+            </div>
+
+            <!-- System Monitoring Section -->
+            <div id="monitoring" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">📈 System Monitoring</h2>
+                
+                <!-- Performance Metrics -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-icon">💾</span>
+                        <div class="stat-value">67%</div>
+                        <div class="stat-label">Memory Usage</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">⚡</span>
+                        <div class="stat-value">42%</div>
+                        <div class="stat-label">CPU Usage</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">🌐</span>
+                        <div class="stat-value">1.2GB</div>
+                        <div class="stat-label">Network I/O</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">💿</span>
+                        <div class="stat-value">78%</div>
+                        <div class="stat-label">Disk Usage</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Performance Overview</h3>
+                    <p>Real-time monitoring dashboard showing system health and performance metrics.</p>
+                    <div class="alert alert-success">
+                        <span>✅</span>
+                        <div>All systems operational. Performance within normal parameters.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div id="alerts" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">🚨 Alerts & Incidents</h2>
+                
+                <div class="card">
+                    <h3 style="color: var(--danger);">🔴 Critical Alerts</h3>
+                    <div class="alert alert-danger">
+                        <span>🚨</span>
+                        <div>Database connection pool exhausted. Immediate attention required.</div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Severity</th>
+                                <th>Message</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>14:32:15</td>
+                                <td>🔴 Critical</td>
+                                <td>Database pool exhausted</td>
+                                <td>Active</td>
+                            </tr>
+                            <tr>
+                                <td>14:28:42</td>
+                                <td>🟡 Warning</td>
+                                <td>High memory usage detected</td>
+                                <td>Resolved</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Users Section -->
+            <div id="users" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">User Management</h2>
+                <button class="btn btn-primary" style="margin-bottom: 1rem;">➕ Add New User</button>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Last Login</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>admin</td>
+                            <td>admin@csp-system.com</td>
+                            <td>Administrator</td>
+                            <td>🟢 Active</td>
+                            <td>Just now</td>
+                        </tr>
+                        <tr>
+                            <td>developer</td>
+                            <td>dev@csp-system.com</td>
+                            <td>Developer</td>
+                            <td>🟢 Active</td>
+                            <td>2 hours ago</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Placeholder sections for all other nav items -->
+            <div id="roles" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">Roles & Permissions</h2>
+                <div class="card">
+                    <h3>Role Management</h3>
+                    <p>Configure user roles and permissions for the Enhanced CSP system.</p>
+                </div>
+            </div>
+
+            <div id="auth" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">Authentication</h2>
+                <div class="card">
+                    <h3>Authentication Settings</h3>
+                    <p>Manage authentication methods and security policies.</p>
+                </div>
+            </div>
+
+            <!-- AI Models Section -->
+            <div id="ai-models" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">🧠 AI Models</h2>
+                
+                <!-- AI Models Dashboard -->
+                <div class="stats-grid mb-3">
+                    <div class="stat-card">
+                        <span class="stat-icon">🤖</span>
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">Active Models</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">⚡</span>
+                        <div class="stat-value">4</div>
+                        <div class="stat-label">High Performance</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">💾</span>
+                        <div class="stat-value">2.4TB</div>
+                        <div class="stat-label">Total Storage</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">🔥</span>
+                        <div class="stat-value">89%</div>
+                        <div class="stat-label">Avg Utilization</div>
+                    </div>
+                </div>
+
+                <!-- Model Controls -->
+                <div class="agent-controls mb-3">
+                    <div class="search-filters">
+                        <div class="search-box">
+                            <input type="text" id="modelSearch" placeholder="Search models..." aria-label="Search AI models">
+                        </div>
+                        <select class="filter-select" id="modelTypeFilter" aria-label="Filter by model type">
+                            <option value="">All Types</option>
+                            <option value="llm">Large Language Model</option>
+                            <option value="vision">Computer Vision</option>
+                            <option value="embedding">Embedding Model</option>
+                            <option value="multimodal">Multimodal</option>
+                        </select>
+                        <select class="filter-select" id="modelStatusFilter" aria-label="Filter by status">
+                            <option value="">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="loading">Loading</option>
+                            <option value="offline">Offline</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-1">
+                        <button class="btn btn-primary" onclick="openAddModelModal()">
+                            ➕ Add Model
+                        </button>
+                        <button class="btn btn-success" onclick="loadAllModels()">
+                            🚀 Load All
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshModels()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Models Grid -->
+                <div class="agents-grid" id="modelsGrid">
+                    <!-- GPT-4 Model -->
+                    <div class="agent-card">
+                        <div class="priority-badge priority-high">High Performance</div>
+                        <div class="agent-header">
+                            <div class="agent-info">
+                                <h4>GPT-4 Turbo</h4>
+                                <span class="agent-type autonomous">🧠 Large Language Model</span>
+                            </div>
+                        </div>
+                        <div class="agent-status">
+                            <span class="status-indicator active"></span>
+                            <span>Active</span>
+                            <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-muted);">
+                                OpenAI
+                            </span>
+                        </div>
+                        <div class="agent-description">
+                            Advanced language model with 128k context window, optimized for complex reasoning and code generation tasks.
+                        </div>
+                        <div class="agent-metrics">
+                            <div class="metric">
+                                <div class="metric-value">128k</div>
+                                <div class="metric-label">Context</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">99.2%</div>
+                                <div class="metric-label">Uptime</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+                            Last used: 2 minutes ago
+                        </div>
+                        <div class="agent-actions">
+                            <button class="btn btn-success" title="Model is running">
+                                ✅ Running
+                            </button>
+                            <button class="btn btn-primary" onclick="configureModel('gpt-4')" title="Configure">
+                                ⚙️
+                            </button>
+                            <button class="btn btn-secondary" onclick="viewModelLogs('gpt-4')" title="View logs">
+                                📄
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Claude-3 Model -->
+                    <div class="agent-card">
+                        <div class="priority-badge priority-high">High Performance</div>
+                        <div class="agent-header">
+                            <div class="agent-info">
+                                <h4>Claude-3 Sonnet</h4>
+                                <span class="agent-type collaborative">🤝 Large Language Model</span>
+                            </div>
+                        </div>
+                        <div class="agent-status">
+                            <span class="status-indicator active"></span>
+                            <span>Active</span>
+                            <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-muted);">
+                                Anthropic
+                            </span>
+                        </div>
+                        <div class="agent-description">
+                            Constitutional AI model with strong reasoning capabilities and safety features for complex analytical tasks.
+                        </div>
+                        <div class="agent-metrics">
+                            <div class="metric">
+                                <div class="metric-value">200k</div>
+                                <div class="metric-label">Context</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">98.8%</div>
+                                <div class="metric-label">Uptime</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+                            Last used: 5 minutes ago
+                        </div>
+                        <div class="agent-actions">
+                            <button class="btn btn-success" title="Model is running">
+                                ✅ Running
+                            </button>
+                            <button class="btn btn-primary" onclick="configureModel('claude-3')" title="Configure">
+                                ⚙️
+                            </button>
+                            <button class="btn btn-secondary" onclick="viewModelLogs('claude-3')" title="View logs">
+                                📄
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Gemini Model -->
+                    <div class="agent-card">
+                        <div class="priority-badge priority-normal">Multimodal</div>
+                        <div class="agent-header">
+                            <div class="agent-info">
+                                <h4>Gemini Pro</h4>
+                                <span class="agent-type specialized">⚡ Multimodal Model</span>
+                            </div>
+                        </div>
+                        <div class="agent-status">
+                            <span class="status-indicator active"></span>
+                            <span>Active</span>
+                            <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-muted);">
+                                Google
+                            </span>
+                        </div>
+                        <div class="agent-description">
+                            Advanced multimodal AI capable of processing text, images, and code with integrated reasoning capabilities.
+                        </div>
+                        <div class="agent-metrics">
+                            <div class="metric">
+                                <div class="metric-value">32k</div>
+                                <div class="metric-label">Context</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">97.5%</div>
+                                <div class="metric-label">Uptime</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+                            Last used: 1 minute ago
+                        </div>
+                        <div class="agent-actions">
+                            <button class="btn btn-success" title="Model is running">
+                                ✅ Running
+                            </button>
+                            <button class="btn btn-primary" onclick="configureModel('gemini')" title="Configure">
+                                ⚙️
+                            </button>
+                            <button class="btn btn-secondary" onclick="viewModelLogs('gemini')" title="View logs">
+                                📄
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Embedding Model -->
+                    <div class="agent-card">
+                        <div class="priority-badge priority-normal">Embedding</div>
+                        <div class="agent-header">
+                            <div class="agent-info">
+                                <h4>Text-Embedding-Ada-002</h4>
+                                <span class="agent-type monitoring">👁️ Embedding Model</span>
+                            </div>
+                        </div>
+                        <div class="agent-status">
+                            <span class="status-indicator active"></span>
+                            <span>Active</span>
+                            <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-muted);">
+                                OpenAI
+                            </span>
+                        </div>
+                        <div class="agent-description">
+                            High-performance text embedding model for semantic search, clustering, and similarity tasks.
+                        </div>
+                        <div class="agent-metrics">
+                            <div class="metric">
+                                <div class="metric-value">1536</div>
+                                <div class="metric-label">Dimensions</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">99.9%</div>
+                                <div class="metric-label">Uptime</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+                            Last used: Just now
+                        </div>
+                        <div class="agent-actions">
+                            <button class="btn btn-success" title="Model is running">
+                                ✅ Running
+                            </button>
+                            <button class="btn btn-primary" onclick="configureModel('embedding')" title="Configure">
+                                ⚙️
+                            </button>
+                            <button class="btn btn-secondary" onclick="viewModelLogs('embedding')" title="View logs">
+                                📄
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Vision Model -->
+                    <div class="agent-card">
+                        <div class="priority-badge priority-normal">Vision</div>
+                        <div class="agent-header">
+                            <div class="agent-info">
+                                <h4>GPT-4 Vision</h4>
+                                <span class="agent-type specialized">⚡ Computer Vision</span>
+                            </div>
+                        </div>
+                        <div class="agent-status">
+                            <span class="status-indicator paused"></span>
+                            <span>Standby</span>
+                            <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-muted);">
+                                OpenAI
+                            </span>
+                        </div>
+                        <div class="agent-description">
+                            Advanced vision-language model capable of understanding and analyzing images with natural language.
+                        </div>
+                        <div class="agent-metrics">
+                            <div class="metric">
+                                <div class="metric-value">128k</div>
+                                <div class="metric-label">Context</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">96.3%</div>
+                                <div class="metric-label">Uptime</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+                            Last used: 30 minutes ago
+                        </div>
+                        <div class="agent-actions">
+                            <button class="btn btn-warning" onclick="activateModel('gpt-4-vision')" title="Activate model">
+                                ▶️ Activate
+                            </button>
+                            <button class="btn btn-primary" onclick="configureModel('gpt-4-vision')" title="Configure">
+                                ⚙️
+                            </button>
+                            <button class="btn btn-secondary" onclick="viewModelLogs('gpt-4-vision')" title="View logs">
+                                📄
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Custom Model -->
+                    <div class="agent-card">
+                        <div class="priority-badge priority-low">Custom</div>
+                        <div class="agent-header">
+                            <div class="agent-info">
+                                <h4>CSP-Custom-Model-v1</h4>
+                                <span class="agent-type autonomous">🧠 Custom Model</span>
+                            </div>
+                        </div>
+                        <div class="agent-status">
+                            <span class="status-indicator stopped"></span>
+                            <span>Offline</span>
+                            <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-muted);">
+                                Local
+                            </span>
+                        </div>
+                        <div class="agent-description">
+                            Custom fine-tuned model optimized for CSP-specific tasks and domain knowledge.
+                        </div>
+                        <div class="agent-metrics">
+                            <div class="metric">
+                                <div class="metric-value">4k</div>
+                                <div class="metric-label">Context</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">0%</div>
+                                <div class="metric-label">Uptime</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+                            Last used: 2 days ago
+                        </div>
+                        <div class="agent-actions">
+                            <button class="btn btn-success" onclick="loadModel('custom-v1')" title="Load model">
+                                📥 Load
+                            </button>
+                            <button class="btn btn-primary" onclick="configureModel('custom-v1')" title="Configure">
+                                ⚙️
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteModel('custom-v1')" title="Delete model">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Performance Chart -->
+                <div class="card mt-3">
+                    <h3>📊 Model Performance Overview</h3>
+                    <div class="alert alert-info">
+                        <span>ℹ️</span>
+                        <div>Model performance metrics are updated in real-time. Current average response time: 1.2s</div>
+                    </div>
+                    
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Requests/Hour</th>
+                                <th>Avg Response Time</th>
+                                <th>Success Rate</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>GPT-4 Turbo</strong></td>
+                                <td>🧠 LLM</td>
+                                <td><span style="color: var(--success);">🟢 Active</span></td>
+                                <td>1,247</td>
+                                <td>1.8s</td>
+                                <td>99.2%</td>
+                                <td>
+                                    <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Configure</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Claude-3 Sonnet</strong></td>
+                                <td>🤝 LLM</td>
+                                <td><span style="color: var(--success);">🟢 Active</span></td>
+                                <td>892</td>
+                                <td>2.1s</td>
+                                <td>98.8%</td>
+                                <td>
+                                    <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Configure</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Gemini Pro</strong></td>
+                                <td>⚡ Multimodal</td>
+                                <td><span style="color: var(--success);">🟢 Active</span></td>
+                                <td>634</td>
+                                <td>1.4s</td>
+                                <td>97.5%</td>
+                                <td>
+                                    <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Configure</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Text-Embedding-Ada-002</strong></td>
+                                <td>👁️ Embedding</td>
+                                <td><span style="color: var(--success);">🟢 Active</span></td>
+                                <td>3,421</td>
+                                <td>0.3s</td>
+                                <td>99.9%</td>
+                                <td>
+                                    <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Configure</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="protocols" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">Protocol Templates</h2>
+                <div class="card">
+                    <h3>Communication Protocols</h3>
+                    <p>Manage protocol templates for agent communication.</p>
+                </div>
+            </div>
+
+            <div id="settings" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">System Settings</h2>
+                <div class="card">
+                    <h3>General Settings</h3>
+                    <p>Configure system-wide settings and preferences.</p>
+                </div>
+            </div>
+
+            <div id="infrastructure" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">Infrastructure</h2>
+                <div class="card">
+                    <h3>Infrastructure Management</h3>
+                    <p>Manage servers, containers, and infrastructure components.</p>
+                </div>
+            </div>
+
+            <div id="integrations" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">Integrations</h2>
+                <div class="card">
+                    <h3>External Integrations</h3>
+                    <p>Configure connections to external services and APIs.</p>
+                </div>
+            </div>
+
+            <div id="backups" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">Backups</h2>
+                <div class="card">
+                    <h3>Backup Management</h3>
+                    <p>Configure and monitor system backups and data protection.</p>
+                </div>
+            </div>
+
+            <div id="logs" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">System Logs</h2>
+                <div class="card">
+                    <h3>Log Viewer</h3>
+                    <p>View and analyze system logs and audit trails.</p>
+                </div>
+            </div>
+
+            <div id="maintenance" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">Maintenance</h2>
+                <div class="card">
+                    <h3>System Maintenance</h3>
+                    <p>Schedule and manage system maintenance tasks.</p>
+                </div>
+            </div>
+
+            <div id="licenses" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">Licenses</h2>
+                <div class="card">
+                    <h3>License Management</h3>
+                    <p>Manage software licenses and compliance tracking.</p>
+                </div>
+            </div>
+
+            <div id="billing" class="content-section">
+                <h2 style="color: var(--primary); margin-bottom: 2rem;">Billing</h2>
+                <div class="card">
+                    <h3>Billing & Usage</h3>
+                    <p>Monitor usage and manage billing information.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Agent Modal -->
+    <div id="createAgentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🤖 Create New Agent</h3>
+                <button class="modal-close" onclick="closeCreateAgentModal()" aria-label="Close modal">&times;</button>
+            </div>
+            <form id="createAgentForm" onsubmit="createAgent(event)">
+                <div class="form-group">
+                    <label class="form-label">Agent Name</label>
+                    <input type="text" class="form-input" name="name" required placeholder="Enter agent name">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Agent Type</label>
+                    <select class="form-select" name="type" required>
+                        <option value="">Select agent type</option>
+                        <option value="autonomous">🧠 Autonomous Agent</option>
+                        <option value="collaborative">🤝 Collaborative Agent</option>
+                        <option value="specialized">⚡ Specialized Agent</option>
+                        <option value="monitoring">👁️ Monitoring Agent</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">AI Model</label>
+                    <select class="form-select" name="model" required>
+                        <option value="">Select AI model</option>
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="claude-3">Claude-3</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="custom">Custom Model</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Priority Level</label>
+                    <select class="form-select" name="priority" required>
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" name="description" placeholder="Describe the agent's purpose and capabilities"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Capabilities</label>
+                    <div class="form-checkbox">
+                        <input type="checkbox" name="capabilities" value="text_processing">
+                        <label>Text Processing</label>
+                    </div>
+                    <div class="form-checkbox">
+                        <input type="checkbox" name="capabilities" value="data_analysis">
+                        <label>Data Analysis</label>
+                    </div>
+                    <div class="form-checkbox">
+                        <input type="checkbox" name="capabilities" value="code_generation">
+                        <label>Code Generation</label>
+                    </div>
+                    <div class="form-checkbox">
+                        <input type="checkbox" name="capabilities" value="api_integration">
+                        <label>API Integration</label>
+                    </div>
+                    <div class="form-checkbox">
+                        <input type="checkbox" name="capabilities" value="web_scraping">
+                        <label>Web Scraping</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Execution Mode</label>
+                    <select class="form-select" name="execution_mode" required>
+                        <option value="continuous">Continuous</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="on_demand">On Demand</option>
+                        <option value="event_driven">Event Driven</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Communication Channel</label>
+                    <select class="form-select" name="communication_channel" required>
+                        <option value="internal_api">Internal API</option>
+                        <option value="webhooks">Webhooks</option>
+                        <option value="message_queue">Message Queue</option>
+                        <option value="database">Database</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Max Concurrent Tasks</label>
+                    <input type="number" class="form-input" name="max_tasks" value="5" min="1" max="50">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Timeout (seconds)</label>
+                    <input type="number" class="form-input" name="timeout" value="300" min="10" max="3600">
+                </div>
+                
+                <div class="form-group">
+                    <div class="form-checkbox">
+                        <input type="checkbox" name="auto_restart" checked>
+                        <label>Auto-restart on failure</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="form-checkbox">
+                        <input type="checkbox" name="start_immediately" checked>
+                        <label>Start agent immediately after creation</label>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary">🚀 Create Agent</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateAgentModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Agent Details Modal -->
+    <div id="agentDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🤖 Agent Details</h3>
+                <button class="modal-close" onclick="closeAgentDetailsModal()" aria-label="Close modal">&times;</button>
+            </div>
+            <div id="agentDetailsContent">
+                <!-- Agent details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent Logs Modal -->
+    <div id="agentLogsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📄 Agent Logs</h3>
+                <button class="modal-close" onclick="closeAgentLogsModal()" aria-label="Close modal">&times;</button>
+            </div>
+            <div id="agentLogsContent">
+                <!-- Agent logs will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    
+    <script>
+        // Sample agent data with realistic configurations
+        const sampleAgents = [
+            {
+                id: 'agent-006',
+                name: 'WebScraper Intelligence',
+                type: 'autonomous',
+                status: 'active',
+                model: 'gpt-4',
+                priority: 'normal',
+                description: 'Intelligent web scraping agent for data collection and market research',
+                capabilities: ['web_scraping', 'data_analysis', 'text_processing'],
+                tasksCompleted: 1834,
+                uptime: '97.2%',
+                lastActivity: '3 minutes ago',
+                executionMode: 'scheduled',
+                communicationChannel: 'database',
+                maxTasks: 8,
+                timeout: 1200,
+                autoRestart: true,
+                created: '2024-01-18',
+                logs: [
+                    { time: '14:32:30', level: 'INFO', message: 'Web scraping job completed for competitor analysis' },
+                    { time: '14:28:15', level: 'SUCCESS', message: '2,500 product listings scraped and processed' },
+                    { time: '14:25:45', level: 'INFO', message: 'Starting scheduled scraping task for e-commerce sites' }
+                ]
+            },
+            {
+                id: 'agent-007',
+                name: 'API Integration Hub',
+                type: 'collaborative',
+                status: 'active',
+                model: 'gemini',
+                priority: 'high',
+                description: 'Multi-service API orchestration agent for seamless system integration',
+                capabilities: ['api_integration', 'data_analysis', 'text_processing'],
+                tasksCompleted: 987,
+                uptime: '98.9%',
+                lastActivity: '1 minute ago',
+                executionMode: 'event_driven',
+                communicationChannel: 'message_queue',
+                maxTasks: 12,
+                timeout: 450,
+                autoRestart: true,
+                created: '2024-01-22',
+                logs: [
+                    { time: '14:34:55', level: 'SUCCESS', message: 'API synchronization completed for 8 services' },
+                    { time: '14:31:20', level: 'INFO', message: 'Processing webhook from payment gateway' },
+                    { time: '14:29:18', level: 'INFO', message: 'Data transformation completed for CRM integration' }
+                ]
+            },
+            {
+                id: 'agent-008',
+                name: 'Document Intelligence',
+                type: 'specialized',
+                status: 'active',
+                model: 'claude-3',
+                priority: 'normal',
+                description: 'Advanced document processing and analysis agent for business intelligence',
+                capabilities: ['text_processing', 'data_analysis', 'code_generation'],
+                tasksCompleted: 756,
+                uptime: '99.1%',
+                lastActivity: '4 minutes ago',
+                executionMode: 'on_demand',
+                communicationChannel: 'internal_api',
+                maxTasks: 6,
+                timeout: 800,
+                autoRestart: true,
+                created: '2024-01-25',
+                logs: [
+                    { time: '14:31:40', level: 'SUCCESS', message: 'Legal document analysis completed' },
+                    { time: '14:28:22', level: 'INFO', message: 'Processing contract for compliance review' },
+                    { time: '14:26:15', level: 'INFO', message: 'Document classification task started' }
+                ]
+            }
+        ];
+
+        // Agent management state
+        let agents = [...sampleAgents];
+        let currentFilter = 'all';
+        let currentAgentType = 'all';
+
+        // Initialize localStorage for agent persistence
+        function initializeAgentStorage() {
+            const storedAgents = localStorage.getItem('csp_agents');
+            if (storedAgents) {
+                try {
+                    agents = JSON.parse(storedAgents);
+                } catch (error) {
+                    console.warn('Failed to load agents from storage, using defaults');
+                    agents = [...sampleAgents];
+                }
+            } else {
+                // First time setup - save sample agents
+                saveAgents();
+            }
+        }
+
+        // Save agents to localStorage
+        function saveAgents() {
+            try {
+                localStorage.setItem('csp_agents', JSON.stringify(agents));
+            } catch (error) {
+                console.warn('Failed to save agents to storage');
+            }
+        }
+
+        // Initialize page
+        function initializePage() {
+            initializeAgentStorage();
+            renderAgents();
+            updateAgentStats();
+            
+            // Set up real-time updates
+            setInterval(() => {
+                updateAgentStats();
+                updateLastActivity();
+            }, 30000); // Update every 30 seconds
+        }
+
+        // Navigation functions
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Show selected section
+            const selectedSection = document.getElementById(sectionId);
+            if (selectedSection) {
+                selectedSection.classList.add('active');
+            }
+
+            // Update navigation
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                item.removeAttribute('aria-current');
+            });
+
+            const activeNavItem = document.querySelector(`[data-section="${sectionId}"]`);
+            if (activeNavItem) {
+                activeNavItem.classList.add('active');
+                activeNavItem.setAttribute('aria-current', 'page');
+            }
+
+            // Initialize agents section if selected
+            if (sectionId === 'agents') {
+                renderAgents();
+                updateAgentStats();
+            }
+        }
+
+        // Handle keyboard navigation
+        function handleNavKeydown(event, sectionId) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                showSection(sectionId);
+            }
+        }
+
+        // Toggle mobile sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (event) => {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // Agent Management Functions
+        function renderAgents() {
+            const grid = document.getElementById('agentsGrid');
+            if (!grid) return;
+
+            const filteredAgents = getFilteredAgents();
+            
+            if (filteredAgents.length === 0) {
+                grid.innerHTML = `
+                    <div class="card" style="grid-column: 1 / -1; text-center; padding: 3rem;">
+                        <h3>🔍 No agents found</h3>
+                        <p>Try adjusting your filters or create a new agent.</p>
+                        <button class="btn btn-primary mt-2" onclick="openCreateAgentModal()">
+                            ➕ Create Agent
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filteredAgents.map(agent => `
+                <div class="agent-card" data-agent-id="${agent.id}" data-type="${agent.type}" data-status="${agent.status}">
+                    <div class="priority-badge priority-${agent.priority}">${agent.priority}</div>
+                    
+                    <div class="agent-header">
+                        <div class="agent-info">
+                            <h4>${agent.name}</h4>
+                            <span class="agent-type ${agent.type}">${getAgentTypeIcon(agent.type)} ${agent.type}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="agent-status">
+                        <span class="status-indicator ${agent.status}"></span>
+                        <span>${agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}</span>
+                        <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-muted);">
+                            ${agent.model}
+                        </span>
+                    </div>
+                    
+                    <div class="agent-description">
+                        ${agent.description}
+                    </div>
+                    
+                    <div class="agent-metrics">
+                        <div class="metric">
+                            <div class="metric-value">${agent.tasksCompleted}</div>
+                            <div class="metric-label">Tasks</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${agent.uptime}</div>
+                            <div class="metric-label">Uptime</div>
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+                        Last activity: ${agent.lastActivity}
+                    </div>
+                    
+                    <div class="agent-actions">
+                        <button class="btn btn-success" onclick="toggleAgentStatus('${agent.id}')" 
+                                title="${agent.status === 'active' ? 'Pause' : 'Start'} agent">
+                            ${agent.status === 'active' ? '⏸️' : '▶️'}
+                        </button>
+                        <button class="btn btn-primary" onclick="viewAgentDetails('${agent.id}')" title="View details">
+                            👁️
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewAgentLogs('${agent.id}')" title="View logs">
+                            📄
+                        </button>
+                        <button class="btn btn-warning" onclick="duplicateAgent('${agent.id}')" title="Duplicate">
+                            📋
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getAgentTypeIcon(type) {
+            const icons = {
+                'autonomous': '🧠',
+                'collaborative': '🤝',
+                'specialized': '⚡',
+                'monitoring': '👁️'
+            };
+            return icons[type] || '🤖';
+        }
+
+        function getFilteredAgents() {
+            return agents.filter(agent => {
+                // Type filter
+                if (currentAgentType !== 'all' && agent.type !== currentAgentType) {
+                    return false;
+                }
+                
+                // Search filter
+                const searchTerm = document.getElementById('agentSearch')?.value.toLowerCase() || '';
+                if (searchTerm && !agent.name.toLowerCase().includes(searchTerm) && 
+                    !agent.description.toLowerCase().includes(searchTerm) && 
+                    !agent.id.toLowerCase().includes(searchTerm)) {
+                    return false;
+                }
+                
+                // Status filter
+                const statusFilter = document.getElementById('statusFilter')?.value || '';
+                if (statusFilter && agent.status !== statusFilter) {
+                    return false;
+                }
+                
+                // Model filter
+                const modelFilter = document.getElementById('modelFilter')?.value || '';
+                if (modelFilter && agent.model !== modelFilter) {
+                    return false;
+                }
+                
+                // Priority filter
+                const priorityFilter = document.getElementById('priorityFilter')?.value || '';
+                if (priorityFilter && agent.priority !== priorityFilter) {
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+
+        function filterAgentsByType(type) {
+            currentAgentType = type;
+            
+            // Update tab appearance
+            const tabs = document.querySelectorAll('.agent-tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.type === type) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            renderAgents();
+        }
+
+        function filterAgents() {
+            renderAgents();
+        }
+
+        function updateAgentStats() {
+            const activeAgents = agents.filter(a => a.status === 'active').length;
+            const pausedAgents = agents.filter(a => a.status === 'paused').length;
+            const totalTasks = agents.reduce((sum, a) => sum + a.tasksCompleted, 0);
+            
+            // Update dashboard stats
+            const statCards = document.querySelectorAll('.stat-card .stat-value');
+            if (statCards.length >= 4) {
+                statCards[0].textContent = activeAgents;
+                statCards[2].textContent = totalTasks.toLocaleString();
+            }
+            
+            // Update agent section stats
+            const agentStats = document.querySelector('#agents .stats-grid');
+            if (agentStats) {
+                const agentStatValues = agentStats.querySelectorAll('.stat-value');
+                if (agentStatValues.length >= 4) {
+                    agentStatValues[0].textContent = activeAgents;
+                    agentStatValues[1].textContent = pausedAgents;
+                    agentStatValues[2].textContent = agents.length;
+                    agentStatValues[3].textContent = totalTasks.toLocaleString();
+                }
+            }
+        }
+
+        function updateLastActivity() {
+            // Simulate real-time activity updates
+            agents.forEach(agent => {
+                if (agent.status === 'active' && Math.random() < 0.3) {
+                    const activities = [
+                        'Just now', '1 minute ago', '2 minutes ago', '3 minutes ago',
+                        '5 minutes ago', '10 minutes ago'
+                    ];
+                    agent.lastActivity = activities[Math.floor(Math.random() * activities.length)];
+                    
+                    // Occasionally increment task count
+                    if (Math.random() < 0.1) {
+                        agent.tasksCompleted++;
+                    }
+                }
+            });
+            
+            saveAgents();
+            renderAgents();
+        }
+
+        // Agent Control Functions
+        function toggleAgentStatus(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (agent) {
+                if (agent.status === 'active') {
+                    agent.status = 'paused';
+                    showNotification(`Agent "${agent.name}" has been paused`, 'warning');
+                } else {
+                    agent.status = 'active';
+                    agent.lastActivity = 'Just now';
+                    showNotification(`Agent "${agent.name}" has been started`, 'success');
+                }
+                saveAgents();
+                renderAgents();
+                updateAgentStats();
+            }
+        }
+
+        function viewAgentDetails(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            const modal = document.getElementById('agentDetailsModal');
+            const content = document.getElementById('agentDetailsContent');
+            
+            content.innerHTML = `
+                <div class="agent-details">
+                    <div class="flex items-center gap-2 mb-3">
+                        <h4 style="color: var(--primary); margin: 0;">${agent.name}</h4>
+                        <span class="agent-type ${agent.type}">${getAgentTypeIcon(agent.type)} ${agent.type}</span>
+                        <span class="priority-badge priority-${agent.priority}">${agent.priority}</span>
+                    </div>
+                    
+                    <div class="agent-status mb-3">
+                        <span class="status-indicator ${agent.status}"></span>
+                        <span style="font-weight: 600;">Status: ${agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+                        <div>
+                            <strong>Model:</strong> ${agent.model}<br>
+                            <strong>Created:</strong> ${agent.created}<br>
+                            <strong>Execution Mode:</strong> ${agent.executionMode}<br>
+                            <strong>Communication:</strong> ${agent.communicationChannel}
+                        </div>
+                        <div>
+                            <strong>Tasks Completed:</strong> ${agent.tasksCompleted}<br>
+                            <strong>Uptime:</strong> ${agent.uptime}<br>
+                            <strong>Max Tasks:</strong> ${agent.maxTasks}<br>
+                            <strong>Timeout:</strong> ${agent.timeout}s
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Description:</strong><br>
+                        <p style="margin-top: 0.5rem; color: var(--text-muted);">${agent.description}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Capabilities:</strong><br>
+                        <div style="margin-top: 0.5rem;">
+                            ${agent.capabilities.map(cap => `
+                                <span style="display: inline-block; background: var(--light); padding: 0.25rem 0.5rem; 
+                                      border-radius: 12px; font-size: 0.75rem; margin: 0.25rem 0.25rem 0 0;">
+                                    ${cap.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 mt-3">
+                        <button class="btn btn-primary" onclick="editAgent('${agent.id}')">✏️ Edit</button>
+                        <button class="btn btn-success" onclick="toggleAgentStatus('${agent.id}'); closeAgentDetailsModal();">
+                            ${agent.status === 'active' ? '⏸️ Pause' : '▶️ Start'}
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewAgentLogs('${agent.id}'); closeAgentDetailsModal();">📄 View Logs</button>
+                        <button class="btn btn-danger" onclick="deleteAgent('${agent.id}')">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+        }
+
+        function viewAgentLogs(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            const modal = document.getElementById('agentLogsModal');
+            const content = document.getElementById('agentLogsContent');
+            
+            content.innerHTML = `
+                <div class="agent-logs">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 style="color: var(--primary); margin: 0;">Logs for ${agent.name}</h4>
+                        <button class="btn btn-secondary" onclick="refreshAgentLogs('${agent.id}')">🔄 Refresh</button>
+                    </div>
+                    
+                    <div style="background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 8px; 
+                                font-family: 'Courier New', monospace; font-size: 0.875rem; max-height: 400px; overflow-y: auto;">
+                        ${agent.logs.map(log => `
+                            <div style="margin-bottom: 0.5rem;">
+                                <span style="color: #64748b;">[${log.time}]</span>
+                                <span style="color: ${getLogLevelColor(log.level)}; font-weight: 600;">${log.level}</span>
+                                <span style="margin-left: 1rem;">${log.message}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label">Filter by level:</label>
+                        <select class="filter-select" onchange="filterLogs('${agent.id}', this.value)">
+                            <option value="">All Levels</option>
+                            <option value="INFO">INFO</option>
+                            <option value="SUCCESS">SUCCESS</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+        }
+
+        function getLogLevelColor(level) {
+            const colors = {
+                'INFO': '#3b82f6',
+                'SUCCESS': '#10b981',
+                'WARNING': '#f59e0b',
+                'ERROR': '#ef4444'
+            };
+            return colors[level] || '#64748b';
+        }
+
+        function duplicateAgent(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            const newAgent = {
+                ...agent,
+                id: `agent-${Date.now()}`,
+                name: `${agent.name} (Copy)`,
+                status: 'stopped',
+                tasksCompleted: 0,
+                lastActivity: 'Never',
+                created: new Date().toISOString().split('T')[0],
+                logs: [
+                    { time: new Date().toLocaleTimeString(), level: 'INFO', message: 'Agent created as duplicate' }
+                ]
+            };
+            
+            agents.push(newAgent);
+            saveAgents();
+            renderAgents();
+            updateAgentStats();
+            
+            showNotification(`Agent "${newAgent.name}" has been created`, 'success');
+        }
+
+        function deleteAgent(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            if (confirm(`Are you sure you want to delete agent "${agent.name}"? This action cannot be undone.`)) {
+                agents = agents.filter(a => a.id !== agentId);
+                saveAgents();
+                renderAgents();
+                updateAgentStats();
+                closeAgentDetailsModal();
+                
+                showNotification(`Agent "${agent.name}" has been deleted`, 'danger');
+            }
+        }
+
+        function deployAllAgents() {
+            const stoppedAgents = agents.filter(a => a.status === 'stopped' || a.status === 'paused');
+            
+            if (stoppedAgents.length === 0) {
+                showNotification('All agents are already active', 'info');
+                return;
+            }
+            
+            stoppedAgents.forEach(agent => {
+                agent.status = 'active';
+                agent.lastActivity = 'Just now';
+            });
+            
+            saveAgents();
+            renderAgents();
+            updateAgentStats();
+            
+            showNotification(`${stoppedAgents.length} agents have been deployed`, 'success');
+        }
+
+        function refreshAgents() {
+            renderAgents();
+            updateAgentStats();
+            showNotification('Agent list refreshed', 'info');
+        }
+
+        // Modal functions
+        function openCreateAgentModal() {
+            const modal = document.getElementById('createAgentModal');
+            modal.classList.add('active');
+            document.getElementById('createAgentForm').reset();
+        }
+
+        function closeCreateAgentModal() {
+            const modal = document.getElementById('createAgentModal');
+            modal.classList.remove('active');
+        }
+
+        function closeAgentDetailsModal() {
+            const modal = document.getElementById('agentDetailsModal');
+            modal.classList.remove('active');
+        }
+
+        function closeAgentLogsModal() {
+            const modal = document.getElementById('agentLogsModal');
+            modal.classList.remove('active');
+        }
+
+        // Create agent form handler
+        function createAgent(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const capabilities = Array.from(formData.getAll('capabilities'));
+            
+            const newAgent = {
+                id: `agent-${Date.now()}`,
+                name: formData.get('name'),
+                type: formData.get('type'),
+                status: formData.get('start_immediately') ? 'active' : 'stopped',
+                model: formData.get('model'),
+                priority: formData.get('priority'),
+                description: formData.get('description') || 'No description provided',
+                capabilities: capabilities,
+                tasksCompleted: 0,
+                uptime: '0%',
+                lastActivity: formData.get('start_immediately') ? 'Just now' : 'Never',
+                executionMode: formData.get('execution_mode'),
+                communicationChannel: formData.get('communication_channel'),
+                maxTasks: parseInt(formData.get('max_tasks')),
+                timeout: parseInt(formData.get('timeout')),
+                autoRestart: formData.get('auto_restart') === 'on',
+                created: new Date().toISOString().split('T')[0],
+                logs: [
+                    { 
+                        time: new Date().toLocaleTimeString(), 
+                        level: 'INFO', 
+                        message: `Agent created with ${capabilities.length} capabilities` 
+                    }
+                ]
+            };
+            
+            agents.push(newAgent);
+            saveAgents();
+            renderAgents();
+            updateAgentStats();
+            closeCreateAgentModal();
+            
+            showNotification(`Agent "${newAgent.name}" has been created successfully`, 'success');
+        }
+
+        // Utility functions
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                z-index: 2000;
+                min-width: 300px;
+                animation: slideInRight 0.3s ease-out;
+            `;
+            
+            const icons = {
+                success: '✅',
+                danger: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            notification.innerHTML = `
+                <span>${icons[type] || 'ℹ️'}</span>
+                <div>${message}</div>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; margin-left: auto; cursor: pointer; font-size: 1.2rem;">&times;</button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Emergency shutdown function
+        function emergencyShutdown() {
+            if (confirm('⚠️ This will immediately stop all active agents and system processes. Are you sure?')) {
+                agents.forEach(agent => {
+                    if (agent.status === 'active') {
+                        agent.status = 'stopped';
+                        agent.lastActivity = 'Emergency stop';
+                    }
+                });
+                
+                saveAgents();
+                renderAgents();
+                updateAgentStats();
+                
+                showNotification('🚨 Emergency shutdown executed - all agents stopped', 'danger');
+            }
+        }
+
+        // Initialize page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializePage);
+
+        // Close modals when clicking outside
+        document.addEventListener('click', (event) => {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        // Keyboard navigation for modals
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                const activeModals = document.querySelectorAll('.modal.active');
+                activeModals.forEach(modal => {
+                    modal.classList.remove('active');
+                });
+            }
+        });
+
+        // Add CSS animation for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+const sampleAgents = [
+    

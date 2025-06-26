@@ -1,0 +1,82 @@
+/* CSS for designer page */
+
+.designer-page {
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.designer-page.loading {
+    position: relative;
+}
+
+.designer-page .loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.designer-page .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Priority-specific styling */
+.designer-page.priority-HIGH {
+    border-left: 4px solid #e74c3c;
+}
+
+.designer-page.priority-MEDIUM {
+    border-left: 4px solid #f39c12;
+}
+
+.designer-page.priority-LOW {
+    border-left: 4px solid #27ae60;
+}
+
+/* Migration status indicators */
+.migration-status {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-migrated {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* TODO: Extract styles from existing designer.html */
+/* 1. Copy relevant CSS classes from the original page */
+/* 2. Organize into logical sections */
+/* 3. Remove unused styles */
+/* 4. Convert to CSS custom properties for theming */
