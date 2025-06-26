@@ -1,0 +1,353 @@
+/* Admin Portal Modal Styles */
+/* Add this to your admin portal CSS or create a new admin-modals.css file */
+
+/* Modal Overlay */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex !important;
+    opacity: 1;
+}
+
+/* Modal Content */
+.modal-content {
+    background: var(--card-bg, #1a1a1a);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    transform: scale(0.9);
+    transition: transform 0.3s ease-out;
+}
+
+.modal.active .modal-content {
+    transform: scale(1);
+}
+
+/* Modal Header */
+.modal-header {
+    padding: 20px 20px 0 20px;
+    border-bottom: 1px solid var(--border-color, #333);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary, #ffffff);
+    margin: 0;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+    background: var(--danger-bg, rgba(255, 71, 87, 0.1));
+    color: var(--danger, #ff4757);
+    transform: rotate(90deg);
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: var(--text-primary, #ffffff);
+    font-size: 0.9rem;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color, #333);
+    border-radius: 8px;
+    background: var(--input-bg, #2a2a2a);
+    color: var(--text-primary, #ffffff);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--primary, #3742fa);
+    box-shadow: 0 0 0 3px var(--primary-alpha, rgba(55, 66, 250, 0.1));
+}
+
+.form-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.form-select {
+    cursor: pointer;
+}
+
+/* Range Inputs */
+input[type="range"] {
+    width: 100%;
+    margin: 10px 0;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: var(--border-color, #333);
+    border-radius: 3px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--primary, #3742fa);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--primary, #3742fa);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Resource Allocation Styling */
+.form-group div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.form-group div label {
+    flex: 1;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-group div span {
+    min-width: 60px;
+    font-weight: 600;
+    color: var(--primary, #3742fa);
+}
+
+/* Modal Footer/Actions */
+.modal-content > div:last-child {
+    padding: 0 20px 20px 20px;
+}
+
+.modal-content > div:last-child[style*="display: flex"] {
+    gap: 12px;
+}
+
+/* Button Styles */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    user-select: none;
+}
+
+.btn-primary {
+    background: var(--primary, #3742fa);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--primary-dark, #2f37d9);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--primary-alpha, rgba(55, 66, 250, 0.3));
+}
+
+.btn-secondary {
+    background: var(--secondary, #666);
+    color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--secondary-dark, #555);
+    transform: translateY(-1px);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Loading State */
+.btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.btn.loading::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border: 2px solid currentColor;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 20px;
+        max-height: calc(100vh - 40px);
+    }
+    
+    .modal-header {
+        padding: 15px 15px 0 15px;
+    }
+    
+    .form-group {
+        padding: 0 15px;
+    }
+    
+    .modal-content > div:last-child {
+        padding: 0 15px 15px 15px;
+    }
+    
+    .modal-content > div:last-child[style*="display: flex"] {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Dark Theme Enhancements */
+@media (prefers-color-scheme: dark) {
+    .modal-content {
+        border: 1px solid #333;
+    }
+    
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+        color: #666;
+    }
+}
+
+/* Animation Classes */
+.modal-enter {
+    animation: modalEnter 0.3s ease-out;
+}
+
+.modal-exit {
+    animation: modalExit 0.2s ease-in;
+}
+
+@keyframes modalEnter {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes modalExit {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+}
+
+/* Focus Styles */
+.modal-content *:focus {
+    outline: 2px solid var(--primary, #3742fa);
+    outline-offset: 2px;
+}
+
+/* Custom Scrollbar for Modal Content */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: var(--bg-secondary, #2a2a2a);
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: var(--border-color, #333);
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary, #666);
+}
