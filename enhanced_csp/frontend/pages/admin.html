@@ -508,7 +508,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     
     <!-- Page Scripts -->
-    <script type="module" src="../js/pages/admin/admin.js"></script>
+    <script src="../js/pages/admin/admin.js"></script>
     
     <!-- Accessibility Script -->
     <script>
@@ -687,28 +687,464 @@
             </section>
 
             <!-- System Monitoring Section -->
-            <section id="monitoring" class="content-section" aria-labelledby="monitoring-title">
-                <h2 id="monitoring-title">System Monitoring</h2>
-                <div class="monitoring-dashboard">
-                    <div class="monitoring-cards">
-                        <div class="admin-card">
-                            <h3><i class="fas fa-server"></i> Server Status</h3>
-                            <div class="metric success">Online</div>
-                            <p>All systems operational</p>
-                        </div>
-                        <div class="admin-card">
-                            <h3><i class="fas fa-hdd"></i> Disk Usage</h3>
-                            <div class="metric warning">78%</div>
-                            <p>Storage usage within normal limits</p>
-                        </div>
-                        <div class="admin-card">
-                            <h3><i class="fas fa-memory"></i> Memory Usage</h3>
-                            <div class="metric info">64%</div>
-                            <p>Memory utilization stable</p>
+            <!-- Enhanced Monitoring Section for admin.html -->
+<!-- Replace the existing monitoring section with this comprehensive version -->
+
+<section id="monitoring" class="content-section" aria-labelledby="monitoring-title">
+    <div class="monitoring-header">
+        <h2 id="monitoring-title" class="section-title">
+            <i class="fas fa-chart-line"></i> System Monitoring
+        </h2>
+        <div class="monitoring-controls">
+            <div class="control-group">
+                <label for="monitoring-time-range">Time Range:</label>
+                <select id="monitoring-time-range" class="form-select">
+                    <option value="5m">Last 5 minutes</option>
+                    <option value="15m" selected>Last 15 minutes</option>
+                    <option value="1h">Last hour</option>
+                    <option value="6h">Last 6 hours</option>
+                    <option value="24h">Last 24 hours</option>
+                </select>
+            </div>
+            <div class="monitoring-actions">
+                <button id="monitoring-refresh-btn" class="btn btn-outline">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button id="monitoring-export-btn" class="btn btn-outline">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status Overview -->
+    <div class="status-overview">
+        <div class="status-card">
+            <div class="status-indicator">
+                <div id="overall-system-status" class="status-indicator status-operational">Operational</div>
+            </div>
+            <div class="status-details">
+                <h3>System Status</h3>
+                <p>All systems are running normally</p>
+                <small>Last updated: <span id="last-update-time">just now</span></small>
+            </div>
+        </div>
+        <div class="alert-summary-card">
+            <div class="alert-summary-header">
+                <h3>Active Alerts</h3>
+                <div class="alert-badges">
+                    <span id="critical-alerts-badge" class="alert-badge critical" style="display: none;">0</span>
+                    <span id="active-alerts-badge" class="alert-badge warning">0</span>
+                </div>
+            </div>
+            <p id="alert-summary-text">0 active, 0 acknowledged</p>
+        </div>
+    </div>
+
+    <!-- Key Metrics Grid -->
+    <div class="metrics-grid">
+        <!-- System Metrics -->
+        <div class="metric-category">
+            <h3><i class="fas fa-server"></i> System Resources</h3>
+            <div class="metric-cards">
+                <div id="cpu-usage-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-microchip metric-icon"></i>
+                        <span class="metric-title">CPU Usage</span>
+                    </div>
+                    <div id="cpu-usage" class="metric-value">--</div>
+                    <div class="trend-indicator">
+                        <i class="fas fa-minus"></i>
+                        <span>No change</span>
+                    </div>
+                </div>
+
+                <div id="memory-usage-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-memory metric-icon"></i>
+                        <span class="metric-title">Memory Usage</span>
+                    </div>
+                    <div id="memory-usage" class="metric-value">--</div>
+                    <div class="trend-indicator">
+                        <i class="fas fa-minus"></i>
+                        <span>No change</span>
+                    </div>
+                </div>
+
+                <div id="disk-usage-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-hdd metric-icon"></i>
+                        <span class="metric-title">Disk Usage</span>
+                    </div>
+                    <div id="disk-usage" class="metric-value">--</div>
+                    <div class="trend-indicator">
+                        <i class="fas fa-minus"></i>
+                        <span>No change</span>
+                    </div>
+                </div>
+
+                <div id="network-usage-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-network-wired metric-icon"></i>
+                        <span class="metric-title">Network Usage</span>
+                    </div>
+                    <div id="network-usage" class="metric-value">--</div>
+                    <div class="trend-indicator">
+                        <i class="fas fa-minus"></i>
+                        <span>No change</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="metric-category">
+            <h3><i class="fas fa-tachometer-alt"></i> Performance</h3>
+            <div class="metric-cards">
+                <div id="response-time-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-clock metric-icon"></i>
+                        <span class="metric-title">Response Time</span>
+                    </div>
+                    <div id="response-time" class="metric-value">--</div>
+                    <div class="trend-indicator">
+                        <i class="fas fa-minus"></i>
+                        <span>No change</span>
+                    </div>
+                </div>
+
+                <div id="throughput-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-tachometer-alt metric-icon"></i>
+                        <span class="metric-title">Throughput</span>
+                    </div>
+                    <div id="throughput" class="metric-value">--</div>
+                    <div class="trend-indicator">
+                        <i class="fas fa-minus"></i>
+                        <span>No change</span>
+                    </div>
+                </div>
+
+                <div id="error-rate-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-exclamation-triangle metric-icon"></i>
+                        <span class="metric-title">Error Rate</span>
+                    </div>
+                    <div id="error-rate" class="metric-value">--</div>
+                    <div class="trend-indicator">
+                        <i class="fas fa-minus"></i>
+                        <span>No change</span>
+                    </div>
+                </div>
+
+                <div id="availability-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-shield-alt metric-icon"></i>
+                        <span class="metric-title">Availability</span>
+                    </div>
+                    <div id="availability" class="metric-value">--</div>
+                    <div class="trend-indicator">
+                        <i class="fas fa-minus"></i>
+                        <span>No change</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Metrics -->
+        <div class="metric-category">
+            <h3><i class="fas fa-shield-alt"></i> Security</h3>
+            <div class="metric-cards">
+                <div id="threat-level-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-exclamation-circle metric-icon"></i>
+                        <span class="metric-title">Threat Level</span>
+                    </div>
+                    <div id="threat-level" class="metric-value">--</div>
+                    <div class="threat-indicator">
+                        <div class="threat-bar">
+                            <div class="threat-fill"></div>
                         </div>
                     </div>
                 </div>
-            </section>
+
+                <div id="blocked-requests-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-ban metric-icon"></i>
+                        <span class="metric-title">Blocked Requests</span>
+                    </div>
+                    <div id="blocked-requests" class="metric-value">--</div>
+                    <div class="metric-subtitle">Last 24 hours</div>
+                </div>
+
+                <div id="active-sessions-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-users metric-icon"></i>
+                        <span class="metric-title">Active Sessions</span>
+                    </div>
+                    <div id="active-sessions" class="metric-value">--</div>
+                    <div class="metric-subtitle">Currently online</div>
+                </div>
+
+                <div id="failed-logins-card" class="metric-card">
+                    <div class="metric-header">
+                        <i class="fas fa-user-times metric-icon"></i>
+                        <span class="metric-title">Failed Logins</span>
+                    </div>
+                    <div id="failed-logins" class="metric-value">--</div>
+                    <div class="metric-subtitle">Last hour</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Dashboard -->
+    <div class="charts-dashboard">
+        <div class="chart-row">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> System Performance</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn" onclick="toggleChart('systemPerformance')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="chart-btn" onclick="downloadChart('systemPerformance')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="system-performance-chart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3><i class="fas fa-network-wired"></i> Network Traffic</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn" onclick="toggleChart('networkTraffic')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="chart-btn" onclick="downloadChart('networkTraffic')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="network-traffic-chart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3><i class="fas fa-clock"></i> Response Time</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn" onclick="toggleChart('responseTime')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="chart-btn" onclick="downloadChart('responseTime')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="response-time-chart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-pie"></i> Resource Usage</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn" onclick="toggleChart('resourceUsage')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="chart-btn" onclick="downloadChart('resourceUsage')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="resource-usage-chart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Panel -->
+    <div class="alerts-panel">
+        <div class="panel-header">
+            <h3><i class="fas fa-bell"></i> System Alerts</h3>
+            <div class="alert-controls">
+                <div class="control-group">
+                    <label for="alert-severity-filter">Severity:</label>
+                    <select id="alert-severity-filter" class="form-select">
+                        <option value="all">All Levels</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="alert-status-filter">Status:</label>
+                    <select id="alert-status-filter" class="form-select">
+                        <option value="all">All Alerts</option>
+                        <option value="active">Active</option>
+                        <option value="acknowledged">Acknowledged</option>
+                    </select>
+                </div>
+                <button id="clear-all-alerts-btn" class="btn btn-outline btn-danger">
+                    <i class="fas fa-trash"></i> Clear All
+                </button>
+            </div>
+        </div>
+        <div class="alerts-container" id="monitoring-alerts">
+            <!-- Alert items will be dynamically populated -->
+            <div class="loading-placeholder">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading alerts...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Logs Panel -->
+    <div class="logs-panel">
+        <div class="panel-header">
+            <h3><i class="fas fa-file-alt"></i> System Logs</h3>
+            <div class="log-controls">
+                <div class="control-group">
+                    <label for="log-level-filter">Level:</label>
+                    <select id="log-level-filter" class="form-select">
+                        <option value="all">All Levels</option>
+                        <option value="error">Error</option>
+                        <option value="warning">Warning</option>
+                        <option value="info">Info</option>
+                        <option value="debug">Debug</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="log-source-filter">Source:</label>
+                    <select id="log-source-filter" class="form-select">
+                        <option value="all">All Sources</option>
+                        <option value="system">System</option>
+                        <option value="api">API</option>
+                        <option value="database">Database</option>
+                        <option value="auth">Auth</option>
+                        <option value="monitoring">Monitoring</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <input type="text" id="log-search-input" class="form-input" placeholder="Search logs...">
+                </div>
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="auto-scroll-toggle" checked>
+                        <span class="checkmark"></span>
+                        Auto-scroll
+                    </label>
+                </div>
+                <button id="clear-logs-btn" class="btn btn-outline btn-danger">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+                <button onclick="exportLogs()" class="btn btn-outline">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </div>
+        <div class="logs-container" id="monitoring-logs">
+            <!-- Log entries will be dynamically populated -->
+            <div class="loading-placeholder">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading logs...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Insights -->
+    <div class="insights-panel">
+        <div class="panel-header">
+            <h3><i class="fas fa-lightbulb"></i> Performance Insights</h3>
+        </div>
+        <div class="insights-grid">
+            <div class="insight-card">
+                <div class="insight-icon">
+                    <i class="fas fa-arrow-up text-success"></i>
+                </div>
+                <div class="insight-content">
+                    <h4>CPU Optimization</h4>
+                    <p>System performance has improved by 15% over the last hour.</p>
+                    <small class="text-muted">Recommended: Continue current configuration</small>
+                </div>
+            </div>
+
+            <div class="insight-card">
+                <div class="insight-icon">
+                    <i class="fas fa-exclamation-triangle text-warning"></i>
+                </div>
+                <div class="insight-content">
+                    <h4>Memory Usage Alert</h4>
+                    <p>Memory usage approaching 80% threshold.</p>
+                    <small class="text-muted">Recommended: Consider scaling resources</small>
+                </div>
+            </div>
+
+            <div class="insight-card">
+                <div class="insight-icon">
+                    <i class="fas fa-shield-alt text-info"></i>
+                </div>
+                <div class="insight-content">
+                    <h4>Security Status</h4>
+                    <p>All security protocols are functioning normally.</p>
+                    <small class="text-muted">Last security scan: 2 hours ago</small>
+                </div>
+            </div>
+
+            <div class="insight-card">
+                <div class="insight-icon">
+                    <i class="fas fa-clock text-primary"></i>
+                </div>
+                <div class="insight-content">
+                    <h4>Response Time</h4>
+                    <p>Average response time is within acceptable limits.</p>
+                    <small class="text-muted">Current: 245ms (Target: <300ms)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Chart control functions -->
+<script>
+function toggleChart(chartId) {
+    console.log(`👁️ Toggling chart visibility: ${chartId}`);
+    const chart = document.getElementById(chartId + '-chart');
+    if (chart) {
+        const container = chart.closest('.chart-container');
+        container.classList.toggle('minimized');
+    }
+}
+
+function downloadChart(chartId) {
+    console.log(`📊 Downloading chart: ${chartId}`);
+    if (window.adminPortal) {
+        const monitoringManager = window.adminPortal.getManager('monitoring');
+        if (monitoringManager && monitoringManager.charts.has(chartId)) {
+            const chart = monitoringManager.charts.get(chartId);
+            const link = document.createElement('a');
+            link.download = `${chartId}-chart-${new Date().toISOString().slice(0, 19)}.png`;
+            link.href = chart.toBase64Image();
+            link.click();
+        }
+    }
+}
+
+// Make functions globally available
+window.toggleChart = toggleChart;
+window.downloadChart = downloadChart;
+</script>
 
             <!-- Security Center Section -->
             <section id="security" class="content-section" aria-labelledby="security-title">
