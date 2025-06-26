@@ -2,22 +2,18 @@
 class BaseComponent {
     constructor(containerId, options = {}) {
         this.containerId = containerId;
-        this.container = document.getElementById(containerId);
+        this.container = null;
         this.options = {
-            autoInit: true,
-            debounceDelay: 300,
+            autoInit: false,
+            debounceDelay: 250,
             ...options
         };
-        this.state = {};
-        this.eventBus = window.EventBus || new EventBus();
-        this.subscriptions = new Set();
-        this.isDestroyed = false;
         
-        if (!this.container) {
-            console.warn(`Container ${containerId} not found`);
-            return;
-        }
+        this.isInitialized = false;
+        this.eventListeners = [];
+        this.components = new Map();
         
+        // Auto-initialize if requested
         if (this.options.autoInit) {
             this.init();
         }
@@ -25,74 +21,117 @@ class BaseComponent {
     
     async init() {
         try {
+            this.container = document.getElementById(this.containerId);
+            if (!this.container) {
+                throw new Error(`Container element with ID '${this.containerId}' not found`);
+            }
+            
+            // Load dependencies first
             await this.loadDependencies();
+            
+            // Then render
             this.render();
+            
+            // Finally bind events
             this.bindEvents();
-            this.onInitialized();
+            
+            this.isInitialized = true;
+            this.onReady();
+            
         } catch (error) {
             console.error(`Failed to initialize ${this.constructor.name}:`, error);
             this.onError(error);
+            throw error;
         }
     }
     
     async loadDependencies() {
-        // Override in subclasses to load required components/services
-        return Promise.resolve();
+        // Override in subclasses to load specific dependencies
     }
     
     render() {
-        // Override in subclasses
-        if (this.container) {
-            this.container.classList.add('component-initialized');
-        }
+        // Override in subclasses to implement rendering logic
     }
     
     bindEvents() {
-        // Override in subclasses
-        // Auto-bind methods that start with 'handle'
-        this.autobindHandlers();
+        // Override in subclasses to bind event listeners
     }
     
-    autobindHandlers() {
-        const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
-        methods
-            .filter(method => method.startsWith('handle') && typeof this[method] === 'function')
-            .forEach(method => {
-                this[method] = this[method].bind(this);
-            });
+    onReady() {
+        // Override in subclasses for post-initialization logic
+        console.log(`${this.constructor.name} initialized successfully`);
     }
     
-    // State management
-    setState(newState, callback) {
-        const oldState = { ...this.state };
-        this.state = { ...this.state, ...newState };
+    onError(error) {
+        // Override in subclasses for error handling
+        console.error(`${this.constructor.name} error:`, error);
         
-        if (typeof callback === 'function') {
-            callback(this.state, oldState);
+        // Show user-friendly error message
+        if (window.toastSystem) {
+            window.toastSystem.error(`Component initialization failed: ${error.message}`);
         }
-        
-        this.onStateChange(this.state, oldState);
-        this.eventBus.emit(`${this.containerId}:stateChange`, { 
-            newState: this.state, 
-            oldState 
+    }
+    
+    // Helper method to load external scripts
+    async loadScript(src) {
+        return new Promise((resolve, reject) => {
+            // Check if script is already loaded
+            const existingScript = document.querySelector(`script[src="${src}"]`);
+            if (existingScript) {
+                resolve();
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => resolve();
+            script.onerror = (error) => {
+                console.error(`Failed to load script: ${src}`, error);
+                reject(new Error(`Failed to load script: ${src}`));
+            };
+            document.head.appendChild(script);
         });
     }
     
-    getState() {
-        return { ...this.state };
+    // Helper method to load CSS files
+    async loadCSS(href) {
+        return new Promise((resolve, reject) => {
+            // Check if CSS is already loaded
+            const existingLink = document.querySelector(`link[href="${href}"]`);
+            if (existingLink) {
+                resolve();
+                return;
+            }
+            
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            link.onload = () => resolve();
+            link.onerror = (error) => {
+                console.error(`Failed to load CSS: ${href}`, error);
+                reject(new Error(`Failed to load CSS: ${href}`));
+            };
+            document.head.appendChild(link);
+        });
     }
     
-    // Event system
-    subscribe(event, handler) {
-        this.eventBus.on(event, handler);
-        this.subscriptions.add({ event, handler });
+    // Event listener management
+    addEventListener(element, event, handler, options = {}) {
+        const boundHandler = handler.bind(this);
+        element.addEventListener(event, boundHandler, options);
+        
+        // Store for cleanup
+        this.eventListeners.push({
+            element,
+            event,
+            handler: boundHandler,
+            options
+        });
+        
+        return boundHandler;
     }
     
-    emit(event, data) {
-        this.eventBus.emit(event, data);
-    }
-    
-    // Utility methods
+    // Debounced event handler
     debounce(func, delay = this.options.debounceDelay) {
         let timeoutId;
         return (...args) => {
@@ -101,20 +140,9 @@ class BaseComponent {
         };
     }
     
-    throttle(func, limit = this.options.debounceDelay) {
-        let inThrottle;
-        return (...args) => {
-            if (!inThrottle) {
-                func.apply(this, args);
-                inThrottle = true;
-                setTimeout(() => inThrottle = false, limit);
-            }
-        };
-    }
-    
-    // DOM utilities
-    createElement(tag, attributes = {}, content = '') {
-        const element = document.createElement(tag);
+    // Helper to create DOM elements
+    createElement(tagName, attributes = {}, innerHTML = '') {
+        const element = document.createElement(tagName);
         
         Object.entries(attributes).forEach(([key, value]) => {
             if (key === 'className') {
@@ -128,145 +156,90 @@ class BaseComponent {
             }
         });
         
-        if (content) {
-            if (typeof content === 'string') {
-                element.innerHTML = content;
-            } else {
-                element.appendChild(content);
-            }
+        if (innerHTML) {
+            element.innerHTML = innerHTML;
         }
         
         return element;
     }
     
-    findElement(selector) {
+    // Show/hide element
+    show(element = this.container) {
+        if (element) element.style.display = '';
+    }
+    
+    hide(element = this.container) {
+        if (element) element.style.display = 'none';
+    }
+    
+    // Toggle visibility
+    toggle(element = this.container) {
+        if (element) {
+            element.style.display = element.style.display === 'none' ? '' : 'none';
+        }
+    }
+    
+    // Find elements within the component
+    find(selector) {
         return this.container ? this.container.querySelector(selector) : null;
     }
     
-    findElements(selector) {
-        return this.container ? Array.from(this.container.querySelectorAll(selector)) : [];
+    findAll(selector) {
+        return this.container ? this.container.querySelectorAll(selector) : [];
     }
     
-    // Loading states
-    setLoading(isLoading = true) {
-        if (!this.container) return;
+    // Clean up resources
+    destroy() {
+        // Remove event listeners
+        this.eventListeners.forEach(({ element, event, handler, options }) => {
+            element.removeEventListener(event, handler, options);
+        });
+        this.eventListeners = [];
         
-        if (isLoading) {
-            this.container.classList.add('loading');
-            if (!this.container.querySelector('.loading-spinner')) {
-                const spinner = this.createElement('div', { 
-                    className: 'loading-spinner' 
-                }, `
-                    <div class="spinner"></div>
-                    <span>Loading...</span>
-                `);
-                this.container.appendChild(spinner);
+        // Destroy child components
+        this.components.forEach(component => {
+            if (component && typeof component.destroy === 'function') {
+                component.destroy();
             }
-        } else {
-            this.container.classList.remove('loading');
-            const spinner = this.container.querySelector('.loading-spinner');
-            if (spinner) {
-                spinner.remove();
-            }
-        }
-    }
-    
-    // Error handling
-    showError(message, details = null) {
-        console.error(`${this.constructor.name} Error:`, message, details);
+        });
+        this.components.clear();
         
-        if (window.Toast) {
-            window.Toast.error(message);
-        } else {
-            alert(`Error: ${message}`);
+        // Clean up container
+        if (this.container) {
+            this.container.innerHTML = '';
         }
-    }
-    
-    // Lifecycle hooks
-    onInitialized() {
-        // Override in subclasses
-        console.log(`${this.constructor.name} initialized`);
-    }
-    
-    onStateChange(newState, oldState) {
-        // Override in subclasses
-    }
-    
-    onError(error) {
-        this.showError('Component initialization failed', error);
+        
+        this.isInitialized = false;
+        this.onDestroy();
     }
     
     onDestroy() {
-        // Override in subclasses for cleanup
-    }
-    
-    // Cleanup
-    destroy() {
-        if (this.isDestroyed) return;
-        
-        // Remove event subscriptions
-        this.subscriptions.forEach(({ event, handler }) => {
-            this.eventBus.off(event, handler);
-        });
-        this.subscriptions.clear();
-        
-        // Remove loading state
-        this.setLoading(false);
-        
-        // Call lifecycle hook
-        this.onDestroy();
-        
-        // Mark as destroyed
-        this.isDestroyed = true;
-        
+        // Override in subclasses for cleanup logic
         console.log(`${this.constructor.name} destroyed`);
     }
-    
-    // Static helper for creating instances
-    static create(containerId, options = {}) {
-        return new this(containerId, options);
+}
+
+// Global helper functions for logging
+window.log_info = function(message) {
+    if (console && console.log) {
+        console.log(`[INFO] ${message}`);
     }
-}
+};
 
-// Simple EventBus implementation if not available globally
-if (typeof EventBus === 'undefined') {
-    window.EventBus = class EventBus {
-        constructor() {
-            this.events = {};
-        }
-        
-        on(event, callback) {
-            if (!this.events[event]) {
-                this.events[event] = [];
-            }
-            this.events[event].push(callback);
-        }
-        
-        off(event, callback) {
-            if (!this.events[event]) return;
-            
-            this.events[event] = this.events[event].filter(cb => cb !== callback);
-        }
-        
-        emit(event, data) {
-            if (!this.events[event]) return;
-            
-            this.events[event].forEach(callback => {
-                try {
-                    callback(data);
-                } catch (error) {
-                    console.error('EventBus callback error:', error);
-                }
-            });
-        }
-        
-        clear() {
-            this.events = {};
-        }
-    };
-}
+window.log_error = function(message) {
+    if (console && console.error) {
+        console.error(`[ERROR] ${message}`);
+    }
+};
 
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = BaseComponent;
-}
+window.log_success = function(message) {
+    if (console && console.log) {
+        console.log(`[SUCCESS] ✅ ${message}`);
+    }
+};
+
+window.log_warning = function(message) {
+    if (console && console.warn) {
+        console.warn(`[WARNING] ⚠️ ${message}`);
+    }
+};
