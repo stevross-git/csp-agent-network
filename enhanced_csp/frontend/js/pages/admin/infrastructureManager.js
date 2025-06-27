@@ -149,8 +149,13 @@ class InfrastructureManager {
         while (retries < this.config.maxRetries) {
             try {
                 const response = await fetch(url, { ...defaultOptions, ...options });
-                
+
                 if (!response.ok) {
+                    const key = endpoint.split('?')[0];
+                    if (response.status === 404 && window.apiFallbackData && window.apiFallbackData[key]) {
+                        console.warn(`Endpoint not found: ${endpoint}. Using fallback data.`);
+                        return window.apiFallbackData[key];
+                    }
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
                 }

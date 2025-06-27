@@ -15,6 +15,9 @@ class ApiClient {
         
         // Auth token
         this.authToken = localStorage.getItem('authToken') || null;
+
+        // Fallback data for failed requests
+        this.fallbackData = options.fallbackData || {};
     }
     
     addDefaultInterceptors() {
@@ -60,6 +63,11 @@ class ApiClient {
     
     addResponseInterceptor(interceptor) {
         this.responseInterceptors.push(interceptor);
+    }
+
+    // Register fallback data for a specific endpoint
+    setFallbackData(endpoint, data) {
+        this.fallbackData[endpoint] = data;
     }
     
     // Apply request interceptors
@@ -128,6 +136,14 @@ class ApiClient {
                         const text = await processedResponse.text();
                         return { success: true, data: text, status: processedResponse.status };
                     }
+                } else if (processedResponse.status === 404) {
+                    const key = endpoint.split('?')[0];
+                    if (this.fallbackData[key]) {
+                        console.warn(`Endpoint not found: ${endpoint}. Using fallback data.`);
+                        return { success: true, data: this.fallbackData[key], status: 200, fallback: true };
+                    }
+                    const error = await this.parseErrorResponse(processedResponse);
+                    throw error;
                 } else {
                     const error = await this.parseErrorResponse(processedResponse);
                     throw error;
@@ -281,8 +297,8 @@ class ApiClient {
     }
 }
 
-// Create global instance
-window.ApiClient = new ApiClient();
+// Create global instance with optional fallback data
+window.ApiClient = new ApiClient({ fallbackData: window.apiFallbackData || {} });
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
