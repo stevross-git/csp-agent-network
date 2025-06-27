@@ -1264,6 +1264,22 @@ async def list_users(
         "total": len(local_users)
     }
 
+
+@app.post("/api/admin/users", response_model=LocalUserInfo, status_code=201, tags=["admin"])
+async def create_user(
+    user: LocalAuthSchemas.UserRegistration,
+    current_user: UnifiedUserInfo = Depends(require_role_unified(["admin", "super_admin"]))
+):
+    """Create a new local user (admin only)"""
+    try:
+        new_user = await local_auth_service.register_user(user)
+        return new_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to create user: {e}")
+        raise HTTPException(status_code=500, detail="User creation failed")
+
 @app.get("/api/admin/audit-logs", tags=["admin"])
 async def get_audit_logs(
     limit: int = 100,
