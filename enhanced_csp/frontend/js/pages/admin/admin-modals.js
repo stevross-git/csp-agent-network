@@ -169,6 +169,13 @@ class AdminModalManager {
         }
     }
 
+    openEditUserModal(user) {
+        console.log('✏️ Opening Edit User Modal...', user);
+        if (this.openModal('edit-user-modal')) {
+            this.initializeEditUserForm(user);
+        }
+    }
+
     openDeployModelModal() {
         console.log('🚀 Opening Deploy Model Modal...');
         if (this.openModal('deploy-model-modal')) {
@@ -200,6 +207,21 @@ class AdminModalManager {
         this.bindAddUserFormSubmission(modal);
 
         console.log('📋 Add User form initialized');
+    }
+
+    initializeEditUserForm(user) {
+        const modal = document.getElementById('edit-user-modal');
+        if (!modal) return;
+
+        modal.querySelectorAll('input, select, textarea').forEach(field => {
+            if (field.name === 'full_name') field.value = user.full_name || '';
+            else if (field.name === 'email_address') field.value = user.email || '';
+            else if (field.tagName === 'SELECT') field.value = (user.roles && user.roles[0]) || 'user';
+        });
+
+        this.bindEditUserFormSubmission(modal, user.id);
+
+        console.log('✏️ Edit User form initialized');
     }
 
     initializeDeployModelForm() {
@@ -250,6 +272,19 @@ class AdminModalManager {
         }
     }
 
+    bindEditUserFormSubmission(modal, userId) {
+        const saveBtn = modal.querySelector('.btn-primary');
+        if (saveBtn) {
+            const newBtn = saveBtn.cloneNode(true);
+            saveBtn.parentNode.replaceChild(newBtn, saveBtn);
+
+            newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleUpdateUser(modal, userId);
+            });
+        }
+    }
+
     bindDeployModelFormSubmission(modal) {
         // Remove existing listeners
         const deployBtn = modal.querySelector('.btn-primary');
@@ -294,8 +329,28 @@ class AdminModalManager {
             console.error('❌ Failed to create user:', error);
             this.showNotification('❌ Failed to create user: ' + error.message, 'error');
         } finally {
-            this.hideButtonLoading(modal.querySelector('.btn-primary'), '👤 Create User');
+        this.hideButtonLoading(modal.querySelector('.btn-primary'), '👤 Create User');
+    }
+
+    async handleUpdateUser(modal, userId) {
+        console.log('✏️ Processing user update...');
+
+        const formData = this.getFormData(modal);
+
+        this.showButtonLoading(modal.querySelector('.btn-primary'), '⏳ Saving...');
+
+        try {
+            await this.updateUserAPI(userId, formData);
+            this.showNotification('✅ User updated successfully!', 'success');
+            this.closeModal('edit-user-modal');
+            this.refreshUserList();
+        } catch (error) {
+            console.error('❌ Failed to update user:', error);
+            this.showNotification('❌ Failed to update user: ' + error.message, 'error');
+        } finally {
+            this.hideButtonLoading(modal.querySelector('.btn-primary'), '💾 Save Changes');
         }
+    }
     }
 
     async handleDeployModel(modal) {
@@ -408,6 +463,30 @@ class AdminModalManager {
 
         if (!response.ok) {
             throw new Error(data.detail || 'User creation failed');
+        }
+
+        return data;
+    }
+
+    async updateUserAPI(userId, userData) {
+        const payload = {
+            full_name: userData.full_name,
+            roles: userData.role ? [userData.role] : undefined,
+            password: userData.new_password || undefined
+        };
+
+        const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || 'User update failed');
         }
 
         return data;

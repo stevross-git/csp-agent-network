@@ -160,7 +160,7 @@ class UserManager {
                 ...(this.filters.search && { search: this.filters.search })
             });
 
-            const response = await this.apiRequest(`/api/users?${params}`);
+            const response = await this.apiRequest(`/api/admin/users?${params}`);
             
             this.users = response.users || response.items || [];
             this.pagination = {
@@ -567,7 +567,7 @@ class UserManager {
 
     async updateUser(userId, userData) {
         try {
-            const response = await this.apiRequest(`/api/users/${userId}`, {
+            const response = await this.apiRequest(`/api/admin/users/${userId}`, {
                 method: 'PUT',
                 body: JSON.stringify(userData)
             });
@@ -593,7 +593,7 @@ class UserManager {
         }
 
         try {
-            await this.apiRequest(`/api/users/${userId}`, {
+            await this.apiRequest(`/api/admin/users/${userId}`, {
                 method: 'DELETE'
             });
 
@@ -644,7 +644,7 @@ class UserManager {
 
     async exportUsers() {
         try {
-            const response = await this.apiRequest('/api/users/export');
+            const response = await this.apiRequest('/api/admin/users/export');
             
             // Create download link
             const blob = new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' });
