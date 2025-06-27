@@ -28,7 +28,10 @@
 │   │   │   ├── ai_coordination.py.backup.20250625_194642
 │   │   │   ├── ai_coordination.py.backup.20250625_194654
 │   │   │   ├── ai_coordination.py.backup.fix.20250625_195018
-│   │   │   └── designs.py
+│   │   │   ├── designs.py
+│   │   │   ├── infrastructure.py
+│   │   │   ├── licenses.py
+│   │   │   └── settings.py
 │   │   └── __init__.py
 │   ├── auth
 │   │   ├── auth_system.py
@@ -36,6 +39,7 @@
 │   │   ├── local_auth.py
 │   │   ├── rbac.py
 │   │   └── token_blacklist.py
+│   ├── backend_api_review.md
 │   ├── components
 │   │   └── registry.py
 │   ├── config
@@ -57,7 +61,8 @@
 │   ├── main.py.backup.dedup.20250625_201535
 │   ├── main.py.backup.structure.20250625_200531
 │   ├── models
-│   │   └── database_models.py
+│   │   ├── database_models.py
+│   │   └── license.py
 │   ├── monitoring
 │   │   └── performance.py
 │   ├── realtime
@@ -298,7 +303,11 @@
 │   │   │   │   ├── admin-modals.css
 │   │   │   │   ├── alerts.css
 │   │   │   │   ├── alerts_incidents.css
-│   │   │   │   └── monitoring.css
+│   │   │   │   ├── backups.css
+│   │   │   │   ├── infrastructure.css
+│   │   │   │   ├── monitoring.css
+│   │   │   │   ├── roles.css
+│   │   │   │   └── systemManager.css
 │   │   │   ├── ai-agents.css
 │   │   │   ├── designer.css
 │   │   │   └── monitoring.css
@@ -324,6 +333,7 @@
 │   │   │   │   ├── AdminPage.js
 │   │   │   │   ├── agentManager.js
 │   │   │   │   ├── alerts_incidents.js
+│   │   │   │   ├── backupsManager.js
 │   │   │   │   ├── components
 │   │   │   │   │   ├── AgentManagement
 │   │   │   │   │   │   ├── AgentCard.js
@@ -334,10 +344,13 @@
 │   │   │   │   │   ├── Settings
 │   │   │   │   │   └── StatsGrid.js
 │   │   │   │   ├── dashboardManager.js
+│   │   │   │   ├── infrastructureManager.js
+│   │   │   │   ├── licensesManager.js
 │   │   │   │   ├── MIGRATION_CHECKLIST.md
 │   │   │   │   ├── modalManager.js
 │   │   │   │   ├── monitoringManager.js
 │   │   │   │   ├── navigationManager.js
+│   │   │   │   ├── roleManager.js
 │   │   │   │   ├── services
 │   │   │   │   │   └── AdminPageService.js
 │   │   │   │   ├── systemManager.js
@@ -537,4 +550,4 @@
     ├── postgres
     └── redis
 
-199 directories, 338 files
+199 directories, 351 files
