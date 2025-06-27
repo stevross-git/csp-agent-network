@@ -25,6 +25,7 @@
     
     <!-- Page-specific Stylesheet -->
     <link rel="stylesheet" href="../css/pages/admin.css">
+    <link rel="stylesheet" href="../css/pages/monitoring.css">
 </head>
 <body>
     <!-- Mobile Navigation Toggle -->
@@ -327,6 +328,21 @@
                 <p>User management interface will be populated by the UserManager.</p>
             </section>
 
+            <section id="roles" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-lock"></i> Roles & Permissions</h2>
+                <p>Roles and permissions management will be populated by the RoleManager.</p>
+            </section>
+
+            <section id="auth" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-key"></i> Authentication</h2>
+                <p>Authentication settings will be populated by the AuthManager.</p>
+            </section>
+
+            <section id="ai-models" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-brain"></i> AI Models</h2>
+                <p>AI Models management will be populated by the AIModelManager.</p>
+            </section>
+
             <section id="agents" class="content-section">
                 <h2 class="mb-3"><i class="fas fa-robot"></i> Agent Management</h2>
                 <div class="section-header">
@@ -344,6 +360,61 @@
                 <div id="agent-grid" class="agent-grid">
                     <!-- Agent cards will be populated by AgentManager -->
                 </div>
+            </section>
+
+            <section id="protocols" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-clipboard-list"></i> Protocol Templates</h2>
+                <p>Protocol templates will be populated by the ProtocolManager.</p>
+            </section>
+
+            <section id="settings" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-cog"></i> System Settings</h2>
+                <p>System settings will be populated by the SettingsManager.</p>
+            </section>
+
+            <section id="infrastructure" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-server"></i> Infrastructure</h2>
+                <p>Infrastructure management will be populated by the InfrastructureManager.</p>
+            </section>
+
+            <section id="integrations" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-plug"></i> Integrations</h2>
+                <p>Integrations management will be populated by the IntegrationsManager.</p>
+            </section>
+
+            <section id="security" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-shield-alt"></i> Security Center</h2>
+                <p>Security center will be populated by the SecurityManager.</p>
+            </section>
+
+            <section id="backups" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-download"></i> Backups & Recovery</h2>
+                <p>Backup & recovery will be populated by the BackupManager.</p>
+            </section>
+
+            <section id="logs" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-file-alt"></i> System Logs</h2>
+                <p>System logs will be populated by the LogsManager.</p>
+            </section>
+
+            <section id="maintenance" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-tools"></i> Maintenance</h2>
+                <p>Maintenance tools will be populated by the MaintenanceManager.</p>
+            </section>
+
+            <section id="licenses" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-certificate"></i> Licenses</h2>
+                <p>License management will be populated by the LicenseManager.</p>
+            </section>
+
+            <section id="billing" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-credit-card"></i> Billing & Usage</h2>
+                <p>Billing and usage will be populated by the BillingManager.</p>
+            </section>
+
+            <section id="audit" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-search"></i> Audit Trail</h2>
+                <p>Audit trail will be populated by the AuditManager.</p>
             </section>
 
             <!-- Additional sections can be added here as needed -->
@@ -509,854 +580,6 @@
     
     <!-- Page Scripts -->
     <script src="../js/pages/admin/admin.js"></script>
-    
-    <!-- Accessibility Script -->
-    <script>
-        // Basic accessibility enhancements
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add keyboard navigation for nav items
-            document.querySelectorAll('.nav-item[role="button"]').forEach(item => {
-                item.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        this.click();
-                    }
-                });
-            });
-
-            // Update ARIA labels dynamically
-            const updateAriaLabels = () => {
-                const activeSection = document.querySelector('.content-section.active');
-                if (activeSection) {
-                    document.title = `${activeSection.querySelector('h2').textContent} - Enhanced CSP Admin Portal`;
-                }
-            };
-
-            // Monitor for section changes
-            const observer = new MutationObserver(updateAriaLabels);
-            observer.observe(document.querySelector('.content-area'), {
-                attributes: true,
-                subtree: true,
-                attributeFilter: ['class']
-            });
-        });
-    </script>
-</body>
-</html>d/base.css">
-    <link rel="stylesheet" href="../css/shared/components.css">
-    <link rel="stylesheet" href="../css/shared/theme.css">
-    
-    <!-- Page-specific Stylesheet -->
-    <link rel="stylesheet" href="../css/pages/admin.css">
-</head>
-<body>
-    <!-- Mobile Navigation Toggle -->
-    <button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Toggle navigation menu">
-        <i class="fas fa-bars"></i>
-    </button>
-
-    <!-- Header -->
-    <header class="header" role="banner">
-        <h1><i class="fas fa-shield-alt"></i> Enhanced CSP Admin Portal</h1>
-        <div class="header-controls">
-            <div class="realtime-indicator" aria-live="polite">
-                <div class="realtime-dot"></div>
-                <span>Live</span>
-            </div>
-            <div class="admin-badge">
-                <i class="fas fa-key"></i>
-                <span>Administrator</span>
-                <span id="admin-user">admin@csp.ai</span>
-            </div>
-            <button class="emergency-btn" onclick="emergencyShutdown()" aria-describedby="emergency-tooltip">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Emergency Stop</span>
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Container -->
-    <div class="main-container">
-        <!-- Sidebar Navigation -->
-        <nav class="sidebar" role="navigation" aria-label="Main navigation">
-            <div class="nav-section">
-                <h3><i class="fas fa-chart-line"></i> System Overview</h3>
-                <div class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')" role="button" tabindex="0" aria-label="Dashboard">
-                    <i class="fas fa-tachometer-alt nav-icon"></i>
-                    <span>Dashboard</span>
-                </div>
-                <div class="nav-item" data-section="monitoring" onclick="showSection('monitoring')" role="button" tabindex="0" aria-label="System Monitoring">
-                    <i class="fas fa-desktop nav-icon"></i>
-                    <span>System Monitoring</span>
-                </div>
-            </div>
-
-            <div class="nav-section">
-                <h3><i class="fas fa-robot"></i> AI Management</h3>
-                <div class="nav-item" data-section="agents" onclick="showSection('agents')" role="button" tabindex="0" aria-label="AI Agents">
-                    <i class="fas fa-robot nav-icon"></i>
-                    <span>AI Agents</span>
-                </div>
-                <div class="nav-item" data-section="deployment" onclick="showSection('deployment')" role="button" tabindex="0" aria-label="Agent Deployment">
-                    <i class="fas fa-rocket nav-icon"></i>
-                    <span>Agent Deployment</span>
-                </div>
-            </div>
-
-            <div class="nav-section">
-                <h3><i class="fas fa-shield-alt"></i> Security</h3>
-                <div class="nav-item" data-section="security" onclick="showSection('security')" role="button" tabindex="0" aria-label="Security Center">
-                    <i class="fas fa-shield-alt nav-icon"></i>
-                    <span>Security Center</span>
-                </div>
-                <div class="nav-item" data-section="logs" onclick="showSection('logs')" role="button" tabindex="0" aria-label="System Logs">
-                    <i class="fas fa-file-alt nav-icon"></i>
-                    <span>System Logs</span>
-                </div>
-            </div>
-
-            <div class="nav-section">
-                <h3><i class="fas fa-cog"></i> Administration</h3>
-                <div class="nav-item" data-section="settings" onclick="showSection('settings')" role="button" tabindex="0" aria-label="Settings">
-                    <i class="fas fa-cog nav-icon"></i>
-                    <span>Settings</span>
-                </div>
-                <div class="nav-item" data-section="users" onclick="showSection('users')" role="button" tabindex="0" aria-label="User Management">
-                    <i class="fas fa-users nav-icon"></i>
-                    <span>User Management</span>
-                </div>
-                <div class="nav-item" data-section="backup" onclick="showSection('backup')" role="button" tabindex="0" aria-label="Backup & Recovery">
-                    <i class="fas fa-database nav-icon"></i>
-                    <span>Backup & Recovery</span>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Main Content Area -->
-        <main class="content-area" role="main">
-            <!-- Dashboard Section -->
-            <section id="dashboard" class="content-section active" aria-labelledby="dashboard-title">
-                <h2 id="dashboard-title">System Dashboard</h2>
-                <div class="dashboard-grid" id="dashboard-metrics">
-                    <!-- Metric cards will be dynamically generated by JavaScript -->
-                </div>
-                
-                <div class="dashboard-actions">
-                    <button class="btn btn-primary" onclick="refreshAgents()">
-                        <i class="fas fa-sync-alt"></i>
-                        Refresh All Data
-                    </button>
-                    <button class="btn btn-outline" onclick="window.adminPage.getManager('dashboard').exportMetrics()">
-                        <i class="fas fa-download"></i>
-                        Export Metrics
-                    </button>
-                </div>
-            </section>
-
-            <!-- AI Agents Section -->
-            <section id="agents" class="content-section" aria-labelledby="agents-title">
-                <div class="section-header">
-                    <h2 id="agents-title">AI Agents Management</h2>
-                    <div class="section-actions">
-                        <button class="btn btn-primary" onclick="openCreateAgentModal()">
-                            <i class="fas fa-plus"></i>
-                            Create Agent
-                        </button>
-                        <button class="btn btn-secondary" onclick="deployAllAgents()">
-                            <i class="fas fa-rocket"></i>
-                            Deploy All
-                        </button>
-                    </div>
-                </div>
-
-                <div class="search-filters">
-                    <input type="text" id="agentSearch" class="form-input search-input" placeholder="Search agents..." onkeyup="filterAgents()" aria-label="Search agents">
-                    <select class="form-select filter-dropdown" onchange="filterAgentsByType(this.value)" aria-label="Filter by agent type">
-                        <option value="">All Types</option>
-                        <option value="monitoring">Monitoring</option>
-                        <option value="security">Security</option>
-                        <option value="performance">Performance</option>
-                        <option value="backup">Backup</option>
-                        <option value="custom">Custom</option>
-                    </select>
-                </div>
-
-                <div class="agent-grid" id="agent-grid">
-                    <!-- Agent cards will be dynamically generated by JavaScript -->
-                </div>
-            </section>
-
-            <!-- System Monitoring Section -->
-            <!-- Enhanced Monitoring Section for admin.html -->
-<!-- Replace the existing monitoring section with this comprehensive version -->
-
-<section id="monitoring" class="content-section" aria-labelledby="monitoring-title">
-    <div class="monitoring-header">
-        <h2 id="monitoring-title" class="section-title">
-            <i class="fas fa-chart-line"></i> System Monitoring
-        </h2>
-        <div class="monitoring-controls">
-            <div class="control-group">
-                <label for="monitoring-time-range">Time Range:</label>
-                <select id="monitoring-time-range" class="form-select">
-                    <option value="5m">Last 5 minutes</option>
-                    <option value="15m" selected>Last 15 minutes</option>
-                    <option value="1h">Last hour</option>
-                    <option value="6h">Last 6 hours</option>
-                    <option value="24h">Last 24 hours</option>
-                </select>
-            </div>
-            <div class="monitoring-actions">
-                <button id="monitoring-refresh-btn" class="btn btn-outline">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-                <button id="monitoring-export-btn" class="btn btn-outline">
-                    <i class="fas fa-download"></i> Export
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- System Status Overview -->
-    <div class="status-overview">
-        <div class="status-card">
-            <div class="status-indicator">
-                <div id="overall-system-status" class="status-indicator status-operational">Operational</div>
-            </div>
-            <div class="status-details">
-                <h3>System Status</h3>
-                <p>All systems are running normally</p>
-                <small>Last updated: <span id="last-update-time">just now</span></small>
-            </div>
-        </div>
-        <div class="alert-summary-card">
-            <div class="alert-summary-header">
-                <h3>Active Alerts</h3>
-                <div class="alert-badges">
-                    <span id="critical-alerts-badge" class="alert-badge critical" style="display: none;">0</span>
-                    <span id="active-alerts-badge" class="alert-badge warning">0</span>
-                </div>
-            </div>
-            <p id="alert-summary-text">0 active, 0 acknowledged</p>
-        </div>
-    </div>
-
-    <!-- Key Metrics Grid -->
-    <div class="metrics-grid">
-        <!-- System Metrics -->
-        <div class="metric-category">
-            <h3><i class="fas fa-server"></i> System Resources</h3>
-            <div class="metric-cards">
-                <div id="cpu-usage-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-microchip metric-icon"></i>
-                        <span class="metric-title">CPU Usage</span>
-                    </div>
-                    <div id="cpu-usage" class="metric-value">--</div>
-                    <div class="trend-indicator">
-                        <i class="fas fa-minus"></i>
-                        <span>No change</span>
-                    </div>
-                </div>
-
-                <div id="memory-usage-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-memory metric-icon"></i>
-                        <span class="metric-title">Memory Usage</span>
-                    </div>
-                    <div id="memory-usage" class="metric-value">--</div>
-                    <div class="trend-indicator">
-                        <i class="fas fa-minus"></i>
-                        <span>No change</span>
-                    </div>
-                </div>
-
-                <div id="disk-usage-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-hdd metric-icon"></i>
-                        <span class="metric-title">Disk Usage</span>
-                    </div>
-                    <div id="disk-usage" class="metric-value">--</div>
-                    <div class="trend-indicator">
-                        <i class="fas fa-minus"></i>
-                        <span>No change</span>
-                    </div>
-                </div>
-
-                <div id="network-usage-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-network-wired metric-icon"></i>
-                        <span class="metric-title">Network Usage</span>
-                    </div>
-                    <div id="network-usage" class="metric-value">--</div>
-                    <div class="trend-indicator">
-                        <i class="fas fa-minus"></i>
-                        <span>No change</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Performance Metrics -->
-        <div class="metric-category">
-            <h3><i class="fas fa-tachometer-alt"></i> Performance</h3>
-            <div class="metric-cards">
-                <div id="response-time-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-clock metric-icon"></i>
-                        <span class="metric-title">Response Time</span>
-                    </div>
-                    <div id="response-time" class="metric-value">--</div>
-                    <div class="trend-indicator">
-                        <i class="fas fa-minus"></i>
-                        <span>No change</span>
-                    </div>
-                </div>
-
-                <div id="throughput-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-tachometer-alt metric-icon"></i>
-                        <span class="metric-title">Throughput</span>
-                    </div>
-                    <div id="throughput" class="metric-value">--</div>
-                    <div class="trend-indicator">
-                        <i class="fas fa-minus"></i>
-                        <span>No change</span>
-                    </div>
-                </div>
-
-                <div id="error-rate-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-exclamation-triangle metric-icon"></i>
-                        <span class="metric-title">Error Rate</span>
-                    </div>
-                    <div id="error-rate" class="metric-value">--</div>
-                    <div class="trend-indicator">
-                        <i class="fas fa-minus"></i>
-                        <span>No change</span>
-                    </div>
-                </div>
-
-                <div id="availability-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-shield-alt metric-icon"></i>
-                        <span class="metric-title">Availability</span>
-                    </div>
-                    <div id="availability" class="metric-value">--</div>
-                    <div class="trend-indicator">
-                        <i class="fas fa-minus"></i>
-                        <span>No change</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Security Metrics -->
-        <div class="metric-category">
-            <h3><i class="fas fa-shield-alt"></i> Security</h3>
-            <div class="metric-cards">
-                <div id="threat-level-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-exclamation-circle metric-icon"></i>
-                        <span class="metric-title">Threat Level</span>
-                    </div>
-                    <div id="threat-level" class="metric-value">--</div>
-                    <div class="threat-indicator">
-                        <div class="threat-bar">
-                            <div class="threat-fill"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="blocked-requests-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-ban metric-icon"></i>
-                        <span class="metric-title">Blocked Requests</span>
-                    </div>
-                    <div id="blocked-requests" class="metric-value">--</div>
-                    <div class="metric-subtitle">Last 24 hours</div>
-                </div>
-
-                <div id="active-sessions-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-users metric-icon"></i>
-                        <span class="metric-title">Active Sessions</span>
-                    </div>
-                    <div id="active-sessions" class="metric-value">--</div>
-                    <div class="metric-subtitle">Currently online</div>
-                </div>
-
-                <div id="failed-logins-card" class="metric-card">
-                    <div class="metric-header">
-                        <i class="fas fa-user-times metric-icon"></i>
-                        <span class="metric-title">Failed Logins</span>
-                    </div>
-                    <div id="failed-logins" class="metric-value">--</div>
-                    <div class="metric-subtitle">Last hour</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts Dashboard -->
-    <div class="charts-dashboard">
-        <div class="chart-row">
-            <div class="chart-container">
-                <div class="chart-header">
-                    <h3><i class="fas fa-chart-line"></i> System Performance</h3>
-                    <div class="chart-controls">
-                        <button class="chart-btn" onclick="toggleChart('systemPerformance')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="chart-btn" onclick="downloadChart('systemPerformance')">
-                            <i class="fas fa-download"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="system-performance-chart" width="400" height="200"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-container">
-                <div class="chart-header">
-                    <h3><i class="fas fa-network-wired"></i> Network Traffic</h3>
-                    <div class="chart-controls">
-                        <button class="chart-btn" onclick="toggleChart('networkTraffic')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="chart-btn" onclick="downloadChart('networkTraffic')">
-                            <i class="fas fa-download"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="network-traffic-chart" width="400" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="chart-row">
-            <div class="chart-container">
-                <div class="chart-header">
-                    <h3><i class="fas fa-clock"></i> Response Time</h3>
-                    <div class="chart-controls">
-                        <button class="chart-btn" onclick="toggleChart('responseTime')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="chart-btn" onclick="downloadChart('responseTime')">
-                            <i class="fas fa-download"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="response-time-chart" width="400" height="200"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-container">
-                <div class="chart-header">
-                    <h3><i class="fas fa-chart-pie"></i> Resource Usage</h3>
-                    <div class="chart-controls">
-                        <button class="chart-btn" onclick="toggleChart('resourceUsage')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="chart-btn" onclick="downloadChart('resourceUsage')">
-                            <i class="fas fa-download"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="resource-usage-chart" width="400" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Alerts Panel -->
-    <div class="alerts-panel">
-        <div class="panel-header">
-            <h3><i class="fas fa-bell"></i> System Alerts</h3>
-            <div class="alert-controls">
-                <div class="control-group">
-                    <label for="alert-severity-filter">Severity:</label>
-                    <select id="alert-severity-filter" class="form-select">
-                        <option value="all">All Levels</option>
-                        <option value="critical">Critical</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label for="alert-status-filter">Status:</label>
-                    <select id="alert-status-filter" class="form-select">
-                        <option value="all">All Alerts</option>
-                        <option value="active">Active</option>
-                        <option value="acknowledged">Acknowledged</option>
-                    </select>
-                </div>
-                <button id="clear-all-alerts-btn" class="btn btn-outline btn-danger">
-                    <i class="fas fa-trash"></i> Clear All
-                </button>
-            </div>
-        </div>
-        <div class="alerts-container" id="monitoring-alerts">
-            <!-- Alert items will be dynamically populated -->
-            <div class="loading-placeholder">
-                <i class="fas fa-spinner fa-spin"></i>
-                <p>Loading alerts...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- System Logs Panel -->
-    <div class="logs-panel">
-        <div class="panel-header">
-            <h3><i class="fas fa-file-alt"></i> System Logs</h3>
-            <div class="log-controls">
-                <div class="control-group">
-                    <label for="log-level-filter">Level:</label>
-                    <select id="log-level-filter" class="form-select">
-                        <option value="all">All Levels</option>
-                        <option value="error">Error</option>
-                        <option value="warning">Warning</option>
-                        <option value="info">Info</option>
-                        <option value="debug">Debug</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label for="log-source-filter">Source:</label>
-                    <select id="log-source-filter" class="form-select">
-                        <option value="all">All Sources</option>
-                        <option value="system">System</option>
-                        <option value="api">API</option>
-                        <option value="database">Database</option>
-                        <option value="auth">Auth</option>
-                        <option value="monitoring">Monitoring</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <input type="text" id="log-search-input" class="form-input" placeholder="Search logs...">
-                </div>
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="auto-scroll-toggle" checked>
-                        <span class="checkmark"></span>
-                        Auto-scroll
-                    </label>
-                </div>
-                <button id="clear-logs-btn" class="btn btn-outline btn-danger">
-                    <i class="fas fa-trash"></i> Clear
-                </button>
-                <button onclick="exportLogs()" class="btn btn-outline">
-                    <i class="fas fa-download"></i> Export
-                </button>
-            </div>
-        </div>
-        <div class="logs-container" id="monitoring-logs">
-            <!-- Log entries will be dynamically populated -->
-            <div class="loading-placeholder">
-                <i class="fas fa-spinner fa-spin"></i>
-                <p>Loading logs...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Performance Insights -->
-    <div class="insights-panel">
-        <div class="panel-header">
-            <h3><i class="fas fa-lightbulb"></i> Performance Insights</h3>
-        </div>
-        <div class="insights-grid">
-            <div class="insight-card">
-                <div class="insight-icon">
-                    <i class="fas fa-arrow-up text-success"></i>
-                </div>
-                <div class="insight-content">
-                    <h4>CPU Optimization</h4>
-                    <p>System performance has improved by 15% over the last hour.</p>
-                    <small class="text-muted">Recommended: Continue current configuration</small>
-                </div>
-            </div>
-
-            <div class="insight-card">
-                <div class="insight-icon">
-                    <i class="fas fa-exclamation-triangle text-warning"></i>
-                </div>
-                <div class="insight-content">
-                    <h4>Memory Usage Alert</h4>
-                    <p>Memory usage approaching 80% threshold.</p>
-                    <small class="text-muted">Recommended: Consider scaling resources</small>
-                </div>
-            </div>
-
-            <div class="insight-card">
-                <div class="insight-icon">
-                    <i class="fas fa-shield-alt text-info"></i>
-                </div>
-                <div class="insight-content">
-                    <h4>Security Status</h4>
-                    <p>All security protocols are functioning normally.</p>
-                    <small class="text-muted">Last security scan: 2 hours ago</small>
-                </div>
-            </div>
-
-            <div class="insight-card">
-                <div class="insight-icon">
-                    <i class="fas fa-clock text-primary"></i>
-                </div>
-                <div class="insight-content">
-                    <h4>Response Time</h4>
-                    <p>Average response time is within acceptable limits.</p>
-                    <small class="text-muted">Current: 245ms (Target: <300ms)</small>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Chart control functions -->
-<script>
-function toggleChart(chartId) {
-    console.log(`👁️ Toggling chart visibility: ${chartId}`);
-    const chart = document.getElementById(chartId + '-chart');
-    if (chart) {
-        const container = chart.closest('.chart-container');
-        container.classList.toggle('minimized');
-    }
-}
-
-function downloadChart(chartId) {
-    console.log(`📊 Downloading chart: ${chartId}`);
-    if (window.adminPortal) {
-        const monitoringManager = window.adminPortal.getManager('monitoring');
-        if (monitoringManager && monitoringManager.charts.has(chartId)) {
-            const chart = monitoringManager.charts.get(chartId);
-            const link = document.createElement('a');
-            link.download = `${chartId}-chart-${new Date().toISOString().slice(0, 19)}.png`;
-            link.href = chart.toBase64Image();
-            link.click();
-        }
-    }
-}
-
-// Make functions globally available
-window.toggleChart = toggleChart;
-window.downloadChart = downloadChart;
-</script>
-
-            <!-- Security Center Section -->
-            <section id="security" class="content-section" aria-labelledby="security-title">
-                <h2 id="security-title">Security Center</h2>
-                <div class="security-dashboard">
-                    <div class="security-cards">
-                        <div class="admin-card">
-                            <h3><i class="fas fa-shield-alt"></i> Threat Level</h3>
-                            <div class="metric success">Low</div>
-                            <p>No active threats detected</p>
-                        </div>
-                        <div class="admin-card">
-                            <h3><i class="fas fa-lock"></i> Active Sessions</h3>
-                            <div class="metric info">5</div>
-                            <p>Currently authenticated users</p>
-                        </div>
-                        <div class="admin-card">
-                            <h3><i class="fas fa-exclamation-triangle"></i> Security Alerts</h3>
-                            <div class="metric warning">2</div>
-                            <p>Alerts requiring attention</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- System Logs Section -->
-            <section id="logs" class="content-section" aria-labelledby="logs-title">
-                <h2 id="logs-title">System Logs</h2>
-                <div class="logs-container">
-                    <div class="logs-controls">
-                        <select class="form-select" aria-label="Filter logs by level">
-                            <option value="">All Levels</option>
-                            <option value="info">Info</option>
-                            <option value="warning">Warning</option>
-                            <option value="error">Error</option>
-                        </select>
-                        <input type="date" class="form-input" aria-label="Filter by date">
-                        <button class="btn btn-outline">
-                            <i class="fas fa-download"></i>
-                            Export Logs
-                        </button>
-                    </div>
-                    <div class="logs-viewer">
-                        <div class="log-entry">
-                            <span class="log-time">14:30:25</span>
-                            <span class="log-level info">INFO</span>
-                            <span class="log-message">System startup completed successfully</span>
-                        </div>
-                        <div class="log-entry">
-                            <span class="log-time">14:29:18</span>
-                            <span class="log-level success">SUCCESS</span>
-                            <span class="log-message">All agents initialized and ready</span>
-                        </div>
-                        <div class="log-entry">
-                            <span class="log-time">14:28:42</span>
-                            <span class="log-level warning">WARN</span>
-                            <span class="log-message">High memory usage detected on server-02</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Settings Section -->
-            <section id="settings" class="content-section" aria-labelledby="settings-title">
-                <h2 id="settings-title">System Settings</h2>
-                <div class="settings-container">
-                    <div class="settings-tabs">
-                        <div class="tab-nav">
-                            <button class="tab-btn active" data-tab="general">General</button>
-                            <button class="tab-btn" data-tab="security-settings">Security</button>
-                            <button class="tab-btn" data-tab="notifications">Notifications</button>
-                            <button class="tab-btn" data-tab="advanced">Advanced</button>
-                        </div>
-                        
-                        <div class="tab-content">
-                            <div class="tab-pane active" id="general">
-                                <form class="settings-form">
-                                    <div class="form-group">
-                                        <label class="form-label">System Name</label>
-                                        <input type="text" class="form-input" value="Enhanced CSP System">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Administrator Email</label>
-                                        <input type="email" class="form-input" value="admin@csp.ai">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">
-                                            <input type="checkbox" checked>
-                                            Enable real-time monitoring
-                                        </label>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save"></i>
-                                        Save Settings
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- User Management Section -->
-            <section id="users" class="content-section" aria-labelledby="users-title">
-                <div class="section-header">
-                    <h2 id="users-title">User Management</h2>
-                    <button class="btn btn-primary">
-                        <i class="fas fa-user-plus"></i>
-                        Add User
-                    </button>
-                </div>
-                
-                <div class="users-table-container">
-                    <table class="data-table" role="table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Last Login</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>John Doe</td>
-                                <td>john.doe@example.com</td>
-                                <td>Administrator</td>
-                                <td><span class="status-badge online">Active</span></td>
-                                <td>2 hours ago</td>
-                                <td>
-                                    <button class="btn btn-outline btn-sm">Edit</button>
-                                    <button class="btn btn-danger btn-sm">Delete</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Jane Smith</td>
-                                <td>jane.smith@example.com</td>
-                                <td>Operator</td>
-                                <td><span class="status-badge online">Active</span></td>
-                                <td>1 day ago</td>
-                                <td>
-                                    <button class="btn btn-outline btn-sm">Edit</button>
-                                    <button class="btn btn-danger btn-sm">Delete</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Backup & Recovery Section -->
-            <section id="backup" class="content-section" aria-labelledby="backup-title">
-                <h2 id="backup-title">Backup & Recovery</h2>
-                <div class="backup-dashboard">
-                    <div class="backup-cards">
-                        <div class="admin-card">
-                            <h3><i class="fas fa-clock"></i> Last Backup</h3>
-                            <div class="metric success">2 hours ago</div>
-                            <p>Automatic backup completed successfully</p>
-                        </div>
-                        <div class="admin-card">
-                            <h3><i class="fas fa-hdd"></i> Backup Size</h3>
-                            <div class="metric info">2.4 GB</div>
-                            <p>Total backup storage used</p>
-                        </div>
-                        <div class="admin-card">
-                            <h3><i class="fas fa-check-circle"></i> Backup Status</h3>
-                            <div class="metric success">Healthy</div>
-                            <p>All backups verified and accessible</p>
-                        </div>
-                    </div>
-                    
-                    <div class="backup-actions">
-                        <button class="btn btn-primary">
-                            <i class="fas fa-play"></i>
-                            Run Backup Now
-                        </button>
-                        <button class="btn btn-outline">
-                            <i class="fas fa-history"></i>
-                            View Backup History
-                        </button>
-                        <button class="btn btn-outline">
-                            <i class="fas fa-cog"></i>
-                            Backup Settings
-                        </button>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Modal Container -->
-    <div id="modal-container" class="modal-container" aria-hidden="true"></div>
-
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay hidden">
-        <div class="loading-spinner"></div>
-        <p>Loading...</p>
-    </div>
-
-    <!-- Toast Container -->
-    <div id="toast-container" class="toast-container" aria-live="polite"></div>
-
-    <!-- Tooltips -->
-    <div id="emergency-tooltip" role="tooltip" class="tooltip">
-        Emergency shutdown will stop all agents and services immediately
-    </div>
-
-    <!-- Page Scripts -->
-    <script type="module" src="../js/pages/admin/admin.js"></script>
     
     <!-- Accessibility Script -->
     <script>
