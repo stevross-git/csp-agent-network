@@ -382,5 +382,32 @@ class Notification(Base):
             "actions": self.actions,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "read_at": self.read_at.isoformat() if self.read_at else None,
-            "expires_at": self.expires_at.isoformat() if self.expires_at else None
+        "expires_at": self.expires_at.isoformat() if self.expires_at else None
+        }
+
+# ============================================================================
+# LICENSE MODELS
+# ============================================================================
+
+class LicenseRecord(Base):
+    """Software license information"""
+    __tablename__ = "licenses"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    product = Column(String(100), nullable=False)
+    key = Column(String(255), nullable=False, unique=True)
+    expires_at = Column(DateTime)
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "product": self.product,
+            "key": self.key,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "active": self.active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

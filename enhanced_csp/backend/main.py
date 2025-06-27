@@ -943,6 +943,14 @@ try:
 except ImportError:
     logger.warning("⚠️ Settings router not available")
 
+# Include licenses router
+try:
+    from backend.api.endpoints.licenses import router as licenses_router
+    app.include_router(licenses_router)
+    logger.info("✅ Licenses router registered")
+except ImportError:
+    logger.warning("⚠️ Licenses router not available")
+
 # ============================================================================
 # AUTHENTICATION ENDPOINTS
 # ============================================================================

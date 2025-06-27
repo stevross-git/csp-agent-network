@@ -408,6 +408,22 @@ class NotificationResponse(BaseModel):
     read_at: Optional[datetime]
 
 # ============================================================================
+# NEW LICENSE SCHEMAS
+# ============================================================================
+
+class LicenseCreate(BaseModel):
+    """License creation request"""
+    product: str
+    key: str
+    expires_at: Optional[datetime] = None
+    active: bool = True
+
+class LicenseResponse(LicenseCreate):
+    id: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+# ============================================================================
 # NEW COMPONENT SCHEMAS
 # ============================================================================
 
