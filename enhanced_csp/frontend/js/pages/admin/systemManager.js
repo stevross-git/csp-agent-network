@@ -799,6 +799,11 @@ class SystemManager {
     }
   }
 
+  async refresh() {
+    await this.loadSettings();
+    this.renderForm();
+  }
+
   async apiRequest(endpoint, options = {}) {
     const url = `${this.apiBaseUrl}${endpoint}`;
     const defaultOptions = {
@@ -912,4 +917,3 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 export default SystemManager;
-

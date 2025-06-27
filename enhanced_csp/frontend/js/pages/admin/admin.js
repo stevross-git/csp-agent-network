@@ -376,10 +376,18 @@ async function initializeInfrastructure() {
     }
 
     if (window.infrastructureManager) {
-        window.infrastructureManager.refresh();
+        if (typeof window.infrastructureManager.refresh === 'function') {
+            window.infrastructureManager.refresh();
+        } else if (typeof window.infrastructureManager.init === 'function') {
+            window.infrastructureManager.init();
+        } else {
+            console.warn('InfrastructureManager is missing required methods');
+        }
     } else if (typeof InfrastructureManager !== 'undefined') {
         window.infrastructureManager = new InfrastructureManager();
-        window.infrastructureManager.init();
+        if (typeof window.infrastructureManager.init === 'function') {
+            window.infrastructureManager.init();
+        }
     } else {
         const infraSection = document.getElementById('infrastructure');
         if (infraSection && !infraSection.querySelector('.infrastructure-dashboard')) {
