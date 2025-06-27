@@ -2,14 +2,9 @@
 ├── advanced_security_engine.py
 ├── ai_extensions
 │   ├── csp_ai_extensions.py
-│   ├── __init__.py
-│   └── __pycache__
-│       ├── csp_ai_extensions.cpython-310.pyc
-│       └── __init__.cpython-310.pyc
+│   └── __init__.py
 ├── ai_integration
-│   ├── csp_ai_integration.py
-│   └── __pycache__
-│       └── csp_ai_integration.cpython-310.pyc
+│   └── csp_ai_integration.py
 ├── api_database_schemas.txt
 ├── applications
 │   └── csp_real_world_showcase.py
@@ -22,14 +17,6 @@
 │   │   ├── emergence-detection.py
 │   │   ├── emergence_detection.py
 │   │   ├── __init__.py
-│   │   ├── __pycache__
-│   │   │   ├── ai_coordination_engine.cpython-310.pyc
-│   │   │   ├── consciousness_sync.cpython-310.pyc
-│   │   │   ├── emergence_detection.cpython-310.pyc
-│   │   │   ├── __init__.cpython-310.pyc
-│   │   │   ├── quantum_knowledge.cpython-310.pyc
-│   │   │   ├── temporal_entanglement.cpython-310.pyc
-│   │   │   └── wisdom_convergence.cpython-310.pyc
 │   │   ├── quantum_knowledge.py
 │   │   ├── temporal_entanglement.py
 │   │   └── wisdom_convergence.py
@@ -41,26 +28,15 @@
 │   │   │   ├── ai_coordination.py.backup.20250625_194642
 │   │   │   ├── ai_coordination.py.backup.20250625_194654
 │   │   │   ├── ai_coordination.py.backup.fix.20250625_195018
-│   │   │   ├── designs.py
-│   │   │   └── __pycache__
-│   │   │       ├── ai_coordination.cpython-310.pyc
-│   │   │       ├── ai_coordination_monitoring.cpython-310.pyc
-│   │   │       └── designs.cpython-310.pyc
-│   │   ├── __init__.py
-│   │   └── __pycache__
-│   │       └── __init__.cpython-310.pyc
+│   │   │   └── designs.py
+│   │   └── __init__.py
 │   ├── auth
 │   │   ├── auth_system.py
 │   │   ├── azure_auth.py
 │   │   ├── local_auth.py
-│   │   ├── __pycache__
-│   │   │   ├── auth_system.cpython-310.pyc
-│   │   │   └── rbac.cpython-310.pyc
 │   │   ├── rbac.py
 │   │   └── token_blacklist.py
 │   ├── components
-│   │   ├── __pycache__
-│   │   │   └── registry.cpython-310.pyc
 │   │   └── registry.py
 │   ├── config
 │   │   └── settings.py
@@ -68,16 +44,11 @@
 │   │   ├── ai_models_db.py
 │   │   ├── connection.py
 │   │   ├── __init__.py
-│   │   ├── pgvector
-│   │   │   └── init
-│   │   │       └── 01-init-vector-db.sql
-│   │   └── __pycache__
-│   │       ├── connection.cpython-310.pyc
-│   │       └── __init__.cpython-310.pyc
+│   │   └── pgvector
+│   │       └── init
+│   │           └── 01-init-vector-db.sql
 │   ├── execution
-│   │   ├── execution_engine.py
-│   │   └── __pycache__
-│   │       └── execution_engine.cpython-310.pyc
+│   │   └── execution_engine.py
 │   ├── __init__.py
 │   ├── main.py
 │   ├── main.py.backup.20250624_210013
@@ -86,22 +57,13 @@
 │   ├── main.py.backup.dedup.20250625_201535
 │   ├── main.py.backup.structure.20250625_200531
 │   ├── models
-│   │   ├── database_models.py
-│   │   └── __pycache__
-│   │       └── database_models.cpython-310.pyc
+│   │   └── database_models.py
 │   ├── monitoring
 │   │   └── performance.py
-│   ├── __pycache__
-│   │   ├── __init__.cpython-310.pyc
-│   │   └── main.cpython-310.pyc
 │   ├── realtime
-│   │   ├── __pycache__
-│   │   │   └── websocket_manager.cpython-310.pyc
 │   │   └── websocket_manager.py
 │   ├── schemas
-│   │   ├── api_schemas.py
-│   │   └── __pycache__
-│   │       └── api_schemas.cpython-310.pyc
+│   │   └── api_schemas.py
 │   └── services
 │       └── vector_database.py
 ├── backend_implementation_roadmap.md
@@ -223,9 +185,7 @@
 ├── blockchain_csp_network.py
 ├── cli
 │   ├── csp_implementation_guide.py
-│   ├── manage.py
-│   └── __pycache__
-│       └── manage.cpython-310.pyc
+│   └── manage.py
 ├── complete_documentation.md
 ├── config
 │   ├── certificates
@@ -237,9 +197,7 @@
 │   ├── secrets
 │   └── system.yaml
 ├── core
-│   ├── advanced_csp_core.py
-│   └── __pycache__
-│       └── advanced_csp_core.cpython-310.pyc
+│   └── advanced_csp_core.py
 ├── core_csp_implementation.py
 ├── csp_audit_json.json
 ├── csp_system.egg-info
@@ -280,9 +238,6 @@
 │   ├── pgvector
 │   │   └── init
 │   ├── postgresql
-│   ├── __pycache__
-│   │   ├── __init__.cpython-310.pyc
-│   │   └── migrate.cpython-310.pyc
 │   ├── qdrant
 │   │   └── config
 │   ├── redis
@@ -308,14 +263,10 @@
 │   │   └── docker_deployment.txt
 │   ├── kubernetes
 │   │   └── kubernetes_manifests.txt
-│   ├── __pycache__
-│   │   └── csp_deployment_system.cpython-310.pyc
 │   └── requirements_txt.txt
 ├── detailed_todo_list.md
 ├── dev_tools
-│   ├── csp_dev_tools.py
-│   └── __pycache__
-│       └── csp_dev_tools.cpython-310.pyc
+│   └── csp_dev_tools.py
 ├── .docker-compose-path
 ├── docker-compose.yml.broken.20250626_201623
 ├── docker-compose.yml.broken.20250626_202026
@@ -525,9 +476,7 @@
 ├── requirements-dev.txt
 ├── requirements.txt
 ├── runtime
-│   ├── csp_runtime_environment.py
-│   └── __pycache__
-│       └── csp_runtime_environment.cpython-310.pyc
+│   └── csp_runtime_environment.py
 ├── scripts
 │   ├── data
 │   ├── database
@@ -588,4 +537,4 @@
     ├── postgres
     └── redis
 
-218 directories, 370 files
+199 directories, 338 files

@@ -137,3 +137,4 @@ enhanced_csp/backups/azure-quickstart/**
 frontend/azure-quickstart
 frontend/azure-quickstart/node_modules
 frontend/azure-quickstart/node_modules/**
+enhanced_csp/frontend/.env
