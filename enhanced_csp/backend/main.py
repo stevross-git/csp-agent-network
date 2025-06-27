@@ -935,6 +935,14 @@ except ImportError:
     logger.warning("⚠️ Infrastructure router not available")
     INFRASTRUCTURE_AVAILABLE = False
 
+# Include system settings router
+try:
+    from backend.api.endpoints import settings as settings_router
+    app.include_router(settings_router.router)
+    logger.info("✅ Settings router registered")
+except ImportError:
+    logger.warning("⚠️ Settings router not available")
+
 # ============================================================================
 # AUTHENTICATION ENDPOINTS
 # ============================================================================

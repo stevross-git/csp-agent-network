@@ -357,18 +357,11 @@ async function initializeProtocols() {
 
 async function initializeSettings() {
     console.log('⚙️ Initializing System Settings...');
-    const settingsSection = document.getElementById('settings');
-    if (settingsSection && !settingsSection.querySelector('.settings-dashboard')) {
-        settingsSection.innerHTML = `
-            <div class="settings-dashboard">
-                <h2><i class="fas fa-cog"></i> System Settings</h2>
-                <p>System configuration settings will be implemented here.</p>
-                <div class="placeholder-content">
-                    <i class="fas fa-sliders-h" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                    <p>Configure system-wide settings and preferences</p>
-                </div>
-            </div>
-        `;
+    const settingsSection = document.getElementById('system-settings');
+    if (settingsSection && !window.systemManager) {
+        await loadScript('../js/pages/admin/systemManager.js');
+        window.systemManager = new SystemManager();
+        settingsSection.classList.remove('hidden');
     }
 }
 
