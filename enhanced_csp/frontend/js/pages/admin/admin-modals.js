@@ -1,6 +1,8 @@
 // Admin Portal Modal Functions Fix
 // Add this to your admin portal JavaScript or create a new admin-modals.js file
 
+const API_BASE_URL = 'http://localhost:8000';
+
 // Enhanced Modal Management System
 class AdminModalManager {
     constructor() {
@@ -387,16 +389,28 @@ class AdminModalManager {
     }
 
     async createUserAPI(userData) {
-        // Simulate API call
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                if (Math.random() > 0.1) { // 90% success rate
-                    resolve({ id: Date.now(), ...userData });
-                } else {
-                    reject(new Error('Network error'));
-                }
-            }, 1500);
+        const payload = {
+            email: userData.email_address,
+            password: userData.initial_password || 'ChangeMe123!',
+            confirm_password: userData.initial_password || 'ChangeMe123!',
+            full_name: userData.full_name
+        };
+
+        const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
         });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || 'User creation failed');
+        }
+
+        return data;
     }
 
     async deployModelAPI(modelData) {
