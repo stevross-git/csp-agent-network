@@ -12,8 +12,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 import json
 from pathlib import Path
+from collections import defaultdict
 
-from pydantic import BaseSettings, Field, validator
+from pydantic_settings import BaseSettings
+from pydantic import Field, field_validator
 import yaml
 
 logger = logging.getLogger(__name__)
@@ -37,21 +39,26 @@ class DatabaseConfig(BaseSettings):
     """Database configuration"""
     
     # PostgreSQL settings
-    host: str = Field(default="localhost", env="DB_HOST")
-    port: int = Field(default=5432, env="DB_PORT")
-    database: str = Field(default="csp_visual_designer", env="DB_NAME")
-    username: str = Field(default="csp_user", env="DB_USER")
-    password: str = Field(default="csp_password", env="DB_PASSWORD")
+    host: str = Field(default="localhost")
+    port: int = Field(default=5432)
+    database: str = Field(default="csp_visual_designer")
+    username: str = Field(default="csp_user")
+    password: str = Field(default="csp_password")
     
     # Connection pool settings
-    pool_size: int = Field(default=20, env="DB_POOL_SIZE")
-    max_overflow: int = Field(default=30, env="DB_MAX_OVERFLOW")
-    pool_timeout: int = Field(default=30, env="DB_POOL_TIMEOUT")
-    pool_recycle: int = Field(default=3600, env="DB_POOL_RECYCLE")
+    pool_size: int = Field(default=20)
+    max_overflow: int = Field(default=30)
+    pool_timeout: int = Field(default=30)
+    pool_recycle: int = Field(default=3600)
     
     # Additional settings
-    echo_sql: bool = Field(default=False, env="DB_ECHO_SQL")
-    ssl_mode: str = Field(default="prefer", env="DB_SSL_MODE")
+    echo_sql: bool = Field(default=False)
+    ssl_mode: str = Field(default="prefer")
+    
+    model_config = {
+        "env_prefix": "DB_",
+        "case_sensitive": False
+    }
     
     @property
     def url(self) -> str:
@@ -66,15 +73,20 @@ class DatabaseConfig(BaseSettings):
 class RedisConfig(BaseSettings):
     """Redis configuration"""
     
-    host: str = Field(default="localhost", env="REDIS_HOST")
-    port: int = Field(default=6379, env="REDIS_PORT")
-    database: int = Field(default=0, env="REDIS_DB")
-    password: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
+    host: str = Field(default="localhost")
+    port: int = Field(default=6379)
+    database: int = Field(default=0)
+    password: Optional[str] = Field(default=None)
     
     # Connection settings
-    max_connections: int = Field(default=20, env="REDIS_MAX_CONNECTIONS")
-    timeout: int = Field(default=5, env="REDIS_TIMEOUT")
-    retry_on_timeout: bool = Field(default=True, env="REDIS_RETRY_ON_TIMEOUT")
+    max_connections: int = Field(default=20)
+    timeout: int = Field(default=5)
+    retry_on_timeout: bool = Field(default=True)
+    
+    model_config = {
+        "env_prefix": "REDIS_",
+        "case_sensitive": False
+    }
     
     @property
     def url(self) -> str:
@@ -86,52 +98,62 @@ class AIConfig(BaseSettings):
     """AI service configuration"""
     
     # OpenAI settings
-    openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
-    openai_org_id: Optional[str] = Field(default=None, env="OPENAI_ORG_ID")
-    openai_base_url: Optional[str] = Field(default=None, env="OPENAI_BASE_URL")
+    openai_api_key: Optional[str] = Field(default=None)
+    openai_org_id: Optional[str] = Field(default=None)
+    openai_base_url: Optional[str] = Field(default=None)
     
     # Anthropic settings
-    anthropic_api_key: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
+    anthropic_api_key: Optional[str] = Field(default=None)
     
     # Default model settings
-    default_model: str = Field(default="gpt-3.5-turbo", env="AI_DEFAULT_MODEL")
-    default_temperature: float = Field(default=0.7, env="AI_DEFAULT_TEMPERATURE")
-    default_max_tokens: int = Field(default=1000, env="AI_DEFAULT_MAX_TOKENS")
+    default_model: str = Field(default="gpt-3.5-turbo")
+    default_temperature: float = Field(default=0.7)
+    default_max_tokens: int = Field(default=1000)
     
     # Rate limiting
-    max_requests_per_minute: int = Field(default=60, env="AI_MAX_REQUESTS_PER_MINUTE")
-    max_tokens_per_minute: int = Field(default=10000, env="AI_MAX_TOKENS_PER_MINUTE")
+    max_requests_per_minute: int = Field(default=60)
+    max_tokens_per_minute: int = Field(default=10000)
     
     # Cost control
-    max_daily_cost: float = Field(default=100.0, env="AI_MAX_DAILY_COST")
-    cost_alert_threshold: float = Field(default=80.0, env="AI_COST_ALERT_THRESHOLD")
+    max_daily_cost: float = Field(default=100.0)
+    cost_alert_threshold: float = Field(default=80.0)
+    
+    model_config = {
+        "env_prefix": "AI_",
+        "case_sensitive": False
+    }
 
 class SecurityConfig(BaseSettings):
     """Security configuration"""
     
     # JWT settings
-    secret_key: str = Field(env="SECRET_KEY")
-    algorithm: str = Field(default="HS256", env="JWT_ALGORITHM")
-    access_token_expire_minutes: int = Field(default=1440, env="JWT_ACCESS_TOKEN_EXPIRE_MINUTES")  # 24 hours
-    refresh_token_expire_days: int = Field(default=30, env="JWT_REFRESH_TOKEN_EXPIRE_DAYS")
+    secret_key: str = Field(default="change-this-secret-key")
+    algorithm: str = Field(default="HS256")
+    access_token_expire_minutes: int = Field(default=1440)  # 24 hours
+    refresh_token_expire_days: int = Field(default=30)
     
     # Password settings
-    password_min_length: int = Field(default=8, env="PASSWORD_MIN_LENGTH")
-    password_require_uppercase: bool = Field(default=True, env="PASSWORD_REQUIRE_UPPERCASE")
-    password_require_lowercase: bool = Field(default=True, env="PASSWORD_REQUIRE_LOWERCASE")
-    password_require_numbers: bool = Field(default=True, env="PASSWORD_REQUIRE_NUMBERS")
-    password_require_special: bool = Field(default=False, env="PASSWORD_REQUIRE_SPECIAL")
+    password_min_length: int = Field(default=8)
+    password_require_uppercase: bool = Field(default=True)
+    password_require_lowercase: bool = Field(default=True)
+    password_require_numbers: bool = Field(default=True)
+    password_require_special: bool = Field(default=False)
     
     # Rate limiting
-    max_login_attempts: int = Field(default=5, env="MAX_LOGIN_ATTEMPTS")
-    lockout_duration_minutes: int = Field(default=15, env="LOCKOUT_DURATION_MINUTES")
+    max_login_attempts: int = Field(default=5)
+    lockout_duration_minutes: int = Field(default=15)
     
     # CORS settings
-    allowed_origins: List[str] = Field(default=["*"], env="ALLOWED_ORIGINS")
-    allowed_methods: List[str] = Field(default=["*"], env="ALLOWED_METHODS")
-    allowed_headers: List[str] = Field(default=["*"], env="ALLOWED_HEADERS")
+    allowed_origins: List[str] = Field(default=["*"])
+    allowed_methods: List[str] = Field(default=["*"])
+    allowed_headers: List[str] = Field(default=["*"])
     
-    @validator('allowed_origins', 'allowed_methods', 'allowed_headers', pre=True)
+    model_config = {
+        "case_sensitive": False
+    }
+    
+    @field_validator('allowed_origins', 'allowed_methods', 'allowed_headers', mode='before')
+    @classmethod
     def parse_list_from_string(cls, v):
         if isinstance(v, str):
             return [item.strip() for item in v.split(',')]
@@ -141,28 +163,33 @@ class MonitoringConfig(BaseSettings):
     """Monitoring and observability configuration"""
     
     # Metrics collection
-    enable_metrics: bool = Field(default=True, env="ENABLE_METRICS")
-    metrics_port: int = Field(default=9090, env="METRICS_PORT")
-    collection_interval: int = Field(default=15, env="METRICS_COLLECTION_INTERVAL")
+    enable_metrics: bool = Field(default=True)
+    metrics_port: int = Field(default=9090)
+    collection_interval: int = Field(default=15)
     
     # Logging
-    log_level: str = Field(default="INFO", env="LOG_LEVEL")
-    log_format: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s", env="LOG_FORMAT")
-    enable_json_logging: bool = Field(default=False, env="ENABLE_JSON_LOGGING")
+    log_level: str = Field(default="INFO")
+    log_format: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    enable_json_logging: bool = Field(default=False)
     
     # Tracing
-    enable_tracing: bool = Field(default=False, env="ENABLE_TRACING")
-    jaeger_endpoint: Optional[str] = Field(default=None, env="JAEGER_ENDPOINT")
+    enable_tracing: bool = Field(default=False)
+    jaeger_endpoint: Optional[str] = Field(default=None)
     
     # Alerts
-    enable_alerts: bool = Field(default=True, env="ENABLE_ALERTS")
-    alert_webhook_url: Optional[str] = Field(default=None, env="ALERT_WEBHOOK_URL")
-    slack_webhook_url: Optional[str] = Field(default=None, env="SLACK_WEBHOOK_URL")
+    enable_alerts: bool = Field(default=True)
+    alert_webhook_url: Optional[str] = Field(default=None)
+    slack_webhook_url: Optional[str] = Field(default=None)
     
     # Health checks
-    health_check_interval: int = Field(default=30, env="HEALTH_CHECK_INTERVAL")
+    health_check_interval: int = Field(default=30)
     
-    @validator('log_level')
+    model_config = {
+        "case_sensitive": False
+    }
+    
+    @field_validator('log_level')
+    @classmethod
     def validate_log_level(cls, v):
         valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
         if v.upper() not in valid_levels:
@@ -173,43 +200,52 @@ class PerformanceConfig(BaseSettings):
     """Performance and optimization configuration"""
     
     # WebSocket settings
-    max_websocket_connections: int = Field(default=1000, env="MAX_WEBSOCKET_CONNECTIONS")
-    websocket_timeout: int = Field(default=300, env="WEBSOCKET_TIMEOUT")
+    max_websocket_connections: int = Field(default=1000)
+    websocket_timeout: int = Field(default=300)
     
     # Execution engine
-    max_parallel_executions: int = Field(default=50, env="MAX_PARALLEL_EXECUTIONS")
-    execution_timeout: int = Field(default=3600, env="EXECUTION_TIMEOUT")
-    max_execution_memory_mb: int = Field(default=2048, env="MAX_EXECUTION_MEMORY_MB")
+    max_parallel_executions: int = Field(default=50)
+    execution_timeout: int = Field(default=3600)
+    max_execution_memory_mb: int = Field(default=2048)
     
     # Caching
-    enable_caching: bool = Field(default=True, env="ENABLE_CACHING")
-    cache_ttl_seconds: int = Field(default=3600, env="CACHE_TTL_SECONDS")
-    max_cache_size_mb: int = Field(default=512, env="MAX_CACHE_SIZE_MB")
+    enable_caching: bool = Field(default=True)
+    cache_ttl_seconds: int = Field(default=3600)
+    max_cache_size_mb: int = Field(default=512)
     
     # Background tasks
-    max_background_tasks: int = Field(default=10, env="MAX_BACKGROUND_TASKS")
-    task_queue_size: int = Field(default=1000, env="TASK_QUEUE_SIZE")
+    max_background_tasks: int = Field(default=10)
+    task_queue_size: int = Field(default=1000)
+    
+    model_config = {
+        "case_sensitive": False
+    }
 
 class APIConfig(BaseSettings):
     """API configuration"""
     
     # Server settings
-    host: str = Field(default="0.0.0.0", env="API_HOST")
-    port: int = Field(default=8000, env="API_PORT")
-    workers: int = Field(default=1, env="API_WORKERS")
+    host: str = Field(default="0.0.0.0")
+    port: int = Field(default=8000)
+    workers: int = Field(default=1)
     
     # Request settings
-    max_request_size: int = Field(default=16 * 1024 * 1024, env="MAX_REQUEST_SIZE")  # 16MB
-    request_timeout: int = Field(default=30, env="REQUEST_TIMEOUT")
+    max_request_size: int = Field(default=16 * 1024 * 1024)  # 16MB
+    request_timeout: int = Field(default=30)
     
     # Rate limiting
-    enable_rate_limiting: bool = Field(default=True, env="ENABLE_RATE_LIMITING")
-    rate_limit_requests_per_minute: int = Field(default=100, env="RATE_LIMIT_REQUESTS_PER_MINUTE")
+    enable_rate_limiting: bool = Field(default=True)
+    rate_limit_requests_per_minute: int = Field(default=100)
     
     # Documentation
-    enable_docs: bool = Field(default=True, env="ENABLE_DOCS")
-    docs_url: str = Field(default="/docs", env="DOCS_URL")
-    redoc_url: str = Field(default="/redoc", env="REDOC_URL")
+    enable_docs: bool = Field(default=True)
+    docs_url: str = Field(default="/docs")
+    redoc_url: str = Field(default="/redoc")
+    
+    model_config = {
+        "env_prefix": "API_",
+        "case_sensitive": False
+    }
 
 # ============================================================================
 # MAIN CONFIGURATION CLASS
@@ -219,19 +255,19 @@ class Settings(BaseSettings):
     """Main application settings"""
     
     # Environment
-    environment: Environment = Field(default=Environment.DEVELOPMENT, env="ENVIRONMENT")
-    debug: bool = Field(default=False, env="DEBUG")
+    environment: Environment = Field(default=Environment.DEVELOPMENT)
+    debug: bool = Field(default=False)
     
     # Application metadata
-    app_name: str = Field(default="CSP Visual Designer API", env="APP_NAME")
-    version: str = Field(default="2.0.0", env="APP_VERSION")
-    description: str = Field(default="Advanced AI-Powered CSP Process Designer Backend", env="APP_DESCRIPTION")
+    app_name: str = Field(default="CSP Visual Designer API")
+    version: str = Field(default="2.0.0")
+    description: str = Field(default="Advanced AI-Powered CSP Process Designer Backend")
     
     # Feature flags
-    enable_ai: bool = Field(default=True, env="ENABLE_AI")
-    enable_websockets: bool = Field(default=True, env="ENABLE_WEBSOCKETS")
-    enable_authentication: bool = Field(default=True, env="ENABLE_AUTHENTICATION")
-    enable_file_upload: bool = Field(default=True, env="ENABLE_FILE_UPLOAD")
+    enable_ai: bool = Field(default=True)
+    enable_websockets: bool = Field(default=True)
+    enable_authentication: bool = Field(default=True)
+    enable_file_upload: bool = Field(default=True)
     
     # Configuration sections
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
@@ -242,13 +278,15 @@ class Settings(BaseSettings):
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
     api: APIConfig = Field(default_factory=APIConfig)
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        env_nested_delimiter = "__"  # For nested configs like DATABASE__HOST
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "extra": "ignore"
+    }
     
-    @validator('environment', pre=True)
+    @field_validator('environment', mode='before')
+    @classmethod
     def validate_environment(cls, v):
         if isinstance(v, str):
             try:
@@ -335,7 +373,7 @@ class ConfigLoader:
             return {"error": "No configuration loaded"}
         
         # Mask sensitive information
-        config_dict = self._settings.dict()
+        config_dict = self._settings.model_dump()
         self._mask_sensitive_data(config_dict)
         
         return {
@@ -572,7 +610,6 @@ def export_configuration(mask_sensitive: bool = True) -> Dict[str, Any]:
     
     if not mask_sensitive:
         # Return unmasked configuration (for debugging only)
-        config_info["config"] = settings.dict()
+        config_info["config"] = settings.model_dump()
     
     return config_info
-    
