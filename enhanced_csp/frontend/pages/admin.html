@@ -327,7 +327,31 @@
 
             <section id="users" class="content-section">
                 <h2 class="mb-3"><i class="fas fa-users"></i> User Management</h2>
-                <p>User management interface will be populated by the UserManager.</p>
+                <div class="data-table">
+                    <div class="table-header">
+                        <div class="table-title">Users</div>
+                        <div class="table-actions">
+                            <button class="btn btn-primary" id="add-user-btn">
+                                <i class="fas fa-user-plus"></i> Add User
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-content">
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Last Login</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <section id="roles" class="content-section">
