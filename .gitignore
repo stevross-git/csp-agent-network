@@ -138,3 +138,4 @@ frontend/azure-quickstart
 frontend/azure-quickstart/node_modules
 frontend/azure-quickstart/node_modules/**
 enhanced_csp/frontend/.env
+enhanced_csp/backend/config/__pycache__/settings.cpython-310.pyc
