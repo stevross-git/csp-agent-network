@@ -339,6 +339,77 @@
 
             <!-- Additional sections can be added here -->
         </main>
+
+        <!-- Add User Modal -->
+        <div id="add-user-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">➕ Add New User</div>
+                    <button class="close-btn" onclick="window.modalManager.closeModal('add-user-modal')">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="add-full-name">Full Name</label>
+                    <input name="full_name" id="add-full-name" type="text" class="form-input" placeholder="Enter full name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="add-email-address">Email Address</label>
+                    <input name="email_address" id="add-email-address" type="email" class="form-input" placeholder="Enter email address">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="add-role">Role</label>
+                    <select name="role" id="add-role" class="form-select">
+                        <option value="user">User</option>
+                        <option value="developer">Developer</option>
+                        <option value="analyst">Analyst</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="add-department">Department</label>
+                    <input name="department" id="add-department" type="text" class="form-input" placeholder="Enter department">
+                </div>
+                <div style="display:flex;gap:1rem;margin-top:2rem;">
+                    <button class="btn btn-primary">👤 Create User</button>
+                    <button class="btn btn-secondary" onclick="window.modalManager.closeModal('add-user-modal')">❌ Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit User Modal -->
+        <div id="edit-user-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">✏️ Edit User</div>
+                    <button class="close-btn" onclick="window.modalManager.closeModal('edit-user-modal')">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit-full-name">Full Name</label>
+                    <input name="full_name" id="edit-full-name" type="text" class="form-input" placeholder="Enter full name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit-email-address">Email Address</label>
+                    <input name="email_address" id="edit-email-address" type="email" class="form-input" placeholder="Enter email address" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit-role">Role</label>
+                    <select name="role" id="edit-role" class="form-select">
+                        <option value="user">User</option>
+                        <option value="developer">Developer</option>
+                        <option value="analyst">Analyst</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit-password">New Password</label>
+                    <input name="new_password" id="edit-password" type="password" class="form-input" placeholder="Leave blank to keep current password">
+                </div>
+                <div style="display:flex;gap:1rem;margin-top:2rem;">
+                    <button class="btn btn-primary">💾 Save Changes</button>
+                    <button class="btn btn-secondary" onclick="window.modalManager.closeModal('edit-user-modal')">❌ Cancel</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Shared JavaScript Dependencies -->

@@ -236,6 +236,12 @@ class LocalAuthSchemas:
         expires_in: int
         user: Dict[str, Any]
 
+    class UserUpdate(BaseModel):
+        full_name: Optional[str] = None
+        password: Optional[str] = None
+        roles: Optional[List[str]] = None
+        is_active: Optional[bool] = None
+
 class LocalAuthService:
     """Minimal local authentication service"""
     
@@ -430,6 +436,42 @@ class LocalAuthService:
             is_active=user["is_active"],
             is_email_verified=user["is_email_verified"]
         )
+
+    def _get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        for user in self.users.values():
+            if user["id"] == user_id:
+                return user
+        return None
+
+    async def update_user(self, user_id: str, updates: LocalAuthSchemas.UserUpdate) -> LocalUserInfo:
+        user = self._get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if updates.full_name is not None:
+            user["full_name"] = updates.full_name
+        if updates.password:
+            user["password_hash"] = self._hash_password(updates.password)
+        if updates.roles is not None:
+            user["roles"] = updates.roles
+        if updates.is_active is not None:
+            user["is_active"] = updates.is_active
+
+        return LocalUserInfo(
+            user_id=user["id"],
+            email=user["email"],
+            name=user["full_name"],
+            roles=user["roles"],
+            is_active=user["is_active"],
+            is_email_verified=user["is_email_verified"]
+        )
+
+    async def delete_user(self, user_id: str) -> None:
+        for email, data in list(self.users.items()):
+            if data["id"] == user_id:
+                del self.users[email]
+                return
+        raise HTTPException(status_code=404, detail="User not found")
 
 # Global instances
 azure_validator = MinimalAzureValidator(AZURE_TENANT_ID, AZURE_CLIENT_ID)
@@ -1305,6 +1347,39 @@ async def create_user(
     except Exception as e:
         logger.error(f"Failed to create user: {e}")
         raise HTTPException(status_code=500, detail="User creation failed")
+
+
+@app.put("/api/admin/users/{user_id}", response_model=LocalUserInfo, tags=["admin"])
+async def update_user(
+    user_id: str,
+    updates: LocalAuthSchemas.UserUpdate,
+    current_user: UnifiedUserInfo = Depends(require_role_unified(["admin", "super_admin"]))
+):
+    """Update a local user (admin only)"""
+    try:
+        updated_user = await local_auth_service.update_user(user_id, updates)
+        return updated_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="User update failed")
+
+
+@app.delete("/api/admin/users/{user_id}", status_code=204, tags=["admin"])
+async def delete_user(
+    user_id: str,
+    current_user: UnifiedUserInfo = Depends(require_role_unified(["admin", "super_admin"]))
+):
+    """Delete a local user (admin only)"""
+    try:
+        await local_auth_service.delete_user(user_id)
+        return Response(status_code=204)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="User deletion failed")
 
 @app.get("/api/admin/audit-logs", tags=["admin"])
 async def get_audit_logs(
