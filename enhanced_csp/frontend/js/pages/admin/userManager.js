@@ -642,6 +642,12 @@ class UserManager {
         }
     }
 
+    async refresh() {
+        await this.loadUsers(this.pagination.page);
+        this.render();
+        this.attachEvents();
+    }
+
     async exportUsers() {
         try {
             const response = await this.apiRequest('/api/admin/users/export');
