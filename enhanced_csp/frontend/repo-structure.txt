@@ -1,0 +1,148 @@
+.
+├── assets
+├── components
+│   ├── AuthStatus.js
+│   ├── ProtectedRoute.js
+│   ├── RoleGuard.js
+│   ├── ToastProvider.js
+│   └── UserProfile.js
+├── config
+│   ├── authConfig.js
+│   ├── azureConfig.js
+│   └── roles.js
+├── css
+│   ├── auth-protection.css
+│   ├── auth-wrapper.css
+│   ├── pages
+│   │   ├── admin
+│   │   │   ├── admin.css
+│   │   │   ├── admin-modals.css
+│   │   │   ├── alerts.css
+│   │   │   ├── alerts_incidents.css
+│   │   │   └── monitoring.css
+│   │   ├── ai-agents.css
+│   │   ├── designer.css
+│   │   └── monitoring.css
+│   └── shared
+│       ├── base.css
+│       ├── components.css
+│       └── theme.css
+├── data
+├── .env
+├── .env.example
+├── hooks
+│   └── useUserProfile.js
+├── js
+│   ├── auth_middleware.js
+│   ├── auth-protection.js
+│   ├── auth-protection.js-backup
+│   ├── auth-wrapper.js
+│   ├── available-pages.js
+│   ├── pages
+│   │   ├── admin
+│   │   │   ├── admin.js
+│   │   │   ├── admin-modals.js
+│   │   │   ├── AdminPage.js
+│   │   │   ├── agentManager.js
+│   │   │   ├── alerts_incidents.js
+│   │   │   ├── components
+│   │   │   │   ├── AgentManagement
+│   │   │   │   │   ├── AgentCard.js
+│   │   │   │   │   └── AgentGrid.js
+│   │   │   │   ├── Dashboard
+│   │   │   │   ├── Monitoring
+│   │   │   │   ├── MonitoringComponents.js
+│   │   │   │   ├── Settings
+│   │   │   │   └── StatsGrid.js
+│   │   │   ├── dashboardManager.js
+│   │   │   ├── MIGRATION_CHECKLIST.md
+│   │   │   ├── modalManager.js
+│   │   │   ├── monitoringManager.js
+│   │   │   ├── navigationManager.js
+│   │   │   ├── services
+│   │   │   │   └── AdminPageService.js
+│   │   │   ├── systemManager.js
+│   │   │   ├── userManager.js
+│   │   │   └── utils
+│   │   ├── ai-agents
+│   │   │   ├── Ai-agentsPage.js
+│   │   │   ├── components
+│   │   │   ├── MIGRATION_CHECKLIST.md
+│   │   │   ├── services
+│   │   │   │   └── Ai-agentsPageService.js
+│   │   │   └── utils
+│   │   ├── designer
+│   │   │   ├── components
+│   │   │   ├── DesignerPage.js
+│   │   │   ├── MIGRATION_CHECKLIST.md
+│   │   │   ├── services
+│   │   │   │   └── DesignerPageService.js
+│   │   │   └── utils
+│   │   └── monitoring
+│   │       ├── components
+│   │       ├── MIGRATION_CHECKLIST.md
+│   │       ├── MonitoringPage.js
+│   │       ├── services
+│   │       │   └── MonitoringPageService.js
+│   │       └── utils
+│   ├── services
+│   │   └── AgentService.js
+│   ├── shared
+│   │   ├── BaseComponent.js
+│   │   ├── Modal.js
+│   │   ├── SharedComponents.js
+│   │   └── Toast.js
+│   ├── utils
+│   │   └── ApiClient.js
+│   └── vendor
+│       ├── download_msal.sh
+│       └── msal-browser.min.js
+├── middleware
+│   ├── authMiddleware.js
+│   ├── roleMiddleware.js
+│   └── securityHeaders.js
+├── package.json
+├── package-lock.json
+├── pages
+│   ├── admin.html
+│   ├── admin-portal.test.js
+│   ├── ai-agents.html
+│   ├── ai-agents.html.backup
+│   ├── csp_admin_portal.html
+│   ├── Dashboard.js
+│   ├── designer.html
+│   ├── designer.html.backup
+│   ├── developer_tools.html
+│   ├── frontend-performance-dashboard.html
+│   ├── index.html
+│   ├── LoadingSpinner.js
+│   ├── login.html
+│   ├── login.html.backup
+│   ├── LoginPage.js
+│   ├── memory.html
+│   ├── monitoring.html
+│   ├── monitoring.html.backup
+│   ├── og-admin.html
+│   ├── performance.html
+│   ├── security_dashboard.html
+│   ├── security.html
+│   ├── UnauthorizedPage.js
+│   ├── web_dashboard_ui.html
+│   └── website-refactor-strategy.md
+├── page_scanner.py
+├── README.md
+├── repo-structure.txt
+├── services
+│   ├── AIModelsService.js
+│   ├── authService.js
+│   ├── cspApiService.js
+│   ├── graphService.js
+│   └── sessionService.js
+├── stores
+│   └── appStore.js
+├── test-server.py
+├── test-server.py.backup
+└── utils
+    └── roleUtils.js
+
+40 directories, 105 files
