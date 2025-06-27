@@ -1,0 +1,38 @@
+/* Backup & Recovery Styles */
+
+.backup-section {
+    padding: 1rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+.backup-actions {
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.backup-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+}
+
+.backup-table th,
+.backup-table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.backup-table th {
+    background: rgba(255, 107, 53, 0.1);
+    color: var(--primary);
+}
+
+.backup-table tbody tr:hover {
+    background: rgba(255, 107, 53, 0.05);
+}
