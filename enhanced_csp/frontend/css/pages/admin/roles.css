@@ -1,0 +1,32 @@
+/* Roles & Permissions Styles */
+.roles-dashboard {
+    padding: var(--spacing-md, 1rem);
+}
+
+.role-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: var(--spacing-md, 1rem);
+}
+
+.role-table th,
+.role-table td {
+    padding: 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color, #444);
+}
+
+.role-badge {
+    display: inline-block;
+    margin-right: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius, 4px);
+    background: var(--secondary, #4ecdc4);
+    color: #fff;
+    font-size: 0.75rem;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--text-muted, #999);
+}
