@@ -55,9 +55,12 @@
                 <span>Emergency Stop</span>
             </button>
         </div>
+        <div id="emergency-tooltip" role="tooltip" class="tooltip">
+            Immediately shutdown all AI agents and processes
+        </div>
     </header>
 
-    <!-- Main Container -->
+    <!-- Main Layout Container -->
     <div class="main-container">
         <!-- Sidebar Navigation -->
         <nav class="sidebar" role="navigation" aria-label="Main navigation">
@@ -94,7 +97,7 @@
             </div>
 
             <div class="nav-section">
-                <h3><i class="fas fa-robot"></i> AI Management</h3>
+                <h3><i class="fas fa-robot"></i> AI Platform</h3>
                 <div class="nav-item" data-section="ai-models" role="button" tabindex="0" aria-label="AI Models">
                     <span class="nav-icon"><i class="fas fa-brain"></i></span>
                     <span>AI Models</span>
@@ -150,7 +153,7 @@
             </div>
 
             <div class="nav-section">
-                <h3><i class="fas fa-building"></i> Enterprise</h3>
+                <h3><i class="fas fa-chart-pie"></i> Analytics & Reports</h3>
                 <div class="nav-item" data-section="licenses" role="button" tabindex="0" aria-label="Licenses">
                     <span class="nav-icon"><i class="fas fa-certificate"></i></span>
                     <span>Licenses</span>
@@ -168,156 +171,48 @@
 
         <!-- Main Content Area -->
         <main class="content-area" role="main">
-            <!-- Dashboard Section -->
-            <section id="dashboard" class="content-section active" aria-labelledby="dashboard-title">
-                <h2 id="dashboard-title" class="mb-3"><i class="fas fa-tachometer-alt"></i> System Dashboard</h2>
+            <!-- Dashboard Section (Default) -->
+            <section id="dashboard" class="content-section active">
+                <h2 class="mb-3"><i class="fas fa-home"></i> System Dashboard</h2>
+                <p>Welcome to the Enhanced CSP System Administration Portal</p>
                 
-                <!-- Key Metrics Grid -->
+                <!-- Dashboard content will be dynamically loaded -->
                 <div class="dashboard-grid">
+                    <!-- Dashboard cards will be populated by the DashboardManager -->
                     <div class="admin-card">
-                        <div class="card-title"><i class="fas fa-heartbeat"></i> System Health</div>
-                        <div class="card-value" id="system-health">98.5%</div>
-                        <div class="card-subtitle">All systems operational</div>
-                        <div class="card-trend trend-up">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>+2.1% from last week</span>
-                        </div>
+                        <h3>System Health</h3>
+                        <div class="metric-large">98.5%</div>
+                        <div class="metric-label">Uptime</div>
                     </div>
                     
                     <div class="admin-card">
-                        <div class="card-title"><i class="fas fa-users"></i> Active Users</div>
-                        <div class="card-value" id="active-users">1,247</div>
-                        <div class="card-subtitle">Currently online</div>
-                        <div class="card-trend trend-up">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>+5.2% from yesterday</span>
-                        </div>
+                        <h3>Active Agents</h3>
+                        <div class="metric-large">24</div>
+                        <div class="metric-label">Running</div>
                     </div>
                     
                     <div class="admin-card">
-                        <div class="card-title"><i class="fas fa-robot"></i> AI Agents</div>
-                        <div class="card-value" id="ai-agents">22/24</div>
-                        <div class="card-subtitle">Agents active</div>
-                        <div class="card-trend">
-                            <span class="status-badge status-active">Healthy</span>
-                        </div>
+                        <h3>Active Users</h3>
+                        <div class="metric-large">12</div>
+                        <div class="metric-label">Online</div>
                     </div>
                     
                     <div class="admin-card">
-                        <div class="card-title"><i class="fas fa-tachometer-alt"></i> Throughput</div>
-                        <div class="card-value" id="throughput">2.3M</div>
-                        <div class="card-subtitle">Requests/hour</div>
-                        <div class="card-trend trend-up">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>+12.5% peak hour</span>
-                        </div>
-                    </div>
-                    
-                    <div class="admin-card">
-                        <div class="card-title"><i class="fas fa-hdd"></i> Storage</div>
-                        <div class="card-value" id="storage">78%</div>
-                        <div class="card-subtitle">Capacity used</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 78%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="admin-card">
-                        <div class="card-title"><i class="fas fa-exclamation-triangle"></i> Active Alerts</div>
-                        <div class="card-value" id="alerts">3</div>
-                        <div class="card-subtitle">Require attention</div>
-                        <div class="card-trend">
-                            <span class="status-badge status-warning">Monitor</span>
-                        </div>
+                        <h3>Total Processes</h3>
+                        <div class="metric-large">147</div>
+                        <div class="metric-label">Running</div>
                     </div>
                 </div>
-
-                <!-- System Overview Charts -->
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h3 class="chart-title"><i class="fas fa-chart-area"></i> Performance Overview</h3>
-                        <div class="realtime-indicator">
-                            <div class="realtime-dot"></div>
-                            <span>Real-time data</span>
-                        </div>
-                    </div>
-                    <div class="chart-placeholder">
-                        <i class="fas fa-chart-line" style="font-size: 3rem; margin-right: 1rem; opacity: 0.3;"></i>
-                        <div>
-                            <div>Performance charts will be displayed here</div>
-                            <div style="font-size: 0.9rem; margin-top: 0.5rem;">Integration with Chart.js or similar charting library</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Activity -->
-                <div class="data-table">
-                    <div class="table-header">
-                        <div class="table-title"><i class="fas fa-clock"></i> Recent System Events</div>
-                        <div class="table-actions">
-                            <button class="btn btn-secondary btn-sm" onclick="exportSystemEvents()">
-                                <i class="fas fa-download"></i> Export
-                            </button>
-                            <button class="btn btn-primary btn-sm" onclick="refreshSystemEvents()">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
-                        </div>
-                    </div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Event Type</th>
-                                    <th>Description</th>
-                                    <th>Source</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recent-events">
-                                <tr>
-                                    <td>2025-06-26 14:32:15</td>
-                                    <td><i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i> Alert</td>
-                                    <td>High memory usage detected on server-03</td>
-                                    <td>system</td>
-                                    <td><span class="status-badge status-warning">Warning</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2025-06-26 14:05:45</td>
-                                    <td><i class="fas fa-download" style="color: var(--info);"></i> Backup</td>
-                                    <td>Automated system backup completed</td>
-                                    <td>system</td>
-                                    <td><span class="status-badge status-active">Success</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2025-06-26 13:48:23</td>
-                                    <td><i class="fas fa-user-plus" style="color: var(--success);"></i> User</td>
-                                    <td>New user registered: jane.doe@company.com</td>
-                                    <td>auth-service</td>
-                                    <td><span class="status-badge status-active">Completed</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2025-06-26 13:22:07</td>
-                                    <td><i class="fas fa-robot" style="color: var(--primary);"></i> Agent</td>
-                                    <td>AI Agent "DataAnalyzer-v2" deployed successfully</td>
-                                    <td>ai-engine</td>
-                                    <td><span class="status-badge status-active">Active</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2025-06-26 12:55:33</td>
-                                    <td><i class="fas fa-cog" style="color: var(--info);"></i> Config</td>
-                                    <td>System configuration updated by admin</td>
-                                    <td>admin-portal</td>
-                                    <td><span class="status-badge status-active">Applied</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                
+                <div class="recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-list">
+                        <!-- Activity items will be populated by JavaScript -->
                     </div>
                 </div>
             </section>
 
-            <!-- All other sections will be loaded here by the JavaScript modules -->
-            <!-- The content for other sections (monitoring, alerts, users, etc.) -->
+            <!-- Note: Other sections are placeholders that -->
             <!-- will be dynamically generated by the respective managers -->
             
             <!-- Placeholder sections for now -->
@@ -366,32 +261,18 @@
             </section>
 
             <section id="auth" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-key"></i> Authentication</h2>
+                <h2 class="mb-3"><i class="fas fa-key"></i> Authentication Settings</h2>
                 <p>Authentication settings will be populated by the AuthManager.</p>
             </section>
 
             <section id="ai-models" class="content-section">
                 <h2 class="mb-3"><i class="fas fa-brain"></i> AI Models</h2>
-                <p>AI Models management will be populated by the AIModelManager.</p>
+                <p>AI models management will be populated by the AIModelsManager.</p>
             </section>
 
             <section id="agents" class="content-section">
                 <h2 class="mb-3"><i class="fas fa-robot"></i> Agent Management</h2>
-                <div class="section-header">
-                    <div class="section-actions">
-                        <button class="btn btn-primary" onclick="openCreateAgentModal()">
-                            <i class="fas fa-plus"></i>
-                            Create Agent
-                        </button>
-                        <button class="btn btn-secondary" onclick="startAllAgents()">
-                            <i class="fas fa-rocket"></i>
-                            Deploy All
-                        </button>
-                    </div>
-                </div>
-                <div id="agent-grid" class="agent-grid">
-                    <!-- Agent cards will be populated by AgentManager -->
-                </div>
+                <p>Agent management will be populated by the AgentManager.</p>
             </section>
 
             <section id="protocols" class="content-section">
@@ -454,202 +335,157 @@
                 <p>Audit trail will be populated by the AuditManager.</p>
             </section>
 
-            <!-- Additional sections can be added here as needed -->
+            <!-- Additional sections can be added here -->
         </main>
     </div>
 
-    <!-- Modal Container -->
-    <div id="modal-container" class="modal-container" aria-hidden="true"></div>
-
-    <!-- All modals from the original HTML -->
-    <!-- Add User Modal -->
-    <div id="add-user-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title"><i class="fas fa-user-plus"></i> Add New User</div>
-                <button class="close-btn" onclick="closeModal('add-user-modal')">&times;</button>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Full Name *</label>
-                <input type="text" class="form-input" placeholder="Enter full name" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Email Address *</label>
-                <input type="email" class="form-input" placeholder="Enter email address" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Role</label>
-                <select class="form-select">
-                    <option value="user">User</option>
-                    <option value="developer">Developer</option>
-                    <option value="analyst">Analyst</option>
-                    <option value="admin">Administrator</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Department</label>
-                <input type="text" class="form-input" placeholder="Enter department">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Initial Password</label>
-                <input type="password" class="form-input" placeholder="Enter initial password">
-            </div>
-            
-            <div style="display: flex; gap: 1rem; margin-top: 2rem; padding: 0 20px 20px 20px;">
-                <button class="btn btn-primary" onclick="createUser()">
-                    <i class="fas fa-user-plus"></i> Create User
-                </button>
-                <button class="btn btn-secondary" onclick="closeModal('add-user-modal')">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Deploy Model Modal -->
-    <div id="deploy-model-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title"><i class="fas fa-rocket"></i> Deploy AI Model</div>
-                <button class="close-btn" onclick="closeModal('deploy-model-modal')">&times;</button>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Model Name *</label>
-                <input type="text" class="form-input" placeholder="Enter model name" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Model Type</label>
-                <select class="form-select">
-                    <option value="language">Language Model</option>
-                    <option value="reasoning">Reasoning Engine</option>
-                    <option value="vision">Vision Model</option>
-                    <option value="embedding">Embedding Model</option>
-                    <option value="custom">Custom Model</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Resource Allocation</label>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
-                        <span style="min-width: 100px;">CPU Cores:</span>
-                        <input type="range" min="1" max="32" value="4" style="flex: 1;" id="cpu-range">
-                        <span id="cpu-display" style="min-width: 60px; font-weight: 600; color: var(--primary);">4 cores</span>
-                    </label>
-                </div>
-                <div>
-                    <label style="display: flex; align-items: center; gap: 1rem;">
-                        <span style="min-width: 100px;">Memory:</span>
-                        <input type="range" min="1" max="64" value="8" style="flex: 1;" id="memory-range">
-                        <span id="memory-display" style="min-width: 60px; font-weight: 600; color: var(--primary);">8 GB</span>
-                    </label>
-                </div>
-            </div>
-            
-            <div style="display: flex; gap: 1rem; margin-top: 2rem; padding: 0 20px 20px 20px;">
-                <button class="btn btn-primary" onclick="deployModel()">
-                    <i class="fas fa-rocket"></i> Deploy Model
-                </button>
-                <button class="btn btn-secondary" onclick="closeModal('deploy-model-modal')">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Create Agent Modal -->
-    <div id="create-agent-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title"><i class="fas fa-robot"></i> Create AI Agent</div>
-                <button class="close-btn" onclick="closeModal('create-agent-modal')">&times;</button>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Agent Name *</label>
-                <input type="text" class="form-input" placeholder="Enter agent name" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Agent Type</label>
-                <select class="form-select">
-                    <option value="analysis">Analysis Agent</option>
-                    <option value="generation">Generation Agent</option>
-                    <option value="monitoring">Monitoring Agent</option>
-                    <option value="communication">Communication Agent</option>
-                    <option value="custom">Custom Agent</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Description</label>
-                <textarea class="form-textarea" placeholder="Describe the agent's purpose and capabilities"></textarea>
-            </div>
-            
-            <div style="display: flex; gap: 1rem; margin-top: 2rem; padding: 0 20px 20px 20px;">
-                <button class="btn btn-primary" onclick="createAgent()">
-                    <i class="fas fa-robot"></i> Create Agent
-                </button>
-                <button class="btn btn-secondary" onclick="closeModal('create-agent-modal')">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Container -->
-    <div id="toast-container" class="toast-container" aria-live="polite"></div>
-
-    <!-- Tooltips -->
-    <div id="emergency-tooltip" role="tooltip" class="tooltip">
-        Emergency shutdown will stop all agents and services immediately
-    </div>
-
-    <!-- External Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Shared JavaScript Dependencies -->
+    <script src="../js/shared/BaseComponent.js"></script>
+    <script src="../js/shared/SharedComponents.js"></script>
+    <script src="../js/utils/ApiClient.js"></script>
     
-    <!-- Page Scripts -->
+    <!-- Page-specific JavaScript Modules -->
+    <script src="../js/pages/admin/modalManager.js"></script>
     <script src="../js/pages/admin/userManager.js"></script>
     <script src="../js/pages/admin/systemManager.js"></script>
     <script src="../js/pages/admin/backupsManager.js"></script>
     <script src="../js/pages/admin/admin.js"></script>
+
     
-    <!-- Accessibility Script -->
+    <!-- Main admin script -->
+    <script src="../js/pages/admin/admin.js"></script>
+
+    <!-- Global Event Handlers and Initialization -->
     <script>
-        // Basic accessibility enhancements
+        // Global admin functionality
+        let currentSection = 'dashboard';
+        
+        // Initialize admin portal
         document.addEventListener('DOMContentLoaded', function() {
-            // Add keyboard navigation for nav items
-            document.querySelectorAll('.nav-item[role="button"]').forEach(item => {
-                item.addEventListener('keydown', function(e) {
+            console.log('🚀 Enhanced CSP Admin Portal initialized');
+            initializeNavigation();
+            loadDashboardData();
+        });
+
+        // Navigation system
+        function initializeNavigation() {
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const sectionId = this.getAttribute('data-section');
+                    if (sectionId) {
+                        showSection(sectionId);
+                    }
+                });
+                
+                // Keyboard navigation
+                item.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         this.click();
                     }
                 });
             });
+        }
 
-            // Update ARIA labels dynamically
-            const updateAriaLabels = () => {
-                const activeSection = document.querySelector('.content-section.active');
-                if (activeSection) {
-                    document.title = `${activeSection.querySelector('h2').textContent} - Enhanced CSP Admin Portal`;
-                }
-            };
-
-            // Monitor for section changes
-            const observer = new MutationObserver(updateAriaLabels);
-            observer.observe(document.querySelector('.content-area'), {
-                attributes: true,
-                subtree: true,
-                attributeFilter: ['class']
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
             });
+
+            // Show target section
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+                currentSection = sectionId;
+                
+                // Update navigation state
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                const activeNavItem = document.querySelector(`[data-section="${sectionId}"]`);
+                if (activeNavItem) {
+                    activeNavItem.classList.add('active');
+                }
+                
+                console.log(`📄 Switched to section: ${sectionId}`);
+                
+                // Trigger section-specific initialization
+                initializeSection(sectionId);
+            }
+        }
+
+        function initializeSection(sectionId) {
+            // Section-specific initialization logic
+            switch(sectionId) {
+                case 'users':
+                    if (window.userManager) {
+                        window.userManager.refresh();
+                    }
+                    break;
+                case 'agents':
+                    if (window.agentManager) {
+                        window.agentManager.refresh();
+                    }
+                    break;
+                case 'monitoring':
+                    if (window.monitoringManager) {
+                        window.monitoringManager.startRealTimeUpdates();
+                    }
+                    break;
+                // Add more cases as needed
+            }
+        }
+
+        function loadDashboardData() {
+            // Load initial dashboard metrics
+            console.log('📊 Loading dashboard data...');
+            // This would typically make API calls to load real data
+        }
+
+        // Mobile navigation
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Emergency shutdown
+        function emergencyShutdown() {
+            if (confirm('⚠️ Are you sure you want to perform an emergency shutdown? This will stop all AI agents and processes immediately.')) {
+                console.log('🚨 Emergency shutdown initiated');
+                // Implement emergency shutdown logic
+                alert('Emergency shutdown initiated. All AI agents and processes are being stopped.');
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Shift+E for emergency shutdown
+            if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+                e.preventDefault();
+                emergencyShutdown();
+            }
+            
+            // Escape to close any open modals
+            if (e.key === 'Escape') {
+                const openModal = document.querySelector('.modal.active');
+                if (openModal && window.modalManager) {
+                    window.modalManager.closeModal();
+                }
+            }
+        });
+
+        // Error handling
+        window.addEventListener('error', function(e) {
+            console.error('❌ Admin portal error:', e.error);
+        });
+
+        // Unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('❌ Unhandled promise rejection:', e.reason);
         });
     </script>
 </body>
