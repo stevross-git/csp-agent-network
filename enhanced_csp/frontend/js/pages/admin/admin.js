@@ -506,18 +506,26 @@ async function initializeSystemManager() {
 
 async function initializeLicenses() {
     console.log('📜 Initializing Licenses...');
-    const licensesSection = document.getElementById('licenses');
-    if (licensesSection && !licensesSection.querySelector('.licenses-dashboard')) {
-        licensesSection.innerHTML = `
-            <div class="licenses-dashboard">
-                <h2><i class="fas fa-certificate"></i> License Management</h2>
-                <p>Software license tracking and management will be implemented here.</p>
-                <div class="placeholder-content">
-                    <i class="fas fa-award" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                    <p>Track software licenses and compliance</p>
+    if (typeof LicensesManager === 'undefined') {
+        await loadScript('../js/pages/admin/licensesManager.js');
+    }
+
+    if (typeof initializeLicensesManager === 'function') {
+        initializeLicensesManager();
+    } else {
+        const licensesSection = document.getElementById('licenses');
+        if (licensesSection && !licensesSection.querySelector('.licenses-dashboard')) {
+            licensesSection.innerHTML = `
+                <div class="licenses-dashboard">
+                    <h2><i class="fas fa-certificate"></i> License Management</h2>
+                    <p>Software license tracking and management will be implemented here.</p>
+                    <div class="placeholder-content">
+                        <i class="fas fa-award" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                        <p>Track software licenses and compliance</p>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
 }
 
