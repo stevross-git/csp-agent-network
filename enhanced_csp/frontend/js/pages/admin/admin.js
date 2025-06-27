@@ -374,18 +374,33 @@ async function initializeSettings() {
 
 async function initializeInfrastructure() {
     console.log('🏗️ Initializing Infrastructure...');
-    const infraSection = document.getElementById('infrastructure');
-    if (infraSection && !infraSection.querySelector('.infrastructure-dashboard')) {
-        infraSection.innerHTML = `
-            <div class="infrastructure-dashboard">
-                <h2><i class="fas fa-server"></i> Infrastructure Management</h2>
-                <p>Infrastructure monitoring and management will be implemented here.</p>
-                <div class="placeholder-content">
-                    <i class="fas fa-network-wired" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                    <p>Monitor and manage system infrastructure</p>
+    if (typeof InfrastructureManager === 'undefined') {
+        try {
+            await loadScript('../js/pages/admin/infrastructureManager.js');
+        } catch (error) {
+            console.error('❌ Failed to load InfrastructureManager:', error);
+        }
+    }
+
+    if (window.infrastructureManager) {
+        window.infrastructureManager.refresh();
+    } else if (typeof InfrastructureManager !== 'undefined') {
+        window.infrastructureManager = new InfrastructureManager();
+        window.infrastructureManager.init();
+    } else {
+        const infraSection = document.getElementById('infrastructure');
+        if (infraSection && !infraSection.querySelector('.infrastructure-dashboard')) {
+            infraSection.innerHTML = `
+                <div class="infrastructure-dashboard">
+                    <h2><i class="fas fa-server"></i> Infrastructure Management</h2>
+                    <p>Infrastructure monitoring and management will be implemented here.</p>
+                    <div class="placeholder-content">
+                        <i class="fas fa-network-wired" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                        <p>Monitor and manage system infrastructure</p>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
 }
 

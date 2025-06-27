@@ -1,0 +1,20 @@
+/* Infrastructure Management Styles */
+
+.infrastructure-dashboard {
+    padding: var(--spacing-md, 1rem);
+}
+
+.infra-actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: var(--spacing-md, 1rem);
+}
+
+.infra-status {
+    background: var(--card-bg, #1a1a1a);
+    border: 1px solid var(--border-color, #444);
+    border-radius: var(--border-radius-lg, 8px);
+    padding: var(--spacing-md, 1rem);
+    font-family: monospace;
+    white-space: pre-wrap;
+}
