@@ -795,6 +795,395 @@ function openCreateAgentModal() {
     }
 }
 
+
+
+// Fix 1: Add the missing createAdvancedMonitoringDashboard function
+async function createAdvancedMonitoringDashboard() {
+    console.log('📊 Creating advanced monitoring dashboard...');
+    const monitoringSection = document.getElementById('monitoring');
+    if (!monitoringSection) return;
+
+    // Create a comprehensive monitoring dashboard
+    monitoringSection.innerHTML = `
+        <div class="monitoring-dashboard">
+            <div class="dashboard-header">
+                <h2 class="section-title">
+                    <i class="fas fa-chart-line"></i> System Monitoring
+                </h2>
+                <div class="dashboard-actions">
+                    <button class="btn btn-outline" onclick="refreshMonitoring()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <a href="http://localhost:3001" target="_blank" class="btn btn-primary">
+                        <i class="fas fa-external-link-alt"></i> Grafana
+                    </a>
+                </div>
+            </div>
+
+            <div class="monitoring-grid">
+                <div class="metric-card">
+                    <h3>Service Status</h3>
+                    <div class="service-status-list">
+                        <div class="service-item operational">
+                            <span class="status-dot"></span>
+                            <span class="service-name">PostgreSQL</span>
+                            <span class="service-status">Operational</span>
+                        </div>
+                        <div class="service-item operational">
+                            <span class="status-dot"></span>
+                            <span class="service-name">Redis</span>
+                            <span class="service-status">Operational</span>
+                        </div>
+                        <div class="service-item operational">
+                            <span class="status-dot"></span>
+                            <span class="service-name">Chroma</span>
+                            <span class="service-status">Operational</span>
+                        </div>
+                        <div class="service-item warning">
+                            <span class="status-dot"></span>
+                            <span class="service-name">Qdrant</span>
+                            <span class="service-status">Degraded</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <h3>System Resources</h3>
+                    <div class="resource-metrics">
+                        <div class="metric-item">
+                            <span class="metric-label">CPU Usage</span>
+                            <div class="metric-bar">
+                                <div class="metric-fill" style="width: 65%"></div>
+                            </div>
+                            <span class="metric-value">65%</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Memory</span>
+                            <div class="metric-bar">
+                                <div class="metric-fill" style="width: 78%"></div>
+                            </div>
+                            <span class="metric-value">78%</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Disk I/O</span>
+                            <div class="metric-bar">
+                                <div class="metric-fill" style="width: 45%"></div>
+                            </div>
+                            <span class="metric-value">45%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Quick Links</h3>
+                    <div class="monitoring-links">
+                        <a href="http://localhost:9090" target="_blank" class="monitoring-link">
+                            <i class="fas fa-chart-line"></i> Prometheus
+                        </a>
+                        <a href="http://localhost:3001" target="_blank" class="monitoring-link">
+                            <i class="fas fa-chart-bar"></i> Grafana
+                        </a>
+                        <a href="http://localhost:9093" target="_blank" class="monitoring-link">
+                            <i class="fas fa-bell"></i> Alertmanager
+                        </a>
+                        <a href="http://localhost:8081" target="_blank" class="monitoring-link">
+                            <i class="fas fa-server"></i> cAdvisor
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    console.log('✅ Advanced monitoring dashboard created');
+}
+
+// Fix 2: Enhanced section initialization that properly loads AlertsIncidentsManager
+async function initializeSection(sectionId) {
+    console.log(`🚀 Initializing section: ${sectionId}`);
+    
+    try {
+        switch (sectionId) {
+            case 'dashboard':
+                await initializeDashboard();
+                break;
+                
+            case 'monitoring':
+                await initializeMonitoring();
+                break;
+                
+            case 'alerts':
+                await initializeAlertsSection(); // Updated function name
+                break;
+                
+            case 'agents':
+                await initializeAgents();
+                break;
+                
+            case 'users':
+                await initializeUsers();
+                break;
+                
+            default:
+                console.log(`📄 Section ${sectionId} - basic initialization`);
+                break;
+        }
+    } catch (error) {
+        console.error(`❌ Failed to initialize section ${sectionId}:`, error);
+    }
+}
+
+// Fix 3: Proper alerts section initialization
+async function initializeAlertsSection() {
+    console.log('🚨 Initializing Alerts Section...');
+    
+    const alertsSection = document.getElementById('alerts');
+    if (!alertsSection) {
+        console.error('❌ Alerts section not found');
+        return;
+    }
+
+    // Check if already initialized
+    if (alertsSection.querySelector('.alerts-incidents-dashboard')) {
+        console.log('✅ Alerts dashboard already initialized');
+        return;
+    }
+
+    try {
+        // Load the AlertsIncidentsManager if not already available
+        if (typeof AlertsIncidentsManager === 'undefined') {
+            console.log('📦 Loading AlertsIncidentsManager...');
+            await loadAlertsScript();
+        }
+
+        // Check if the class is now available
+        if (typeof AlertsIncidentsManager !== 'undefined') {
+            console.log('🚨 Creating AlertsIncidentsManager instance...');
+            
+            if (!window.alertsManager) {
+                window.alertsManager = new AlertsIncidentsManager();
+                console.log('✅ AlertsIncidentsManager initialized successfully');
+            } else {
+                console.log('✅ AlertsIncidentsManager already exists');
+            }
+        } else {
+            console.warn('⚠️ AlertsIncidentsManager still not available, showing fallback');
+            showFallbackAlertsSection();
+        }
+        
+    } catch (error) {
+        console.error('❌ Failed to initialize alerts section:', error);
+        showFallbackAlertsSection();
+    }
+}
+
+// Fix 4: Function to dynamically load the alerts script
+async function loadAlertsScript() {
+    return new Promise((resolve, reject) => {
+        // Check if script is already loaded
+        const existingScript = document.querySelector('script[src*="alerts_incidents.js"]');
+        if (existingScript) {
+            console.log('📦 Alerts script already loaded');
+            resolve();
+            return;
+        }
+
+        console.log('📦 Loading alerts_incidents.js...');
+        const script = document.createElement('script');
+        script.src = '../js/pages/admin/alerts_incidents.js';
+        script.async = true;
+        
+        script.onload = () => {
+            console.log('✅ Alerts script loaded successfully');
+            // Wait a bit for the class to be available
+            setTimeout(resolve, 100);
+        };
+        
+        script.onerror = () => {
+            console.error('❌ Failed to load alerts script');
+            reject(new Error('Failed to load alerts script'));
+        };
+        
+        document.head.appendChild(script);
+    });
+}
+
+// Fix 5: Improved fallback alerts section
+function showFallbackAlertsSection() {
+    console.log('📄 Showing fallback alerts section');
+    const alertsSection = document.getElementById('alerts');
+    if (!alertsSection) return;
+
+    alertsSection.innerHTML = `
+        <div class="alerts-incidents-dashboard">
+            <div class="dashboard-header">
+                <div class="header-left">
+                    <h2 class="section-title">
+                        <i class="fas fa-exclamation-triangle"></i> Alerts & Incidents
+                    </h2>
+                    <div class="status-indicator">
+                        <span class="status-dot status-warning"></span>
+                        <span class="status-text">Connecting to monitoring stack...</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" onclick="retryAlertsInitialization()">
+                        <i class="fas fa-sync-alt"></i> Retry
+                    </button>
+                    <a href="http://localhost:9090" target="_blank" class="btn btn-primary">
+                        <i class="fas fa-external-link-alt"></i> Prometheus
+                    </a>
+                </div>
+            </div>
+            
+            <div class="summary-cards">
+                <div class="summary-card critical">
+                    <div class="card-icon"><i class="fas fa-fire"></i></div>
+                    <div class="card-content">
+                        <div class="card-number">--</div>
+                        <div class="card-label">Critical Alerts</div>
+                    </div>
+                </div>
+                <div class="summary-card warning">
+                    <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="card-content">
+                        <div class="card-number">--</div>
+                        <div class="card-label">Warning Alerts</div>
+                    </div>
+                </div>
+                <div class="summary-card info">
+                    <div class="card-icon"><i class="fas fa-info-circle"></i></div>
+                    <div class="card-content">
+                        <div class="card-number">--</div>
+                        <div class="card-label">Info Alerts</div>
+                    </div>
+                </div>
+                <div class="summary-card incidents">
+                    <div class="card-icon"><i class="fas fa-bug"></i></div>
+                    <div class="card-content">
+                        <div class="card-number">--</div>
+                        <div class="card-label">Open Incidents</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; padding: 3rem; background: white; border-radius: 12px; margin-top: 2rem; border: 1px solid #e5e7eb;">
+                <i class="fas fa-cog fa-spin" style="font-size: 3rem; color: #6b7280; margin-bottom: 1rem;"></i>
+                <h3 style="margin: 0 0 1rem 0; color: #1f2937;">Initializing Alerts Dashboard</h3>
+                <p style="color: #6b7280; margin: 1rem 0;">
+                    Setting up connection to monitoring services...
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 2rem 0;">
+                    <a href="http://localhost:9090" target="_blank" class="monitoring-link" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; color: #6b7280; transition: all 0.3s ease;">
+                        <i class="fas fa-chart-line"></i> Prometheus
+                    </a>
+                    <a href="http://localhost:3001" target="_blank" class="monitoring-link" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; color: #6b7280; transition: all 0.3s ease;">
+                        <i class="fas fa-chart-bar"></i> Grafana
+                    </a>
+                    <a href="http://localhost:9093" target="_blank" class="monitoring-link" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; color: #6b7280; transition: all 0.3s ease;">
+                        <i class="fas fa-bell"></i> Alertmanager
+                    </a>
+                    <a href="http://localhost:8081" target="_blank" class="monitoring-link" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; color: #6b7280; transition: all 0.3s ease;">
+                        <i class="fas fa-server"></i> cAdvisor
+                    </a>
+                </div>
+                <button class="btn btn-primary" onclick="retryAlertsInitialization()" style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    <i class="fas fa-sync-alt"></i> Retry Connection
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Fix 6: Retry function for alerts initialization
+window.retryAlertsInitialization = async function() {
+    console.log('🔄 Retrying alerts initialization...');
+    
+    const alertsSection = document.getElementById('alerts');
+    if (alertsSection) {
+        // Clear the section
+        alertsSection.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Reconnecting...</div>';
+        
+        // Wait a moment then retry
+        setTimeout(async () => {
+            await initializeAlertsSection();
+        }, 1000);
+    }
+};
+
+// Fix 7: Enhanced monitoring refresh function
+window.refreshMonitoring = function() {
+    console.log('🔄 Refreshing monitoring dashboard...');
+    
+    // Show loading state
+    const monitoringSection = document.getElementById('monitoring');
+    if (monitoringSection) {
+        const header = monitoringSection.querySelector('.dashboard-header');
+        if (header) {
+            const refreshBtn = header.querySelector('button');
+            if (refreshBtn) {
+                const icon = refreshBtn.querySelector('i');
+                icon.classList.add('fa-spin');
+                refreshBtn.disabled = true;
+                
+                // Simulate refresh
+                setTimeout(() => {
+                    icon.classList.remove('fa-spin');
+                    refreshBtn.disabled = false;
+                    console.log('✅ Monitoring dashboard refreshed');
+                }, 2000);
+            }
+        }
+    }
+};
+
+// Fix 8: Make sure these functions are available globally
+window.createAdvancedMonitoringDashboard = createAdvancedMonitoringDashboard;
+window.initializeAlertsSection = initializeAlertsSection;
+window.loadAlertsScript = loadAlertsScript;
+window.showFallbackAlertsSection = showFallbackAlertsSection;
+
+console.log('🔧 Admin.js fixes loaded - Alerts and Monitoring issues resolved');
+
+/**
+ * Alternative Quick Fix - Add this at the end of your admin.js file:
+ */
+
+// Quick patch for immediate functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Delay to ensure admin system is ready
+    setTimeout(function() {
+        console.log('🔧 Applying quick fixes...');
+        
+        // Override the problematic initializeSection function if it exists
+        if (typeof window.initializeSection !== 'undefined') {
+            const originalInitializeSection = window.initializeSection;
+            window.initializeSection = async function(sectionId) {
+                if (sectionId === 'alerts') {
+                    return await initializeAlertsSection();
+                } else {
+                    return await originalInitializeSection(sectionId);
+                }
+            };
+        }
+        
+        // Ensure alerts navigation works
+        const alertsNav = document.querySelector('[data-section="alerts"]');
+        if (alertsNav) {
+            alertsNav.addEventListener('click', function() {
+                setTimeout(async () => {
+                    await initializeAlertsSection();
+                }, 200);
+            });
+        }
+        
+        console.log('✅ Quick fixes applied');
+    }, 500);
+});
+
+
+
+
 function startAllAgents() { deployAllAgents(); }
 function exportSystemEvents() { console.log('📤 Exporting system events'); }
 function refreshSystemEvents() { console.log('🔄 Refreshing system events'); }
@@ -843,6 +1232,205 @@ window.exportLogs = exportLogs;
 // =============================================================================
 // INITIALIZATION
 // =============================================================================
+
+(function() {
+    'use strict';
+
+    // Store original showSection function if it exists
+    let originalShowSection = null;
+    
+    // Initialize alerts integration when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚨 Initializing Alerts Integration...');
+        
+        // Hook into existing navigation
+        hookIntoNavigation();
+        
+        // Initialize when alerts section is first shown
+        setTimeout(() => {
+            if (typeof window.showSection === 'function') {
+                originalShowSection = window.showSection;
+                window.showSection = enhancedShowSection;
+            }
+        }, 100);
+    });
+
+    function hookIntoNavigation() {
+        // Find alerts navigation item
+        const alertsNav = document.querySelector('[data-section="alerts"]');
+        if (alertsNav) {
+            alertsNav.addEventListener('click', function() {
+                setTimeout(initializeAlertsIfNeeded, 150);
+            });
+        }
+    }
+
+    function enhancedShowSection(sectionId) {
+        // Call original function
+        if (originalShowSection) {
+            originalShowSection(sectionId);
+        }
+        
+        // Initialize alerts if needed
+        if (sectionId === 'alerts') {
+            setTimeout(initializeAlertsIfNeeded, 150);
+        }
+    }
+
+    function initializeAlertsIfNeeded() {
+        const alertsSection = document.getElementById('alerts');
+        if (!alertsSection) return;
+
+        // Check if already initialized
+        if (alertsSection.querySelector('.alerts-incidents-dashboard')) {
+            console.log('✅ Alerts dashboard already initialized');
+            return;
+        }
+
+        // Check if AlertsIncidentsManager is available
+        if (typeof AlertsIncidentsManager !== 'undefined') {
+            console.log('🚨 Initializing Alerts Dashboard...');
+            
+            // Initialize the alerts manager
+            if (!window.alertsManager) {
+                window.alertsManager = new AlertsIncidentsManager();
+            }
+        } else {
+            // Fallback: Show basic alerts section
+            console.warn('AlertsIncidentsManager not found, showing fallback');
+            showFallbackAlertsSection();
+        }
+    }
+
+    function showFallbackAlertsSection() {
+        const alertsSection = document.getElementById('alerts');
+        if (!alertsSection) return;
+
+        alertsSection.innerHTML = `
+            <div class="alerts-incidents-dashboard">
+                <div class="dashboard-header">
+                    <div class="header-left">
+                        <h2 class="section-title">
+                            <i class="fas fa-exclamation-triangle"></i> Alerts & Incidents
+                        </h2>
+                        <div class="status-indicator">
+                            <span class="status-dot status-warning"></span>
+                            <span class="status-text">Monitoring system initializing...</span>
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-outline" onclick="location.reload()">
+                            <i class="fas fa-sync-alt"></i> Retry
+                        </button>
+                        <a href="http://localhost:9090" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Prometheus
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="summary-cards">
+                    <div class="summary-card critical">
+                        <div class="card-icon"><i class="fas fa-fire"></i></div>
+                        <div class="card-content">
+                            <div class="card-number">--</div>
+                            <div class="card-label">Critical Alerts</div>
+                        </div>
+                    </div>
+                    <div class="summary-card warning">
+                        <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="card-content">
+                            <div class="card-number">--</div>
+                            <div class="card-label">Warning Alerts</div>
+                        </div>
+                    </div>
+                    <div class="summary-card info">
+                        <div class="card-icon"><i class="fas fa-info-circle"></i></div>
+                        <div class="card-content">
+                            <div class="card-number">--</div>
+                            <div class="card-label">Info Alerts</div>
+                        </div>
+                    </div>
+                    <div class="summary-card incidents">
+                        <div class="card-icon"><i class="fas fa-bug"></i></div>
+                        <div class="card-content">
+                            <div class="card-number">--</div>
+                            <div class="card-label">Open Incidents</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; padding: 3rem; background: white; border-radius: 12px; margin-top: 2rem;">
+                    <i class="fas fa-cog fa-spin" style="font-size: 3rem; color: #6b7280; margin-bottom: 1rem;"></i>
+                    <h3>Connecting to Monitoring Stack</h3>
+                    <p style="color: #6b7280; margin: 1rem 0;">
+                        Please ensure your monitoring services are running:
+                    </p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0;">
+                        <a href="http://localhost:9090" target="_blank" class="monitoring-link">
+                            <i class="fas fa-chart-line"></i> Prometheus (9090)
+                        </a>
+                        <a href="http://localhost:3001" target="_blank" class="monitoring-link">
+                            <i class="fas fa-chart-bar"></i> Grafana (3001)
+                        </a>
+                        <a href="http://localhost:9093" target="_blank" class="monitoring-link">
+                            <i class="fas fa-bell"></i> Alertmanager (9093)
+                        </a>
+                        <a href="http://localhost:8081" target="_blank" class="monitoring-link">
+                            <i class="fas fa-server"></i> cAdvisor (8081)
+                        </a>
+                    </div>
+                    <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 1rem;">
+                        <i class="fas fa-sync-alt"></i> Refresh Page
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Make functions available globally if needed
+    window.initializeAlertsIfNeeded = initializeAlertsIfNeeded;
+
+})();
+
+console.log('🚨 Alerts Integration Script Loaded');
+
+/**
+ * Alternative approach - if you want to add the script tag to admin.html:
+ * 
+ * Add this line to your admin.html in the <head> section:
+ * <script src="../js/pages/admin/alerts_incidents.js" defer></script>
+ * 
+ * Or add this after your existing admin.js script:
+ * <script>
+ *   // Auto-initialize alerts when page loads
+ *   document.addEventListener('DOMContentLoaded', function() {
+ *     // Wait for existing admin system to load
+ *     setTimeout(function() {
+ *       if (typeof AlertsIncidentsManager !== 'undefined') {
+ *         // Hook into navigation
+ *         const alertsNav = document.querySelector('[data-section="alerts"]');
+ *         if (alertsNav) {
+ *           alertsNav.addEventListener('click', function() {
+ *             setTimeout(function() {
+ *               const alertsSection = document.getElementById('alerts');
+ *               if (alertsSection && !alertsSection.querySelector('.alerts-incidents-dashboard')) {
+ *                 window.alertsManager = new AlertsIncidentsManager();
+ *               }
+ *             }, 200);
+ *           });
+ *         }
+ *       }
+ *     }, 500);
+ *   });
+ * </script>
+ */
+
+
+
+
+
+
+
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Admin Portal - Nuclear Fix with Monitoring Integration Loading...');

@@ -1,0 +1,231 @@
+groups:
+  # Application Level Alerts
+  - name: application_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(csp_http_requests_total{status_code=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High error rate detected in API"
+          description: "API error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(csp_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s"
+
+      - alert: ApplicationDown
+        expr: up{job="csp-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "CSP API is down"
+          description: "CSP API has been down for more than 1 minute"
+
+  # Database Alerts
+  - name: database_alerts
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job=~"postgres.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL database {{ $labels.instance }} is not responding"
+
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High number of database connections"
+          description: "Database connections are at {{ $value | humanizePercentage }} of maximum"
+
+      - alert: DatabaseSlowQueries
+        expr: rate(pg_stat_statements_mean_time[5m]) > 1000
+        for: 3m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query time is {{ $value }}ms"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache server is not responding"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is at {{ $value | humanizePercentage }}"
+
+  # Vector Database Alerts
+  - name: vector_database_alerts
+    rules:
+      - alert: ChromaDown
+        expr: up{job="chroma"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: vector_db
+        annotations:
+          summary: "Chroma vector database is down"
+          description: "Chroma vector database is not responding"
+
+      - alert: QdrantDown
+        expr: up{job="qdrant"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: vector_db
+        annotations:
+          summary: "Qdrant vector database is down"
+          description: "Qdrant vector database is not responding"
+
+      - alert: WeaviateDown
+        expr: up{job="weaviate"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: vector_db
+        annotations:
+          summary: "Weaviate vector database is down"
+          description: "Weaviate vector database is not responding"
+
+  # System Resource Alerts
+  - name: system_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+  # Log-based Alerts
+  - name: log_alerts
+    rules:
+      - alert: HighErrorLogs
+        expr: increase(loki_error_logs_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: logs
+        annotations:
+          summary: "High number of error logs"
+          description: "{{ $value }} error logs detected in the last 5 minutes"
+
+      - alert: SecurityIncident
+        expr: increase(loki_security_logs_total{level="critical"}[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Security incident detected"
+          description: "Critical security event detected in logs"
+
+      - alert: AuthenticationFailures
+        expr: increase(loki_auth_failed_total[5m]) > 20
+        for: 2m
+        labels:
+          severity: warning
+          service: auth
+        annotations:
+          summary: "High authentication failures"
+          description: "{{ $value }} authentication failures in the last 5 minutes"
+
+  # AI/ML Model Alerts
+  - name: ai_model_alerts
+    rules:
+      - alert: ModelInferenceHigh
+        expr: rate(ai_model_inference_duration_seconds[5m]) > 30
+        for: 3m
+        labels:
+          severity: warning
+          service: ai
+        annotations:
+          summary: "High AI model inference time"
+          description: "AI model inference time is {{ $value }}s"
+
+      - alert: ModelErrorRate
+        expr: rate(ai_model_errors_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: ai
+        annotations:
+          summary: "High AI model error rate"
+          description: "AI model error rate is {{ $value | humanizePercentage }}"
+
+  # External API Alerts
+  - name: external_api_alerts
+    rules:
+      - alert: OpenAIAPIDown
+        expr: up{job="openai-api"} == 0
+        for: 3m
+        labels:
+          severity: warning
+          service: external_api
+        annotations:
+          summary: "OpenAI API is not responding"
+          description: "OpenAI API has been unresponsive for 3 minutes"
+
+      - alert: ExternalAPIRateLimit
+        expr: rate(external_api_rate_limited_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: external_api
+        annotations:
+          summary: "External API rate limiting detected"
+          description: "Rate limiting on external APIs: {{ $value }} requests/second"
