@@ -1066,6 +1066,11 @@ body {
     border-bottom: 1px solid #e9ecef;
 }
 
+/* Ensure table text is readable on light backgrounds */
+.table-container td {
+    color: #212529;
+}
+
 .table-container th {
     background: #f8f9fa;
     font-weight: 600;
