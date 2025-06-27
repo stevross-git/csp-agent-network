@@ -550,12 +550,14 @@ class AdminModalManager {
 
     refreshUserList() {
         console.log('🔄 Refreshing user list...');
-        // Trigger user list refresh if on users page
-        if (window.currentSection === 'users') {
-            // This would call your actual user list refresh function
-            if (typeof loadUserData === 'function') {
-                loadUserData();
-            }
+        if (window.userManager && typeof window.userManager.renderRows === 'function') {
+            window.userManager.loadUsers();
+            window.userManager.renderRows();
+            return;
+        }
+
+        if (window.currentSection === 'users' && typeof loadUserData === 'function') {
+            loadUserData();
         }
     }
 

@@ -259,8 +259,18 @@ async function initializeAgents() {
 
 async function initializeUsers() {
     console.log('👥 Initializing Users...');
-    loadUserData();
-    updateUserUI();
+
+    // Dynamically load UserManager script if needed
+    if (typeof UserManager === 'undefined') {
+        await loadScript('../js/pages/admin/userManager.js');
+    }
+
+    if (typeof initializeUserManager === 'function') {
+        initializeUserManager();
+    } else {
+        loadUserData();
+        updateUserUI();
+    }
 }
 
 async function initializeRoles() {
