@@ -279,18 +279,28 @@ async function initializeUsers() {
 
 async function initializeRoles() {
     console.log('🔐 Initializing Roles & Permissions...');
-    const rolesSection = document.getElementById('roles');
-    if (rolesSection && !rolesSection.querySelector('.roles-dashboard')) {
-        rolesSection.innerHTML = `
-            <div class="roles-dashboard">
-                <h2><i class="fas fa-lock"></i> Roles & Permissions</h2>
-                <p>Role management system will be implemented here.</p>
-                <div class="placeholder-content">
-                    <i class="fas fa-users-cog" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                    <p>Configure user roles and permissions</p>
+
+    // Dynamically load RoleManager script if needed
+    if (typeof RoleManager === 'undefined') {
+        await loadScript('../js/pages/admin/roleManager.js');
+    }
+
+    if (typeof initializeRoleManager === 'function') {
+        initializeRoleManager();
+    } else {
+        const rolesSection = document.getElementById('roles');
+        if (rolesSection && !rolesSection.querySelector('.roles-dashboard')) {
+            rolesSection.innerHTML = `
+                <div class="roles-dashboard">
+                    <h2><i class="fas fa-lock"></i> Roles & Permissions</h2>
+                    <p>Role management system will be implemented here.</p>
+                    <div class="placeholder-content">
+                        <i class="fas fa-users-cog" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                        <p>Configure user roles and permissions</p>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
 }
 
