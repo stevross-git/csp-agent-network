@@ -89,6 +89,10 @@
                     <span class="nav-icon"><i class="fas fa-key"></i></span>
                     <span>Authentication</span>
                 </div>
+                <div class="nav-item" data-section="user-db" role="button" tabindex="0" aria-label="User Database Schema">
+                    <span class="nav-icon"><i class="fas fa-database"></i></span>
+                    <span>User DB</span>
+                </div>
             </div>
 
             <div class="nav-section">
@@ -366,6 +370,44 @@
             <section id="auth" class="content-section">
                 <h2 class="mb-3"><i class="fas fa-key"></i> Authentication</h2>
                 <p>Authentication settings will be populated by the AuthManager.</p>
+            </section>
+
+            <section id="user-db" class="content-section">
+                <h2 class="mb-3"><i class="fas fa-database"></i> User Database Schema</h2>
+                <p>The following tables define user storage used by the system.</p>
+                <pre class="code-block" style="white-space: pre-wrap;">
+CREATE TABLE local_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    is_email_verified BOOLEAN DEFAULT false,
+    email_verification_token VARCHAR(255),
+    password_reset_token VARCHAR(255),
+    password_reset_expires TIMESTAMP,
+    roles TEXT[] DEFAULT ARRAY['user'],
+    last_login TIMESTAMP,
+    login_attempts INTEGER DEFAULT 0,
+    locked_until TIMESTAMP,
+    preferences JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    azure_user_id VARCHAR(100) UNIQUE,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(100) UNIQUE,
+    full_name VARCHAR(255),
+    is_active BOOLEAN DEFAULT true,
+    last_login TIMESTAMP,
+    preferences JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+                </pre>
             </section>
 
             <section id="ai-models" class="content-section">
