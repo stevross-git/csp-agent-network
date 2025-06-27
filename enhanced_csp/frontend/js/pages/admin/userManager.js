@@ -469,7 +469,7 @@ class UserManager {
         // Refresh button
         const refreshBtn = this.section.querySelector('#refresh-users-btn');
         if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => this.loadUsers(this.pagination.page));
+            refreshBtn.addEventListener('click', () => this.refresh());
         }
 
         // Export button
@@ -667,6 +667,10 @@ class UserManager {
         } catch (error) {
             console.error('Failed to export users:', error);
         }
+    }
+
+    async refresh() {
+        await this.loadUsers(this.pagination.page);
     }
 
     formatDate(dateString) {
