@@ -3,7 +3,7 @@
  * Part of Enhanced CSP Admin Portal
  */
 
-export class ModalManager {
+class ModalManager {
     constructor(adminPage) {
         this.adminPage = adminPage;
         this.activeModals = new Set();
