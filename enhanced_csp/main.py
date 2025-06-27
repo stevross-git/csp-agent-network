@@ -26,6 +26,7 @@ import json
 import uuid
 import sqlite3
 import glob
+import random
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Union
@@ -422,6 +423,39 @@ class SystemState:
         self.system_metrics: Dict[str, Any] = {}
 
 system_state = SystemState()
+
+# ---------------------------------------------------------------------------
+# Mock infrastructure data used by the frontend InfrastructureManager
+# ---------------------------------------------------------------------------
+infrastructure_services = [
+    {"name": "Web Server", "status": "running", "uptime": "1d 0h", "port": 8000},
+    {"name": "Database", "status": "running", "uptime": "1d 0h", "port": 5432},
+    {"name": "Redis Cache", "status": "running", "uptime": "1d 0h", "port": 6379},
+]
+infrastructure_alerts: List[Dict[str, Any]] = []
+infrastructure_backups: List[Dict[str, Any]] = []
+maintenance_mode = False
+
+def generate_infrastructure_metrics() -> Dict[str, Any]:
+    """Generate sample infrastructure metrics."""
+    return {
+        "cpu": {"current": psutil.cpu_percent() if PSUTIL_AVAILABLE else random.uniform(20, 80), "max": 100, "unit": "%"},
+        "memory": {"current": psutil.virtual_memory().percent if PSUTIL_AVAILABLE else random.uniform(20, 80), "max": 100, "unit": "%"},
+        "disk": {"current": psutil.disk_usage('/').percent if PSUTIL_AVAILABLE else random.uniform(20, 80), "max": 100, "unit": "%"},
+        "network": {"current": random.uniform(0, 100), "max": 100, "unit": "%"},
+        "uptime": {"current": 99.9, "max": 100, "unit": "%"},
+        "requests": {"current": random.randint(500, 1500), "max": None, "unit": "/min"},
+    }
+
+def get_infrastructure_status() -> Dict[str, Any]:
+    """Return current infrastructure status."""
+    return {
+        "message": "Maintenance mode" if maintenance_mode else "All systems operational",
+        "timestamp": datetime.utcnow().isoformat(),
+        "health": "maintenance" if maintenance_mode else "healthy",
+        "maintenance_mode": maintenance_mode,
+        "services": {svc["name"]: svc["status"] for svc in infrastructure_services},
+    }
 
 # ============================================================================
 # METRICS AND MONITORING
@@ -1120,6 +1154,106 @@ async def websocket_process_monitor(websocket: WebSocket, process_id: str):
     finally:
         if websocket in system_state.active_websockets:
             system_state.active_websockets.remove(websocket)
+
+# ============================================================================
+# INFRASTRUCTURE API ENDPOINTS
+# ============================================================================
+
+@app.get("/api/infrastructure/status")
+async def api_infrastructure_status():
+    return get_infrastructure_status()
+
+
+@app.get("/api/infrastructure/metrics")
+async def api_infrastructure_metrics():
+    return generate_infrastructure_metrics()
+
+
+@app.get("/api/infrastructure/services")
+async def api_infrastructure_services():
+    return infrastructure_services
+
+
+@app.get("/api/infrastructure/alerts")
+async def api_infrastructure_alerts():
+    return infrastructure_alerts
+
+
+@app.post("/api/infrastructure/backup")
+async def api_create_backup(payload: Dict[str, Any]):
+    backup = {
+        "id": str(uuid.uuid4()),
+        "timestamp": datetime.utcnow().isoformat(),
+        "size": random.randint(1_000_000, 5_000_000),
+        "name": payload.get("name", "backup")
+    }
+    infrastructure_backups.insert(0, backup)
+    return backup
+
+
+@app.get("/api/infrastructure/backups")
+async def api_list_backups():
+    return infrastructure_backups
+
+
+@app.post("/api/infrastructure/backup/{backup_id}/restore")
+async def api_restore_backup(backup_id: str):
+    return {"id": backup_id, "status": "restored"}
+
+
+@app.post("/api/infrastructure/services/{service}/restart")
+async def api_restart_service(service: str):
+    for svc in infrastructure_services:
+        if svc["name"] == service:
+            svc["status"] = "running"
+    return {"service": service, "status": "restarted"}
+
+
+@app.post("/api/infrastructure/services/{service}/stop")
+async def api_stop_service(service: str):
+    for svc in infrastructure_services:
+        if svc["name"] == service:
+            svc["status"] = "stopped"
+    return {"service": service, "status": "stopped"}
+
+
+@app.post("/api/infrastructure/services/{service}/start")
+async def api_start_service(service: str):
+    for svc in infrastructure_services:
+        if svc["name"] == service:
+            svc["status"] = "running"
+    return {"service": service, "status": "started"}
+
+
+@app.post("/api/infrastructure/maintenance")
+async def api_toggle_maintenance(payload: Dict[str, Any]):
+    global maintenance_mode
+    maintenance_mode = bool(payload.get("enabled", False))
+    return {"maintenance_mode": maintenance_mode}
+
+
+@app.post("/api/infrastructure/emergency-shutdown")
+async def api_emergency_shutdown():
+    return {"status": "shutdown_initiated"}
+
+
+@app.get("/api/infrastructure/logs/export")
+async def api_logs_export():
+    return {"url": "/static/logs/latest.log", "filename": "logs.txt"}
+
+
+@app.websocket("/ws/infrastructure")
+async def websocket_infrastructure(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            metrics = generate_infrastructure_metrics()
+            await websocket.send_json({"type": "metrics_update", "payload": metrics})
+            await asyncio.sleep(5)
+    except Exception as e:
+        logger.error(f"Infrastructure WebSocket error: {e}")
+    finally:
+        await websocket.close()
 
 # ============================================================================
 # FRONTEND PAGES ROUTES - COMPLETE VERSION
