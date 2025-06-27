@@ -219,7 +219,11 @@ async function initializeSection(sectionId) {
             case 'maintenance':
                 await initializeMaintenance();
                 break;
-                
+
+            case 'system-manager':
+                await initializeSystemManager();
+                break;
+
             case 'licenses':
                 await initializeLicenses();
                 break;
@@ -455,6 +459,28 @@ async function initializeMaintenance() {
                     <i class="fas fa-wrench" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
                     <p>Schedule and manage system maintenance tasks</p>
                 </div>
+            </div>
+        `;
+    }
+}
+
+async function initializeSystemManager() {
+    console.log('🖥️ Initializing System Manager...');
+    const section = document.getElementById('system-manager');
+
+    if (typeof SystemManager === 'undefined') {
+        try {
+            await loadScript('../js/pages/admin/systemManager.js');
+        } catch (error) {
+            console.error('❌ Failed to load SystemManager script:', error);
+        }
+    }
+
+    if (section && !section.querySelector('.system-manager-dashboard')) {
+        section.innerHTML = `
+            <div class="system-manager-dashboard">
+                <h2><i class="fas fa-cogs"></i> System Manager</h2>
+                <p>System manager will be populated by the SystemManager.</p>
             </div>
         `;
     }
