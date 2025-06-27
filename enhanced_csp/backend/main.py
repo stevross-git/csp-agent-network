@@ -925,6 +925,16 @@ except ImportError:
     logger.warning("⚠️ AI Coordination monitoring router not available")
     AI_MONITORING_AVAILABLE = False
 
+# Include infrastructure management router
+try:
+    from backend.api.endpoints.infrastructure import router as infrastructure_router
+    app.include_router(infrastructure_router)
+    logger.info("✅ Infrastructure router registered")
+    INFRASTRUCTURE_AVAILABLE = True
+except ImportError:
+    logger.warning("⚠️ Infrastructure router not available")
+    INFRASTRUCTURE_AVAILABLE = False
+
 # ============================================================================
 # AUTHENTICATION ENDPOINTS
 # ============================================================================
