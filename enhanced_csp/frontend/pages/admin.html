@@ -30,6 +30,7 @@
     <link rel="stylesheet" href="../css/pages/admin/roles.css">
     <link rel="stylesheet" href="../css/pages/admin/backups.css">
     <link rel="stylesheet" href="../css/pages/admin/infrastructure.css">
+    <link rel="stylesheet" href="../css/pages/admin/systemManager.css">
     <script src="../js/pages/admin/alerts_incidents.js" defer></script>
 </head>
 <body>
@@ -281,9 +282,9 @@
                 <p>Protocol templates will be populated by the ProtocolManager.</p>
             </section>
 
-            <section id="settings" class="content-section">
+            <section id="system-settings" class="content-section hidden">
                 <h2 class="mb-3"><i class="fas fa-cog"></i> System Settings</h2>
-                <p>System settings will be populated by the SettingsManager.</p>
+                <div id="settings-form-container"></div>
             </section>
 
             <section id="infrastructure" class="content-section">
