@@ -673,9 +673,13 @@ function closeModal(modalId) {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         window.adminModalManager = new AdminModalManager();
+        // Legacy alias for older markup using window.modalManager
+        window.modalManager = window.adminModalManager;
     });
 } else {
     window.adminModalManager = new AdminModalManager();
+    // Legacy alias for older markup using window.modalManager
+    window.modalManager = window.adminModalManager;
 }
 
 // Export for module systems
