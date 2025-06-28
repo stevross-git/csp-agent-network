@@ -239,25 +239,12 @@ class InfrastructureManager {
     }
 
     initializeDefaultMetrics() {
-        const defaultMetrics = {
-            cpu: { current: 45, max: 100, unit: '%' },
-            memory: { current: 62, max: 100, unit: '%' },
-            disk: { current: 78, max: 100, unit: '%' },
-            network: { current: 23, max: 100, unit: '%' },
-            uptime: { current: 99.5, max: 100, unit: '%' },
-            requests: { current: 1250, max: null, unit: '/min' }
-        };
+        const defaultMetrics = window.apiFallbackData['/api/infrastructure/metrics'];
         this.updateMetrics(defaultMetrics);
     }
 
     initializeDefaultServices() {
-        const defaultServices = [
-            { name: 'Web Server', status: 'running', uptime: '15d 4h 23m', port: 80 },
-            { name: 'Database', status: 'running', uptime: '15d 4h 23m', port: 5432 },
-            { name: 'Redis Cache', status: 'running', uptime: '15d 4h 23m', port: 6379 },
-            { name: 'API Gateway', status: 'running', uptime: '15d 4h 23m', port: 8000 },
-            { name: 'Message Queue', status: 'warning', uptime: '2d 1h 15m', port: 5672 }
-        ];
+        const defaultServices = window.apiFallbackData['/api/infrastructure/services'];
         defaultServices.forEach(service => {
             this.services.set(service.name, service);
         });
@@ -303,8 +290,7 @@ class InfrastructureManager {
 
     getMetricHistory(metric) {
         // This would typically come from a time series database
-        // For now, return mock data
-        return [45, 47, 46, 48, 50];
+        return window.apiFallbackData.infrastructureMetricHistory;
     }
 
     checkThreshold(metric, value) {
