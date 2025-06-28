@@ -620,13 +620,13 @@
                     AI Agents
                 </h2>
                 <div class="status-indicators">
-                    <div class="status-indicator">
+                    <div class="status-indicator" id="status-active-agents">
                         <div class="status-dot"></div>
-                        47 Active Agents
+                        <span>47 Active Agents</span>
                     </div>
-                    <div class="status-indicator">
+                    <div class="status-indicator" id="status-maintenance">
                         <div class="status-dot warning"></div>
-                        2 Maintenance
+                        <span>2 Maintenance</span>
                     </div>
                 </div>
             </div>
@@ -693,19 +693,19 @@
                 <div id="agents-page" class="page-section active">
                     <div class="metrics-grid">
                         <div class="metric-card">
-                            <div class="metric-value">47</div>
+                            <div class="metric-value" id="metric-active-agents">47</div>
                             <div class="metric-label">Active AI Agents</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-value">12.3M</div>
+                            <div class="metric-value" id="metric-messages">12.3M</div>
                             <div class="metric-label">Messages Processed</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-value">99.8%</div>
+                            <div class="metric-value" id="metric-success-rate">99.8%</div>
                             <div class="metric-label">Success Rate</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-value">156ms</div>
+                            <div class="metric-value" id="metric-response-time">156ms</div>
                             <div class="metric-label">Avg Response Time</div>
                         </div>
                     </div>
@@ -4451,6 +4451,12 @@
 
     <script>
         // Enhanced CSP Dashboard JavaScript
+        const API_BASE_URL = 'http://localhost:8000';
+
+        function getAuthToken() {
+            return localStorage.getItem('auth_token') || '';
+        }
+
         class EnhancedCSPDashboard {
             constructor() {
                 this.currentPage = 'agents';
@@ -4627,24 +4633,62 @@
             }
 
             startRealTimeUpdates() {
-                // Simulate real-time data updates
+                // Fetch metrics immediately and then on interval
+                this.updateMetrics();
                 setInterval(() => {
                     this.updateMetrics();
                 }, 10000); // Update every 10 seconds
             }
 
-            updateMetrics() {
-                // Simulate metric updates
-                const metricCards = document.querySelectorAll('.metric-value');
-                metricCards.forEach(card => {
-                    const currentValue = card.textContent;
-                    if (currentValue.includes('%')) {
-                        const baseValue = parseFloat(currentValue);
-                        const variation = (Math.random() - 0.5) * 0.2;
-                        const newValue = Math.max(0, Math.min(100, baseValue + variation));
-                        card.textContent = newValue.toFixed(1) + '%';
+            async updateMetrics() {
+                try {
+                    const [agentsRes, perfRes] = await Promise.all([
+                        fetch(`${API_BASE_URL}/api/infrastructure/agents`, {
+                            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+                        }),
+                        fetch(`${API_BASE_URL}/api/ai-coordination/monitor/real-time`, {
+                            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+                        })
+                    ]);
+
+                    if (agentsRes.ok) {
+                        const agentsData = await agentsRes.json();
+                        this.updateAgentMetrics(agentsData);
                     }
-                });
+
+                    if (perfRes.ok) {
+                        const result = await perfRes.json();
+                        const data = result.data || result;
+                        this.updatePerformanceMetrics(data);
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch metrics', err);
+                }
+            }
+
+            updateAgentMetrics(data) {
+                if (!data) return;
+                const count = data.registered_agents ?? 0;
+                document.getElementById('metric-active-agents').textContent = count;
+                const status = document.getElementById('status-active-agents').querySelector('span');
+                if (status) status.textContent = `${count} Active Agents`;
+
+                const sessions = data.active_sessions ?? 0;
+                const maintenance = document.getElementById('status-maintenance').querySelector('span');
+                if (maintenance) maintenance.textContent = `${sessions} Active Sessions`;
+            }
+
+            updatePerformanceMetrics(data) {
+                if (!data) return;
+                if (data.current_performance !== undefined) {
+                    document.getElementById('metric-success-rate').textContent = `${data.current_performance.toFixed(1)}%`;
+                }
+                if (data.total_sessions !== undefined) {
+                    document.getElementById('metric-messages').textContent = data.total_sessions.toString();
+                }
+                if (data.avg_response_time !== undefined) {
+                    document.getElementById('metric-response-time').textContent = `${data.avg_response_time}ms`;
+                }
             }
 
             showNotification(message) {
