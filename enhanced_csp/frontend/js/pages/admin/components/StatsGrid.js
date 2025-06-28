@@ -17,18 +17,7 @@ class StatsGrid extends BaseComponent {
         };
         
         this.refreshTimer = null;
-        this.mockData = this.generateMockData();
-    }
-    
-    generateMockData() {
-        return {
-            totalAgents: Math.floor(Math.random() * 50) + 10,
-            activeAgents: Math.floor(Math.random() * 30) + 5,
-            totalExecutions: Math.floor(Math.random() * 10000) + 1000,
-            successRate: Math.random() * 20 + 80, // 80-100%
-            averageResponseTime: Math.random() * 500 + 100, // 100-600ms
-            systemUptime: Math.random() * 720 + 720 // 12-36 hours in minutes
-        };
+        this.mockData = window.apiFallbackData.generateStatsGridData();
     }
     
     render() {
@@ -153,7 +142,7 @@ class StatsGrid extends BaseComponent {
             await new Promise(resolve => setTimeout(resolve, 500));
             
             // Update mock data
-            this.mockData = this.generateMockData();
+            this.mockData = window.apiFallbackData.generateStatsGridData();
             
             this.setState({
                 stats: this.mockData,

@@ -164,7 +164,7 @@ class SystemManager {
         }
       } catch (apiError) {
         console.warn('API not available, using mock data:', apiError);
-        this.settings = this.getMockSettings();
+        this.settings = window.apiFallbackData['/api/settings'];
       }
       
       // Store original values for reset functionality
@@ -179,31 +179,12 @@ class SystemManager {
       this.showToast('Failed to load settings', 'error');
       
       // Fallback to mock data
-      this.settings = this.getMockSettings();
+      this.settings = window.apiFallbackData['/api/settings'];
     } finally {
       this.setLoading(false);
     }
   }
 
-  getMockSettings() {
-    return [
-      { key: 'app_name', value: 'Enhanced CSP System', description: 'Application name', widget: 'text', category: 'Application' },
-      { key: 'debug', value: false, description: 'Enable debug mode', widget: 'switch', category: 'Application' },
-      { key: 'environment', value: 'development', description: 'Application environment', widget: 'select', options: ['development', 'testing', 'staging', 'production'], category: 'Application' },
-      { key: 'enable_ai', value: true, description: 'Enable AI features', widget: 'switch', category: 'Features' },
-      { key: 'enable_websockets', value: true, description: 'Enable WebSocket support', widget: 'switch', category: 'Features' },
-      { key: 'database_host', value: 'localhost', description: 'Database host address', widget: 'text', category: 'Database' },
-      { key: 'database_port', value: 5432, description: 'Database port', widget: 'number', category: 'Database' },
-      { key: 'database_pool_size', value: 20, description: 'Database connection pool size', widget: 'number', category: 'Database' },
-      { key: 'redis_host', value: 'localhost', description: 'Redis host address', widget: 'text', category: 'Cache' },
-      { key: 'redis_port', value: 6379, description: 'Redis port', widget: 'number', category: 'Cache' },
-      { key: 'ai_max_requests_per_minute', value: 60, description: 'AI API rate limit (requests/min)', widget: 'number', category: 'AI' },
-      { key: 'ai_max_daily_cost', value: 100.0, description: 'Maximum daily AI cost limit ($)', widget: 'number', category: 'AI' },
-      { key: 'security_max_login_attempts', value: 5, description: 'Maximum login attempts before lockout', widget: 'number', category: 'Security' },
-      { key: 'api_rate_limit_requests_per_minute', value: 100, description: 'API rate limit (requests/min/user)', widget: 'number', category: 'API' },
-      { key: 'log_level', value: 'INFO', description: 'Application log level', widget: 'select', options: ['DEBUG', 'INFO', 'WARNING', 'ERROR'], category: 'Monitoring' }
-    ];
-  }
 
   renderForm() {
     if (!this.formContainer) return;
