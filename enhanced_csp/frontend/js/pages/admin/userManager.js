@@ -446,13 +446,16 @@ class UserManager {
 const userManager = new UserManager(window.ApiClient);
 window.userManager = userManager;
 
-/* Auto-init when DOM is ready */
-if (document.readyState !== "loading") {
-  userManager.init();
-} else {
-  document.addEventListener("DOMContentLoaded", () => userManager.init());
+/**
+ * Initializes the global userManager instance on demand.
+ * Called from admin.js when the user management section is first opened.
+ */
+function initializeUserManager() {
+  return userManager.init();
 }
 
+window.initializeUserManager = initializeUserManager;
+
 /* For ES-module / Node unit tests */
-export { UserManager };
+export { UserManager, initializeUserManager };
 export default userManager;
