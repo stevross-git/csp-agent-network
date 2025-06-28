@@ -59,5 +59,48 @@ window.apiFallbackData = {
       averageResponseTime: Math.random() * 500 + 100,
       systemUptime: Math.random() * 720 + 720
     };
+  },
+
+  // ----- User management mock endpoints -----
+  users: [
+    {
+      id: '1',
+      full_name: 'Alice Admin',
+      email: 'alice@example.com',
+      roles: ['admin'],
+      is_active: true,
+      last_login: '2024-07-01T08:00:00Z',
+      created_at: '2024-01-01T12:00:00Z'
+    },
+    {
+      id: '2',
+      full_name: 'Bob User',
+      email: 'bob@example.com',
+      roles: ['user'],
+      is_active: true,
+      last_login: '2024-07-02T09:15:00Z',
+      created_at: '2024-02-10T09:00:00Z'
+    }
+  ],
+
+  getUsers() {
+    return this.users;
+  },
+
+  addUser(user) {
+    const id = Date.now().toString();
+    this.users.push({ ...user, id });
+    return id;
+  },
+
+  updateUser(id, data) {
+    const idx = this.users.findIndex(u => u.id === id);
+    if (idx !== -1) {
+      this.users[idx] = { ...this.users[idx], ...data };
+    }
+  },
+
+  deleteUser(id) {
+    this.users = this.users.filter(u => u.id !== id);
   }
 };
