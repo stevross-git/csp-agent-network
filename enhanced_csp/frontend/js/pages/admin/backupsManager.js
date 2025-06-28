@@ -98,7 +98,7 @@ class BackupsManager {
         this.section.querySelector('#refresh-backups-btn')?.addEventListener('click', () => this.refresh());
         this.section.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-restore]');
-            if (btn) {
+            if (btn) {s
                 const id = btn.getAttribute('data-restore');
                 this.restoreBackup(id);
             }
