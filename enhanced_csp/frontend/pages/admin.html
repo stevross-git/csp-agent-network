@@ -6,24 +6,23 @@
     <meta name="description" content="Enhanced CSP Admin Portal - Advanced system administration and monitoring">
     <meta name="keywords" content="CSP, admin, security, monitoring, AI agents">
     <meta name="author" content="Enhanced CSP System">
-    
     <title>🛡️ Enhanced CSP Admin Portal - AI-to-AI Communication Platform</title>
-    
+
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
-    
+
     <!-- External Dependencies -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- Shared Stylesheets -->
     <link rel="stylesheet" href="../css/shared/base.css">
     <link rel="stylesheet" href="../css/shared/components.css">
     <link rel="stylesheet" href="../css/shared/theme.css">
-    
-    <!-- Page-specific Stylesheet -->
+
+    <!-- Page-specific Styles -->
     <link rel="stylesheet" href="../css/pages/admin/admin.css">
     <link rel="stylesheet" href="../css/pages/admin/monitoring.css">
     <link rel="stylesheet" href="../css/pages/admin/alerts_incidents.css">
@@ -34,10 +33,11 @@
     <link rel="stylesheet" href="../css/pages/admin/systemManager.css">
     <link rel="stylesheet" href="../css/pages/admin/userManager.css">
     <link rel="stylesheet" href="../css/pages/admin/admin-modals.css">
+
     <script src="../js/pages/admin/alerts_incidents.js" defer></script>
 </head>
 <body>
-    <!-- Mobile Navigation Toggle -->
+    <!-- Mobile nav toggle -->
     <button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Toggle navigation menu">
         <i class="fas fa-bars"></i>
     </button>
@@ -47,17 +47,13 @@
         <h1><i class="fas fa-shield-alt"></i> Enhanced CSP Admin Portal</h1>
         <div class="header-controls">
             <div class="realtime-indicator" aria-live="polite">
-                <div class="realtime-dot"></div>
-                <span>Live</span>
+                <div class="realtime-dot"></div><span>Live</span>
             </div>
             <div class="admin-badge">
-                <i class="fas fa-key"></i>
-                <span>Administrator</span>
-                <span id="admin-user">admin@csp.ai</span>
+                <i class="fas fa-key"></i><span>Administrator</span><span id="admin-user">admin@csp.ai</span>
             </div>
             <button class="emergency-btn" onclick="emergencyShutdown()" aria-describedby="emergency-tooltip">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Emergency Stop</span>
+                <i class="fas fa-exclamation-triangle"></i><span>Emergency Stop</span>
             </button>
         </div>
         <div id="emergency-tooltip" role="tooltip" class="tooltip">
@@ -65,162 +61,130 @@
         </div>
     </header>
 
-    <!-- Main Layout Container -->
+    <!-- Layout -->
     <div class="main-container">
-        <!-- Sidebar Navigation -->
+        <!-- Sidebar -->
         <nav class="sidebar" role="navigation" aria-label="Main navigation">
+            <!-- System Overview -->
             <div class="nav-section">
                 <h3><i class="fas fa-chart-line"></i> System Overview</h3>
                 <div class="nav-item active" data-section="dashboard" role="button" tabindex="0" aria-label="Dashboard">
-                    <span class="nav-icon"><i class="fas fa-home"></i></span>
-                    <span>Dashboard</span>
+                    <span class="nav-icon"><i class="fas fa-home"></i></span><span>Dashboard</span>
                 </div>
                 <div class="nav-item" data-section="monitoring" role="button" tabindex="0" aria-label="System Monitoring">
-                    <span class="nav-icon"><i class="fas fa-chart-bar"></i></span>
-                    <span>System Monitoring</span>
+                    <span class="nav-icon"><i class="fas fa-chart-bar"></i></span><span>System Monitoring</span>
                 </div>
                 <div class="nav-item" data-section="alerts" role="button" tabindex="0" aria-label="Alerts & Incidents">
-                    <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                    <span>Alerts & Incidents</span>
+                    <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span><span>Alerts & Incidents</span>
                 </div>
             </div>
 
+            <!-- User Management -->
             <div class="nav-section">
                 <h3><i class="fas fa-users"></i> User Management</h3>
                 <div class="nav-item" data-section="user-management" data-cy="nav-users" role="button" tabindex="0" aria-label="Users">
-                    <span class="nav-icon"><i class="fas fa-user"></i></span>
-                    <span>Users</span>
+                    <span class="nav-icon"><i class="fas fa-user"></i></span><span>Users</span>
                 </div>
                 <div class="nav-item" data-section="roles" role="button" tabindex="0" aria-label="Roles & Permissions">
-                    <span class="nav-icon"><i class="fas fa-lock"></i></span>
-                    <span>Roles & Permissions</span>
+                    <span class="nav-icon"><i class="fas fa-lock"></i></span><span>Roles & Permissions</span>
                 </div>
                 <div class="nav-item" data-section="auth" role="button" tabindex="0" aria-label="Authentication">
-                    <span class="nav-icon"><i class="fas fa-key"></i></span>
-                    <span>Authentication</span>
+                    <span class="nav-icon"><i class="fas fa-key"></i></span><span>Authentication</span>
                 </div>
             </div>
 
+            <!-- AI Platform -->
             <div class="nav-section">
                 <h3><i class="fas fa-robot"></i> AI Platform</h3>
                 <div class="nav-item" data-section="ai-models" role="button" tabindex="0" aria-label="AI Models">
-                    <span class="nav-icon"><i class="fas fa-brain"></i></span>
-                    <span>AI Models</span>
+                    <span class="nav-icon"><i class="fas fa-brain"></i></span><span>AI Models</span>
                 </div>
                 <div class="nav-item" data-section="agents" role="button" tabindex="0" aria-label="Agent Management">
-                    <span class="nav-icon"><i class="fas fa-robot"></i></span>
-                    <span>Agent Management</span>
+                    <span class="nav-icon"><i class="fas fa-robot"></i></span><span>Agent Management</span>
                 </div>
                 <div class="nav-item" data-section="protocols" role="button" tabindex="0" aria-label="Protocol Templates">
-                    <span class="nav-icon"><i class="fas fa-clipboard-list"></i></span>
-                    <span>Protocol Templates</span>
+                    <span class="nav-icon"><i class="fas fa-clipboard-list"></i></span><span>Protocol Templates</span>
                 </div>
             </div>
 
+            <!-- System Config -->
             <div class="nav-section">
                 <h3><i class="fas fa-cogs"></i> System Configuration</h3>
                 <div class="nav-item" data-section="settings" role="button" tabindex="0" aria-label="System Settings">
-                    <span class="nav-icon"><i class="fas fa-cog"></i></span>
-                    <span>System Settings</span>
+                    <span class="nav-icon"><i class="fas fa-cog"></i></span><span>System Settings</span>
                 </div>
                 <div class="nav-item" data-section="infrastructure" role="button" tabindex="0" aria-label="Infrastructure">
-                    <span class="nav-icon"><i class="fas fa-server"></i></span>
-                    <span>Infrastructure</span>
+                    <span class="nav-icon"><i class="fas fa-server"></i></span><span>Infrastructure</span>
                 </div>
                 <div class="nav-item" data-section="integrations" role="button" tabindex="0" aria-label="Integrations">
-                    <span class="nav-icon"><i class="fas fa-plug"></i></span>
-                    <span>Integrations</span>
+                    <span class="nav-icon"><i class="fas fa-plug"></i></span><span>Integrations</span>
                 </div>
             </div>
 
+            <!-- Security & Maintenance -->
             <div class="nav-section">
                 <h3><i class="fas fa-shield-alt"></i> Security & Maintenance</h3>
                 <div class="nav-item" data-section="security" role="button" tabindex="0" aria-label="Security Center">
-                    <span class="nav-icon"><i class="fas fa-shield-alt"></i></span>
-                    <span>Security Center</span>
+                    <span class="nav-icon"><i class="fas fa-shield-alt"></i></span><span>Security Center</span>
                 </div>
                 <div class="nav-item" data-section="backups" role="button" tabindex="0" aria-label="Backups & Recovery">
-                    <span class="nav-icon"><i class="fas fa-download"></i></span>
-                    <span>Backups & Recovery</span>
+                    <span class="nav-icon"><i class="fas fa-download"></i></span><span>Backups & Recovery</span>
                 </div>
                 <div class="nav-item" data-section="logs" role="button" tabindex="0" aria-label="System Logs">
-                    <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
-                    <span>System Logs</span>
+                    <span class="nav-icon"><i class="fas fa-file-alt"></i></span><span>System Logs</span>
                 </div>
                 <div class="nav-item" data-section="maintenance" role="button" tabindex="0" aria-label="Maintenance">
-                    <span class="nav-icon"><i class="fas fa-tools"></i></span>
-                    <span>Maintenance</span>
+                    <span class="nav-icon"><i class="fas fa-tools"></i></span><span>Maintenance</span>
                 </div>
                 <div class="nav-item" data-section="system-manager" role="button" tabindex="0" aria-label="System Manager">
-                    <span class="nav-icon"><i class="fas fa-cogs"></i></span>
-                    <span>System Manager</span>
+                    <span class="nav-icon"><i class="fas fa-cogs"></i></span><span>System Manager</span>
                 </div>
             </div>
 
+            <!-- Analytics -->
             <div class="nav-section">
                 <h3><i class="fas fa-chart-pie"></i> Analytics & Reports</h3>
                 <div class="nav-item" data-section="licenses" role="button" tabindex="0" aria-label="Licenses">
-                    <span class="nav-icon"><i class="fas fa-certificate"></i></span>
-                    <span>Licenses</span>
+                    <span class="nav-icon"><i class="fas fa-certificate"></i></span><span>Licenses</span>
                 </div>
                 <div class="nav-item" data-section="billing" role="button" tabindex="0" aria-label="Billing & Usage">
-                    <span class="nav-icon"><i class="fas fa-credit-card"></i></span>
-                    <span>Billing & Usage</span>
+                    <span class="nav-icon"><i class="fas fa-credit-card"></i></span><span>Billing & Usage</span>
                 </div>
                 <div class="nav-item" data-section="audit" role="button" tabindex="0" aria-label="Audit Trail">
-                    <span class="nav-icon"><i class="fas fa-search"></i></span>
-                    <span>Audit Trail</span>
+                    <span class="nav-icon"><i class="fas fa-search"></i></span><span>Audit Trail</span>
                 </div>
             </div>
         </nav>
 
-        <!-- Main Content Area -->
+        <!-- Main Content -->
         <main class="content-area" role="main">
-            <!-- Dashboard Section (Default) -->
+            <!-- Dashboard (Default) -->
             <section id="dashboard" class="content-section active">
                 <h2 class="mb-3"><i class="fas fa-home"></i> System Dashboard</h2>
                 <p>Welcome to the Enhanced CSP System Administration Portal</p>
-                
-                <!-- Dashboard content will be dynamically loaded -->
+
                 <div class="dashboard-grid">
-                    <!-- Dashboard cards will be populated by the DashboardManager -->
                     <div class="admin-card">
-                        <h3>System Health</h3>
-                        <div class="metric-large">98.5%</div>
-                        <div class="metric-label">Uptime</div>
+                        <h3>System Health</h3><div class="metric-large">98.5%</div><div class="metric-label">Uptime</div>
                     </div>
-                    
                     <div class="admin-card">
-                        <h3>Active Agents</h3>
-                        <div class="metric-large">24</div>
-                        <div class="metric-label">Running</div>
+                        <h3>Active Agents</h3><div class="metric-large">24</div><div class="metric-label">Running</div>
                     </div>
-                    
                     <div class="admin-card">
-                        <h3>Active Users</h3>
-                        <div class="metric-large">12</div>
-                        <div class="metric-label">Online</div>
+                        <h3>Active Users</h3><div class="metric-large">12</div><div class="metric-label">Online</div>
                     </div>
-                    
                     <div class="admin-card">
-                        <h3>Total Processes</h3>
-                        <div class="metric-large">147</div>
-                        <div class="metric-label">Running</div>
+                        <h3>Total Processes</h3><div class="metric-large">147</div><div class="metric-label">Running</div>
                     </div>
                 </div>
-                
+
                 <div class="recent-activity">
                     <h3>Recent Activity</h3>
-                    <div class="activity-list">
-                        <!-- Activity items will be populated by JavaScript -->
-                    </div>
+                    <div class="activity-list"><!-- Populated via JS --></div>
                 </div>
             </section>
 
-            <!-- Note: Other sections are placeholders that -->
-            <!-- will be dynamically generated by the respective managers -->
-            
-            <!-- Placeholder sections for now -->
+            <!-- Other placeholder sections -->
             <section id="monitoring" class="content-section">
                 <h2 class="mb-3"><i class="fas fa-chart-bar"></i> System Monitoring</h2>
                 <p>Monitoring dashboard will be populated by the DashboardManager.</p>
@@ -231,6 +195,7 @@
                 <p>Alerts management will be handled by the AlertManager.</p>
             </section>
 
+            <!-- User Management -->
             <section id="user-management" class="content-section">
                 <h2 class="mb-3"><i class="fas fa-users"></i> User Management</h2>
                 <div class="data-table">
@@ -246,12 +211,7 @@
                         <table class="user-table">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Last Login</th>
-                                    <th>Actions</th>
+                                    <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="users-tbody"></tbody>
@@ -262,87 +222,23 @@
                 <div id="user-modal-container"></div>
             </section>
 
-            <section id="roles" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-lock"></i> Roles & Permissions</h2>
-                <p>Roles and permissions management will be populated by the RoleManager.</p>
-            </section>
-
-            <section id="auth" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-key"></i> Authentication Settings</h2>
-                <p>Authentication settings will be populated by the AuthManager.</p>
-            </section>
-
-            <section id="ai-models" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-brain"></i> AI Models</h2>
-                <p>AI models management will be populated by the AIModelsManager.</p>
-            </section>
-
-            <section id="agents" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-robot"></i> Agent Management</h2>
-                <p>Agent management will be populated by the AgentManager.</p>
-            </section>
-
-            <section id="protocols" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-clipboard-list"></i> Protocol Templates</h2>
-                <p>Protocol templates will be populated by the ProtocolManager.</p>
-            </section>
-
-            <section id="system-settings" class="content-section hidden">
-                <h2 class="mb-3"><i class="fas fa-cog"></i> System Settings</h2>
-                <div id="settings-form-container"></div>
-            </section>
-
-            <section id="infrastructure" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-server"></i> Infrastructure</h2>
-                <p>Infrastructure management will be populated by the InfrastructureManager.</p>
-            </section>
-
-            <section id="integrations" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-plug"></i> Integrations</h2>
-                <p>Integrations management will be populated by the IntegrationsManager.</p>
-            </section>
-
-            <section id="security" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-shield-alt"></i> Security Center</h2>
-                <p>Security center will be populated by the SecurityManager.</p>
-            </section>
-
-            <section id="backups" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-download"></i> Backups & Recovery</h2>
-                <p>Backup & recovery will be populated by the BackupManager.</p>
-            </section>
-
-            <section id="logs" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-file-alt"></i> System Logs</h2>
-                <p>System logs will be populated by the LogsManager.</p>
-            </section>
-
-            <section id="maintenance" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-tools"></i> Maintenance</h2>
-                <p>Maintenance tools will be populated by the MaintenanceManager.</p>
-            </section>
-
-            <section id="system-manager" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-cogs"></i> System Manager</h2>
-                <p>System manager will be populated by the SystemManager.</p>
-            </section>
-
-            <section id="licenses" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-certificate"></i> Licenses</h2>
-                <p>License management will be populated by the LicenseManager.</p>
-            </section>
-
-            <section id="billing" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-credit-card"></i> Billing & Usage</h2>
-                <p>Billing and usage will be populated by the BillingManager.</p>
-            </section>
-
-            <section id="audit" class="content-section">
-                <h2 class="mb-3"><i class="fas fa-search"></i> Audit Trail</h2>
-                <p>Audit trail will be populated by the AuditManager.</p>
-            </section>
-
-            <!-- Additional sections can be added here -->
+            <!-- Remaining placeholder sections -->
+            <section id="roles" class="content-section"><h2 class="mb-3"><i class="fas fa-lock"></i> Roles & Permissions</h2><p>Roles and permissions management will be populated by the RoleManager.</p></section>
+            <section id="auth" class="content-section"><h2 class="mb-3"><i class="fas fa-key"></i> Authentication Settings</h2><p>Authentication settings will be populated by the AuthManager.</p></section>
+            <section id="ai-models" class="content-section"><h2 class="mb-3"><i class="fas fa-brain"></i> AI Models</h2><p>AI models management will be populated by the AIModelsManager.</p></section>
+            <section id="agents" class="content-section"><h2 class="mb-3"><i class="fas fa-robot"></i> Agent Management</h2><p>Agent management will be populated by the AgentManager.</p></section>
+            <section id="protocols" class="content-section"><h2 class="mb-3"><i class="fas fa-clipboard-list"></i> Protocol Templates</h2><p>Protocol templates will be populated by the ProtocolManager.</p></section>
+            <section id="system-settings" class="content-section hidden"><h2 class="mb-3"><i class="fas fa-cog"></i> System Settings</h2><div id="settings-form-container"></div></section>
+            <section id="infrastructure" class="content-section"><h2 class="mb-3"><i class="fas fa-server"></i> Infrastructure</h2><p>Infrastructure management will be populated by the InfrastructureManager.</p></section>
+            <section id="integrations" class="content-section"><h2 class="mb-3"><i class="fas fa-plug"></i> Integrations</h2><p>Integrations management will be populated by the IntegrationsManager.</p></section>
+            <section id="security" class="content-section"><h2 class="mb-3"><i class="fas fa-shield-alt"></i> Security Center</h2><p>Security center will be populated by the SecurityManager.</p></section>
+            <section id="backups" class="content-section"><h2 class="mb-3"><i class="fas fa-download"></i> Backups & Recovery</h2><p>Backup & recovery will be populated by the BackupManager.</p></section>
+            <section id="logs" class="content-section"><h2 class="mb-3"><i class="fas fa-file-alt"></i> System Logs</h2><p>System logs will be populated by the LogsManager.</p></section>
+            <section id="maintenance" class="content-section"><h2 class="mb-3"><i class="fas fa-tools"></i> Maintenance</h2><p>Maintenance tools will be populated by the MaintenanceManager.</p></section>
+            <section id="system-manager" class="content-section"><h2 class="mb-3"><i class="fas fa-cogs"></i> System Manager</h2><p>System manager will be populated by the SystemManager.</p></section>
+            <section id="licenses" class="content-section"><h2 class="mb-3"><i class="fas fa-certificate"></i> Licenses</h2><p>License management will be populated by the LicenseManager.</p></section>
+            <section id="billing" class="content-section"><h2 class="mb-3"><i class="fas fa-credit-card"></i> Billing & Usage</h2><p>Billing and usage will be populated by the BillingManager.</p></section>
+            <section id="audit" class="content-section"><h2 class="mb-3"><i class="fas fa-search"></i> Audit Trail</h2><p>Audit trail will be populated by the AuditManager.</p></section>
         </main>
 
         <!-- Add User Modal -->
@@ -414,160 +310,104 @@
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Shared JavaScript Dependencies -->
+    <!-- Shared JS -->
     <script src="../js/shared/BaseComponent.js"></script>
     <script src="../js/shared/SharedComponents.js"></script>
     <script src="../js/utils/apiFallbackData.js"></script>
     <script src="../js/utils/ApiClient.js"></script>
-    
-    <!-- Page-specific JavaScript Modules -->
+
+    <!-- Page-specific JS -->
     <script src="../js/pages/admin/modalManager.js"></script>
     <script src="../js/pages/admin/admin-modals.js"></script>
-    <script type="module" src="../js/pages/admin/userManager.js"></script>
+    <script src="../js/pages/admin/userManager.js"></script>
     <script src="../js/pages/admin/systemManager.js"></script>
     <script src="../js/pages/admin/backupsManager.js"></script>
     <script src="../js/pages/admin/infrastructureManager.js"></script>
     <script src="../js/pages/admin/licensesManager.js"></script>
 
-
     <!-- Main admin script -->
     <script src="../js/pages/admin/admin.js"></script>
 
-    <!-- Global Event Handlers and Initialization -->
+    <!-- Inline bootstrap & nav logic -->
     <script>
-        // Global admin functionality
         let currentSection = 'dashboard';
-        
-        // Initialize admin portal
-        document.addEventListener('DOMContentLoaded', function() {
+
+        document.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 Enhanced CSP Admin Portal initialized');
             initializeNavigation();
             loadDashboardData();
         });
 
-        // Navigation system
         function initializeNavigation() {
             const navItems = document.querySelectorAll('.nav-item');
-            
             navItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    const sectionId = this.getAttribute('data-section');
-                    if (sectionId) {
-                        showSection(sectionId);
-                    }
+                item.addEventListener('click', () => {
+                    const sectionId = item.getAttribute('data-section');
+                    if (sectionId) showSection(sectionId);
                 });
-                
-                // Keyboard navigation
-                item.addEventListener('keypress', function(e) {
+                item.addEventListener('keypress', e => {
                     if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        this.click();
+                        e.preventDefault(); item.click();
                     }
                 });
             });
         }
 
         function showSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-
-            // Show target section
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             const targetSection = document.getElementById(sectionId);
             if (targetSection) {
                 targetSection.classList.add('active');
                 currentSection = sectionId;
-                
-                // Update navigation state
-                document.querySelectorAll('.nav-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                
-                const activeNavItem = document.querySelector(`[data-section="${sectionId}"]`);
-                if (activeNavItem) {
-                    activeNavItem.classList.add('active');
-                }
-                
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                document.querySelector(`[data-section="${sectionId}"]`)?.classList.add('active');
                 console.log(`📄 Switched to section: ${sectionId}`);
-                
-                // Trigger section-specific initialization
                 initializeSection(sectionId);
             }
         }
 
         function initializeSection(sectionId) {
-            // Section-specific initialization logic
-            switch(sectionId) {
-                case 'users':
-                    if (window.userManager) {
-                        window.userManager.refresh();
-                    }
+            switch (sectionId) {
+                case 'user-management':
+                    window.userManager?.refresh();
                     break;
                 case 'agents':
-                    if (window.agentManager) {
-                        window.agentManager.refresh();
-                    }
+                    window.agentManager?.refresh();
                     break;
                 case 'monitoring':
-                    if (window.monitoringManager) {
-                        window.monitoringManager.startRealTimeUpdates();
-                    }
+                    window.monitoringManager?.startRealTimeUpdates();
                     break;
-                // Add more cases as needed
+                // add more cases as needed
             }
         }
 
         function loadDashboardData() {
-            // Load initial dashboard metrics
-            console.log('📊 Loading dashboard data...');
-            // This would typically make API calls to load real data
+            console.log('📊 Loading dashboard data…');
         }
 
-        // Mobile navigation
         function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('open');
+            document.querySelector('.sidebar').classList.toggle('open');
         }
 
-        // Emergency shutdown
         function emergencyShutdown() {
             if (confirm('⚠️ Are you sure you want to perform an emergency shutdown? This will stop all AI agents and processes immediately.')) {
                 console.log('🚨 Emergency shutdown initiated');
-                // Implement emergency shutdown logic
                 alert('Emergency shutdown initiated. All AI agents and processes are being stopped.');
             }
         }
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Ctrl+Shift+E for emergency shutdown
-            if (e.ctrlKey && e.shiftKey && e.key === 'E') {
-                e.preventDefault();
-                emergencyShutdown();
-            }
-            
-            // Escape to close any open modals
+        document.addEventListener('keydown', e => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'E') { e.preventDefault(); emergencyShutdown(); }
             if (e.key === 'Escape') {
                 const openModal = document.querySelector('.modal.active');
-                if (openModal && window.modalManager) {
-                    window.modalManager.closeModal();
-                }
+                if (openModal) window.modalManager?.closeModal();
             }
         });
 
-        // Error handling
-        window.addEventListener('error', function(e) {
-            console.error('❌ Admin portal error:', e.error);
-        });
-
-        // Unhandled promise rejections
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('❌ Unhandled promise rejection:', e.reason);
-        });
+        window.addEventListener('error', e => console.error('❌ Admin portal error:', e.error));
+        window.addEventListener('unhandledrejection', e => console.error('❌ Unhandled promise rejection:', e.reason));
     </script>
 </body>
 </html>
