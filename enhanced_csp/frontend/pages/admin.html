@@ -30,7 +30,9 @@
     <link rel="stylesheet" href="../css/pages/admin/roles.css">
     <link rel="stylesheet" href="../css/pages/admin/backups.css">
     <link rel="stylesheet" href="../css/pages/admin/infrastructure.css">
+    <link rel="stylesheet" href="../css/pages/admin/infrastructureManager.css">
     <link rel="stylesheet" href="../css/pages/admin/systemManager.css">
+    <link rel="stylesheet" href="../css/pages/admin/userManager.css">
     <link rel="stylesheet" href="../css/pages/admin/admin-modals.css">
     <script src="../js/pages/admin/alerts_incidents.js" defer></script>
 </head>
@@ -85,7 +87,7 @@
 
             <div class="nav-section">
                 <h3><i class="fas fa-users"></i> User Management</h3>
-                <div class="nav-item" data-section="users" role="button" tabindex="0" aria-label="Users">
+                <div class="nav-item" data-section="user-management" data-cy="nav-users" role="button" tabindex="0" aria-label="Users">
                     <span class="nav-icon"><i class="fas fa-user"></i></span>
                     <span>Users</span>
                 </div>
@@ -229,13 +231,13 @@
                 <p>Alerts management will be handled by the AlertManager.</p>
             </section>
 
-            <section id="users" class="content-section">
+            <section id="user-management" class="content-section">
                 <h2 class="mb-3"><i class="fas fa-users"></i> User Management</h2>
                 <div class="data-table">
                     <div class="table-header">
                         <div class="table-title">Users</div>
                         <div class="table-actions">
-                            <button class="btn btn-primary" id="add-user-btn">
+                            <button class="btn btn-primary" id="add-user-btn" data-cy="add-user-btn">
                                 <i class="fas fa-user-plus"></i> Add User
                             </button>
                         </div>
@@ -255,7 +257,9 @@
                             <tbody id="users-tbody"></tbody>
                         </table>
                     </div>
+                    <div id="user-pagination"></div>
                 </div>
+                <div id="user-modal-container"></div>
             </section>
 
             <section id="roles" class="content-section">
@@ -422,7 +426,7 @@
     <!-- Page-specific JavaScript Modules -->
     <script src="../js/pages/admin/modalManager.js"></script>
     <script src="../js/pages/admin/admin-modals.js"></script>
-    <script src="../js/pages/admin/userManager.js"></script>
+    <script type="module" src="../js/pages/admin/userManager.js"></script>
     <script src="../js/pages/admin/systemManager.js"></script>
     <script src="../js/pages/admin/backupsManager.js"></script>
     <script src="../js/pages/admin/infrastructureManager.js"></script>

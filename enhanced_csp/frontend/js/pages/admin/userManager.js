@@ -1,715 +1,458 @@
-// frontend/js/pages/admin/userManager.js
-/**
- * Enhanced User Manager with Database Integration
- * Connects to the Enhanced CSP Backend API for user management
- */
-import { defaultUsersMock } from "@/utils/apiFallbackData";
+/* --------------------------------------------------------------------------
+ *  UserManager - complete CRUD, filters, pagination & mock-data fallback
+ * --------------------------------------------------------------------------
+ *  • Tries live API first; if any call fails (or no token), auto-falls back
+ *    to the in-memory helpers in `apiFallbackData.js`.
+ *  • Keeps every UI feature from the “codex” branch (advanced table, filters,
+ *    pagination, toast / notification system) plus the cleaner dependency
+ *    injection pattern and debounced search from “main”.
+ * ------------------------------------------------------------------------ */
+
+import {
+  defaultUsersMock,
+  getUsers as getMockUsers,
+  addUser as addMockUser,
+  updateUser as updateMockUser,
+  deleteUser as deleteMockUser
+} from "@/utils/apiFallbackData";
 
 class UserManager {
-  constructor() {
+  /* -------------------------------- Constructor ------------------------- */
+  constructor(apiClient = null) {
+    /* If you pass a fully-featured Axios-style client it will be used.
+       Otherwise UserManager falls back to window.fetch. */
+    this.api = apiClient;
+
+    /* Data state */
     this.users = [];
-    this.section = null;
-    this.tbody = null;
-    this.apiBaseUrl = this.getApiBaseUrl();
-    this.authToken = this.getAuthToken();
     this.loading = false;
-    this.pagination = {
-      page: 1,
-      limit: 50,
-      total: 0,
-      totalPages: 0,
-    };
-    this.filters = {
-      status: "",
-      role: "",
-      search: "",
-    };
+
+    /* UI state */
+    this.section = null;
+    this.tbody   = null;
+
+    /* Pagination & filters */
+    this.pagination = { page: 1, limit: 50, total: 0, totalPages: 1 };
+    this.filters    = { status: "", role: "", search: "" };
+
+    /* Environment */
+    this.apiBaseUrl = this._getApiBaseUrl();
+    this.authToken  = this._getAuthToken();
+
+    /* Misc. */
+    this.debounceTimer = null;
   }
 
-  getApiBaseUrl() {
-    // Get API URL from environment or fallback to default
-    // Check window/global variables first
-    if (window.REACT_APP_CSP_API_URL) {
-      return window.REACT_APP_CSP_API_URL;
-    }
+  /* --------------------------- Environment helpers ---------------------- */
+  _getApiBaseUrl() {
+    if (window.REACT_APP_CSP_API_URL)            return window.REACT_APP_CSP_API_URL;
+    if (typeof REACT_APP_CSP_API_URL !== "undefined") return REACT_APP_CSP_API_URL;
 
-    // Check if we're in a build environment with injected variables
-    if (typeof REACT_APP_CSP_API_URL !== "undefined") {
-      return REACT_APP_CSP_API_URL;
-    }
+    const meta = document.querySelector('meta[name="api-base-url"]');
+    if (meta) return meta.content;
 
-    // Check meta tags (often used for environment config)
-    const metaApiUrl = document.querySelector('meta[name="api-base-url"]');
-    if (metaApiUrl) {
-      return metaApiUrl.getAttribute("content");
-    }
-
-    // Check if running locally (development)
-    if (
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1"
-    ) {
+    if (["localhost", "127.0.0.1"].includes(location.hostname))
       return "http://localhost:8000";
-    }
 
-    // Production fallback - same origin
-    return window.location.origin.replace(":3000", ":8000");
+    return location.origin.replace(":3000", ":8000"); // prod default
   }
 
-  getAuthToken() {
-    // Get JWT token from localStorage or sessionStorage
+  _getAuthToken() {
     return (
       localStorage.getItem("csp_auth_token") ||
       sessionStorage.getItem("csp_auth_token")
     );
   }
 
-  async apiRequest(endpoint, options = {}) {
+  /* -------------------------- Low-level request ------------------------- */
+  async _apiRequest(endpoint, opts = {}) {
+    /* If an external client (e.g., Axios) was injected, use it */
+    if (this.api) {
+      return this.api.request({ url: endpoint, baseURL: this.apiBaseUrl, ...opts });
+    }
+
     const url = `${this.apiBaseUrl}${endpoint}`;
-    const defaultOptions = {
-      headers: {
-        "Content-Type": "application/json",
-        ...(this.authToken && { Authorization: `Bearer ${this.authToken}` }),
-      },
+    const defaultHeaders = {
+      "Content-Type": "application/json",
+      ...(this.authToken && { Authorization: `Bearer ${this.authToken}` })
     };
 
-    try {
-      const response = await fetch(url, { ...defaultOptions, ...options });
+    const res = await fetch(url, { headers: defaultHeaders, ...opts });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          this.handleAuthError();
-          throw new Error("Authentication required");
-        }
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
-        );
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("API Request failed:", error);
-      this.showNotification("API request failed: " + error.message, "error");
-      throw error;
+    if (!res.ok) {
+      if (res.status === 401) this._handleAuthError();
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}: ${res.statusText}`);
     }
+    return res.json();
   }
 
-  handleAuthError() {
-    // Clear invalid token
+  _handleAuthError() {
     localStorage.removeItem("csp_auth_token");
     sessionStorage.removeItem("csp_auth_token");
-
-    // Redirect to login or show login modal
-    if (window.location.pathname !== "/login") {
-      this.showNotification("Session expired. Please log in again.", "warning");
-      // window.location.href = '/login';
-    }
+    this._notify("Session expired. Please log in again.", "warning");
+    // Optionally redirect: window.location.href = "/login";
   }
 
-  showNotification(message, type = "info", duration = 5000) {
-    // Create or update notification system
-    const notification = document.createElement("div");
-    notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-            <div class="notification-content">
-                <i class="fas fa-${this.getNotificationIcon(type)}"></i>
-                <span>${message}</span>
-                <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-      if (notification.parentElement) {
-        notification.remove();
-      }
-    }, duration);
-  }
-
-  getNotificationIcon(type) {
-    const icons = {
-      success: "check-circle",
-      error: "exclamation-circle",
-      warning: "exclamation-triangle",
-      info: "info-circle",
-    };
-    return icons[type] || "info-circle";
-  }
-
+  /* --------------------------- Public initialiser ---------------------- */
   async init() {
-    this.section = document.getElementById("users");
+    this.section = document.getElementById("user-management") ||
+                   document.getElementById("users");
     if (!this.section) {
-      console.error("Users section not found");
+      console.error("User manager section not found");
       return;
     }
 
     await this.loadUsers();
-    this.render();
-    this.attachEvents();
+    this._render();
+    this._attachEvents();
   }
 
+  /* ---------------------------- CRUD methods --------------------------- */
   async loadUsers(page = 1) {
     if (this.loading) return;
-
     this.loading = true;
-    this.showLoadingState();
+    this._showLoadingState();
+
+    this.pagination.page = page;
 
     try {
-      // Build query parameters
       const params = new URLSearchParams({
-        page: page.toString(),
-        limit: this.pagination.limit.toString(),
+        page, limit: this.pagination.limit,
         ...(this.filters.status && { status: this.filters.status }),
-        ...(this.filters.role && { role: this.filters.role }),
-        ...(this.filters.search && { search: this.filters.search }),
+        ...(this.filters.role   && { role:   this.filters.role   }),
+        ...(this.filters.search && { search: this.filters.search })
       });
 
-      const response = await this.apiRequest(`/api/admin/users?${params}`);
+      const res = await this._apiRequest(`/api/admin/users?${params}`);
+      this.users             = res.users || res.items || [];
+      this.pagination.total  = res.total || this.users.length;
+      this.pagination.limit  = res.limit || this.pagination.limit;
+      this.pagination.page   = res.page  || page;
+      this.pagination.totalPages =
+        res.totalPages || Math.ceil(this.pagination.total / this.pagination.limit);
 
-      this.users = response.users || response.items || [];
-      this.pagination = {
-        page: response.page || 1,
-        limit: response.limit || 50,
-        total: response.total || this.users.length,
-        totalPages:
-          response.totalPages ||
-          Math.ceil(
-            (response.total || this.users.length) / (response.limit || 50),
-          ),
-      };
+    } catch (err) {
+      console.warn("API failed, falling back to mock data:", err);
+      this.users             = getMockUsers() || defaultUsersMock;
+      this.pagination.total  = this.users.length;
+      this.pagination.totalPages = Math.ceil(this.pagination.total / this.pagination.limit);
 
-      this.hideLoadingState();
-      this.renderRows();
-      this.renderPagination();
-    } catch (error) {
-      console.error("Failed to load users:", error);
-      this.hideLoadingState();
-
-      // Fallback to default users for demo purposes
-      if (!this.authToken) {
-        this.users = this.getDefaultUsers();
-        this.renderRows();
-        this.showNotification(
-          "Using demo data. Please log in for full functionality.",
-          "warning",
-        );
-      }
+      /* Let the user know they're in offline/demo mode */
+      this._notify("Using offline demo data – login for full functionality", "info", 7000);
     } finally {
       this.loading = false;
+      this._hideLoadingState();
+      this._renderRows();
+      this._renderPagination();
     }
   }
 
-  getDefaultUsers() {
-    return defaultUsersMock;
-  }
-
-  showLoadingState() {
-    if (this.tbody) {
-      this.tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 2rem;">
-                        <div class="loading-spinner">
-                            <i class="fas fa-spinner fa-spin fa-2x"></i>
-                            <p>Loading users...</p>
-                        </div>
-                    </td>
-                </tr>
-            `;
+  async createUser(data) {
+    try {
+      await this._apiRequest("/api/auth/local/register", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+    } catch (e) {
+      addMockUser(data);
     }
+    this._notify("User created", "success");
+    await this.loadUsers(this.pagination.page);
   }
 
-  hideLoadingState() {
-    // Loading state will be replaced by renderRows()
+  async updateUser(id, data) {
+    try {
+      await this._apiRequest(`/api/admin/users/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+      });
+    } catch (e) {
+      updateMockUser(id, data);
+    }
+    this._notify("User updated", "success");
+    await this.loadUsers(this.pagination.page);
   }
 
-  render() {
+  async deleteUser(id) {
+    /* Confirm & delete */
+    const user = this.users.find(u => u.id === id);
+    if (!user) return this._notify("User not found", "error");
+
+    if (!confirm(`Delete "${user.full_name}" (${user.email})? This cannot be undone.`))
+      return;
+
+    try {
+      await this._apiRequest(`/api/admin/users/${id}`, { method: "DELETE" });
+    } catch (e) {
+      deleteMockUser(id);
+    }
+    this._notify("User deleted", "success");
+    await this.loadUsers(this.pagination.page);
+  }
+
+  /* ------------------------- Rendering helpers ------------------------- */
+  _render() {
     this.section.innerHTML = `
-            <div class="user-management-container">
-                <h2 class="page-title">
-                    <i class="fas fa-users"></i> User Management
-                    <span class="user-count">${this.pagination.total} users</span>
-                </h2>
-                
-                <!-- Filters and Search -->
-                <div class="user-filters">
-                    <div class="filter-group">
-                        <input type="text" id="user-search" placeholder="Search users..." 
-                               value="${this.filters.search}" class="form-control">
-                        <select id="status-filter" class="form-control">
-                            <option value="">All Status</option>
-                            <option value="active" ${this.filters.status === "active" ? "selected" : ""}>Active</option>
-                            <option value="inactive" ${this.filters.status === "inactive" ? "selected" : ""}>Inactive</option>
-                        </select>
-                        <select id="role-filter" class="form-control">
-                            <option value="">All Roles</option>
-                            <option value="admin" ${this.filters.role === "admin" ? "selected" : ""}>Admin</option>
-                            <option value="user" ${this.filters.role === "user" ? "selected" : ""}>User</option>
-                            <option value="developer" ${this.filters.role === "developer" ? "selected" : ""}>Developer</option>
-                        </select>
-                        <button id="apply-filters-btn" class="btn btn-secondary">
-                            <i class="fas fa-filter"></i> Apply
-                        </button>
-                        <button id="reset-filters-btn" class="btn btn-outline">
-                            <i class="fas fa-undo"></i> Reset
-                        </button>
-                    </div>
-                </div>
+      <div class="user-management-container">
+        <h2 class="page-title">
+          <i class="fas fa-users"></i> User Management
+          <span class="user-count">${this.pagination.total} users</span>
+        </h2>
 
-                <!-- User Table -->
-                <div class="data-table">
-                    <div class="table-header">
-                        <div class="table-title">Users</div>
-                        <div class="table-actions">
-                            <button class="btn btn-primary" id="add-user-btn">
-                                <i class="fas fa-user-plus"></i> Add User
-                            </button>
-                            <button class="btn btn-secondary" id="export-users-btn">
-                                <i class="fas fa-download"></i> Export
-                            </button>
-                            <button class="btn btn-outline" id="refresh-users-btn">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
-                        </div>
-                    </div>
-                    <div class="table-content">
-                        <table class="user-table">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        <input type="checkbox" id="select-all-users">
-                                    </th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Last Login</th>
-                                    <th>Created</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="users-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
+        <!-- Filters -->
+        <div class="user-filters">
+          <input  id="user-search"  class="form-control" type="text" placeholder="🔍 Search..."
+                  value="${this.filters.search}">
+          <select id="status-filter" class="form-control">
+            <option value="">All Status</option>
+            <option value="active"   ${this.filters.status==="active"  ?"selected":""}>Active</option>
+            <option value="inactive" ${this.filters.status==="inactive"?"selected":""}>Inactive</option>
+          </select>
+          <select id="role-filter" class="form-control">
+            <option value="">All Roles</option>
+            <option value="admin"     ${this.filters.role==="admin"    ?"selected":""}>Admin</option>
+            <option value="user"      ${this.filters.role==="user"     ?"selected":""}>User</option>
+            <option value="developer" ${this.filters.role==="developer"?"selected":""}>Developer</option>
+          </select>
+          <button id="apply-filters-btn"  class="btn btn-secondary"><i class="fas fa-filter"></i> Apply</button>
+          <button id="reset-filters-btn"  class="btn btn-outline">Reset</button>
+        </div>
 
-                <!-- Pagination -->
-                <div id="user-pagination" class="pagination-container"></div>
+        <!-- Table -->
+        <div class="data-table">
+          <div class="table-header">
+            <div class="table-title">Users</div>
+            <div class="table-actions">
+              <button id="add-user-btn"     class="btn btn-primary"><i class="fas fa-user-plus"></i> Add</button>
+              <button id="export-users-btn" class="btn btn-secondary"><i class="fas fa-download"></i> Export</button>
+              <button id="refresh-users-btn"class="btn btn-outline"><i class="fas fa-sync-alt"></i> Refresh</button>
             </div>
-        `;
+          </div>
+          <div class="table-content">
+            <table class="user-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="select-all-users"></th>
+                  <th>Name</th><th>Email</th><th>Role</th>
+                  <th>Status</th><th>Last Login</th><th>Created</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="user-pagination" class="pagination-container"></div>
+      </div>
+    `;
 
     this.tbody = this.section.querySelector("#users-tbody");
-    this.renderRows();
-    this.renderPagination();
+    this._renderRows();
+    this._renderPagination();
   }
 
-  renderRows() {
+  _renderRows() {
     if (!this.tbody) return;
 
-    if (this.users.length === 0) {
+    /* No data */
+    if (!this.users.length) {
       this.tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="empty-state">
-                        <div class="empty-state-content">
-                            <i class="fas fa-users fa-3x"></i>
-                            <h3>No users found</h3>
-                            <p>Get started by adding your first user.</p>
-                            <button class="btn btn-primary" onclick="userManager.openAddUserModal()">
-                                <i class="fas fa-user-plus"></i> Add User
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
+        <tr><td colspan="8" class="empty-state">
+          <div class="empty-state-content">
+            <i class="fas fa-users fa-3x"></i>
+            <h3>No users found</h3>
+            <button class="btn btn-primary" onclick="userManager.openAddUserModal()">
+              <i class="fas fa-user-plus"></i> Add User
+            </button>
+          </div>
+        </td></tr>`;
       return;
     }
 
-    this.tbody.innerHTML = this.users
-      .map(
-        (user) => `
-            <tr data-user-id="${user.id}" class="user-row">
-                <td>
-                    <input type="checkbox" class="user-checkbox" value="${user.id}">
-                </td>
-                <td>
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            ${user.full_name ? user.full_name.charAt(0).toUpperCase() : "U"}
-                        </div>
-                        <div class="user-details">
-                            <div class="user-name">${user.full_name || "Unknown User"}</div>
-                            <div class="user-id">ID: ${user.id}</div>
-                        </div>
-                    </div>
-                </td>
-                <td>
-                    <a href="mailto:${user.email}" class="user-email">${user.email}</a>
-                    ${user.is_email_verified ? '<i class="fas fa-check-circle text-success" title="Email verified"></i>' : '<i class="fas fa-exclamation-triangle text-warning" title="Email not verified"></i>'}
-                </td>
-                <td>
-                    <div class="user-roles">
-                        ${this.renderUserRoles(user.roles || ["user"])}
-                    </div>
-                </td>
-                <td>
-                    <span class="status-badge ${user.is_active ? "status-active" : "status-inactive"}">
-                        ${user.is_active ? "Active" : "Inactive"}
-                    </span>
-                </td>
-                <td>
-                    <span class="last-login" title="${user.last_login}">
-                        ${user.last_login ? this.formatDateTime(user.last_login) : "Never"}
-                    </span>
-                </td>
-                <td>
-                    <span class="created-date" title="${user.created_at}">
-                        ${this.formatDate(user.created_at)}
-                    </span>
-                </td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn btn-sm btn-outline view-user-btn" title="View Details">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-secondary edit-user-btn" title="Edit User">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger delete-user-btn" title="Delete User">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `,
-      )
-      .join("");
+    /* Data rows */
+    this.tbody.innerHTML = this.users.map(u => `
+      <tr data-user-id="${u.id}">
+        <td><input type="checkbox" class="user-checkbox" value="${u.id}"></td>
+        <td>
+          <div class="user-info">
+            <div class="user-avatar">${(u.full_name||"U").charAt(0).toUpperCase()}</div>
+            <div class="user-details">
+              <div class="user-name">${u.full_name||"Unknown"}</div>
+              <div class="user-id">ID: ${u.id}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <a href="mailto:${u.email}" class="user-email">${u.email}</a>
+          ${u.is_email_verified
+            ? '<i class="fas fa-check-circle text-success" title="Verified"></i>'
+            : '<i class="fas fa-exclamation-triangle text-warning" title="Unverified"></i>'}
+        </td>
+        <td>${this._renderRoles(u.roles||["user"])}</td>
+        <td><span class="status-badge ${u.is_active?"status-active":"status-inactive"}">
+          ${u.is_active?"Active":"Inactive"}
+        </span></td>
+        <td>${u.last_login ? this._formatDateTime(u.last_login) : "Never"}</td>
+        <td>${this._formatDate(u.created_at)}</td>
+        <td>
+          <button class="btn btn-sm btn-outline view-user-btn"   title="View"><i class="fas fa-eye"></i></button>
+          <button class="btn btn-sm btn-secondary edit-user-btn" title="Edit"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-sm btn-danger delete-user-btn"  title="Delete"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join("");
   }
 
-  renderUserRoles(roles) {
-    return roles
-      .map(
-        (role) => `
-            <span class="role-badge role-${role}">${role}</span>
-        `,
-      )
-      .join("");
+  _renderRoles(roles) {
+    return roles.map(r => `<span class="role-badge role-${r}">${r}</span>`).join("");
   }
 
-  renderPagination() {
-    const paginationContainer = this.section.querySelector("#user-pagination");
-    if (!paginationContainer || this.pagination.totalPages <= 1) {
-      if (paginationContainer) paginationContainer.innerHTML = "";
-      return;
-    }
+  _renderPagination() {
+    const container = this.section.querySelector("#user-pagination");
+    if (!container) return;
+    if (this.pagination.totalPages <= 1) return container.innerHTML = "";
 
-    const { page, totalPages } = this.pagination;
+    const { page, totalPages, limit, total } = this.pagination;
     const maxVisible = 5;
-    let startPage = Math.max(1, page - Math.floor(maxVisible / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    let start = Math.max(1, page - Math.floor(maxVisible / 2));
+    let end   = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
 
-    if (endPage - startPage + 1 < maxVisible) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
+    const btn = (p, label, disabled=false) =>
+      `<button class="btn btn-sm ${p===page?"btn-primary":"btn-outline"}"
+               ${disabled?"disabled":""} onclick="userManager.loadUsers(${p})">${label}</button>`;
 
-    let paginationHTML = `
-            <div class="pagination">
-                <button class="btn btn-sm btn-outline" ${page === 1 ? "disabled" : ""} 
-                        onclick="userManager.loadUsers(1)">
-                    <i class="fas fa-angle-double-left"></i>
-                </button>
-                <button class="btn btn-sm btn-outline" ${page === 1 ? "disabled" : ""} 
-                        onclick="userManager.loadUsers(${page - 1})">
-                    <i class="fas fa-angle-left"></i>
-                </button>
-        `;
+    let html = '<div class="pagination">';
+    html += btn(1,  '«', page===1);
+    html += btn(page-1,'‹', page===1);
 
-    for (let i = startPage; i <= endPage; i++) {
-      paginationHTML += `
-                <button class="btn btn-sm ${i === page ? "btn-primary" : "btn-outline"}" 
-                        onclick="userManager.loadUsers(${i})">
-                    ${i}
-                </button>
-            `;
-    }
+    for (let i=start;i<=end;i++) html += btn(i,i);
 
-    paginationHTML += `
-                <button class="btn btn-sm btn-outline" ${page === totalPages ? "disabled" : ""} 
-                        onclick="userManager.loadUsers(${page + 1})">
-                    <i class="fas fa-angle-right"></i>
-                </button>
-                <button class="btn btn-sm btn-outline" ${page === totalPages ? "disabled" : ""} 
-                        onclick="userManager.loadUsers(${totalPages})">
-                    <i class="fas fa-angle-double-right"></i>
-                </button>
-            </div>
-            <div class="pagination-info">
-                Showing ${(page - 1) * this.pagination.limit + 1} to ${Math.min(page * this.pagination.limit, this.pagination.total)} of ${this.pagination.total} users
-            </div>
-        `;
+    html += btn(page+1,'›', page===totalPages);
+    html += btn(totalPages,'»', page===totalPages);
+    html += '</div>';
 
-    paginationContainer.innerHTML = paginationHTML;
+    html += `<div class="pagination-info">
+               Showing ${(page-1)*limit + 1}–${Math.min(page*limit, total)} of ${total}
+             </div>`;
+    container.innerHTML = html;
   }
 
-  attachEvents() {
-    // Add user button
-    const addBtn = this.section.querySelector("#add-user-btn");
-    if (addBtn) {
-      addBtn.addEventListener("click", () => this.openAddUserModal());
-    }
+  /* --------------------- UI helpers / notifications -------------------- */
+  _showLoadingState() {
+    if (this.tbody)
+      this.tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem">
+        <i class="fas fa-spinner fa-spin fa-2x"></i> Loading…
+      </td></tr>`;
+  }
+  _hideLoadingState() { /* rows will overwrite */ }
 
-    // Refresh button
-    const refreshBtn = this.section.querySelector("#refresh-users-btn");
-    if (refreshBtn) {
-      refreshBtn.addEventListener("click", () => this.refresh());
-    }
+  _notify(msg, type="info", dur=4000) {
+    /* simple toast — you can replace with your own system */
+    const notif = document.createElement("div");
+    notif.className = `notification notification-${type}`;
+    notif.innerHTML = `
+      <div class="notification-content">
+        <span>${msg}</span>
+        <button class="notification-close"
+                onclick="this.parentElement.parentElement.remove()">&times;</button>
+      </div>`;
+    document.body.appendChild(notif);
+    setTimeout(()=>notif.remove(), dur);
+  }
 
-    // Export button
-    const exportBtn = this.section.querySelector("#export-users-btn");
-    if (exportBtn) {
-      exportBtn.addEventListener("click", () => this.exportUsers());
-    }
+  /* ---------------------------- Event wiring --------------------------- */
+  _attachEvents() {
+    /* Add / Refresh / Export */
+    this.section.querySelector("#add-user-btn")    ?.addEventListener("click", () => this.openAddUserModal());
+    this.section.querySelector("#refresh-users-btn")?.addEventListener("click", () => this.loadUsers(this.pagination.page));
+    this.section.querySelector("#export-users-btn") ?.addEventListener("click", () => this.exportUsers());
 
-    // Filter controls
-    const searchInput = this.section.querySelector("#user-search");
-    const statusFilter = this.section.querySelector("#status-filter");
-    const roleFilter = this.section.querySelector("#role-filter");
-    const applyFiltersBtn = this.section.querySelector("#apply-filters-btn");
-    const resetFiltersBtn = this.section.querySelector("#reset-filters-btn");
+    /* Filters */
+    const search  = this.section.querySelector("#user-search");
+    const status  = this.section.querySelector("#status-filter");
+    const roleSel = this.section.querySelector("#role-filter");
 
-    if (applyFiltersBtn) {
-      applyFiltersBtn.addEventListener("click", () => {
-        this.filters.search = searchInput?.value || "";
-        this.filters.status = statusFilter?.value || "";
-        this.filters.role = roleFilter?.value || "";
-        this.loadUsers(1);
-      });
-    }
-
-    if (resetFiltersBtn) {
-      resetFiltersBtn.addEventListener("click", () => {
-        this.filters = { status: "", role: "", search: "" };
-        if (searchInput) searchInput.value = "";
-        if (statusFilter) statusFilter.value = "";
-        if (roleFilter) roleFilter.value = "";
-        this.loadUsers(1);
-      });
-    }
-
-    // Search on Enter key
-    if (searchInput) {
-      searchInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          this.filters.search = e.target.value;
-          this.loadUsers(1);
-        }
-      });
-    }
-
-    // Row action buttons
-    this.section.addEventListener("click", (e) => {
-      const userId = e.target.closest("tr")?.dataset.userId;
-      if (!userId) return;
-
-      if (e.target.closest(".delete-user-btn")) {
-        this.deleteUser(userId);
-      } else if (e.target.closest(".edit-user-btn")) {
-        this.editUser(userId);
-      } else if (e.target.closest(".view-user-btn")) {
-        this.viewUser(userId);
-      }
+    this.section.querySelector("#apply-filters-btn")?.addEventListener("click", () => {
+      this.filters = { search: search.value, status: status.value, role: roleSel.value };
+      this.loadUsers(1);
+    });
+    this.section.querySelector("#reset-filters-btn")?.addEventListener("click", () => {
+      this.filters = { search: "", status: "", role: "" };
+      search.value = status.value = roleSel.value = "";
+      this.loadUsers(1);
     });
 
-    // Select all checkbox
-    const selectAllCheckbox = this.section.querySelector("#select-all-users");
-    if (selectAllCheckbox) {
-      selectAllCheckbox.addEventListener("change", (e) => {
-        const checkboxes = this.section.querySelectorAll(".user-checkbox");
-        checkboxes.forEach((cb) => (cb.checked = e.target.checked));
-      });
-    }
+    /* Debounced live search */
+    search?.addEventListener("input", e => {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => {
+        this.filters.search = e.target.value;
+        this.loadUsers(1);
+      }, 300);
+    });
+
+    /* Row-level actions */
+    this.section.addEventListener("click", e => {
+      const row   = e.target.closest("tr[data-user-id]");
+      if (!row) return;
+      const id = row.dataset.userId;
+
+      if (e.target.closest(".delete-user-btn"))   this.deleteUser(id);
+      if (e.target.closest(".edit-user-btn"))     this.openEditUserModal(this.users.find(u=>u.id===id));
+      if (e.target.closest(".view-user-btn"))     this.openUserDetailsModal(this.users.find(u=>u.id===id));
+    });
+
+    /* Select-all checkbox */
+    this.section.querySelector("#select-all-users")?.addEventListener("change", e => {
+      this.section.querySelectorAll(".user-checkbox").forEach(cb => cb.checked = e.target.checked);
+    });
   }
 
-  async addUser(userData) {
-    try {
-      const response = await this.apiRequest("/api/auth/local/register", {
-        method: "POST",
-        body: JSON.stringify(userData),
-      });
+  /* ------------------------- Date formatting --------------------------- */
+  _formatDate(d)     { return d ? new Date(d).toLocaleDateString()  : "N/A"; }
+  _formatDateTime(d) { return d ? new Date(d).toLocaleString()      : "Never"; }
 
-      this.showNotification("User created successfully!", "success");
-      await this.loadUsers(this.pagination.page);
-      return response;
-    } catch (error) {
-      console.error("Failed to create user:", error);
-      throw error;
-    }
-  }
+  /* ---------------------- Modal wrappers (delegates) ------------------- */
+  openAddUserModal()     { window.adminModalManager?.openAddUserModal?.(); }
+  openEditUserModal(u)   { window.adminModalManager?.openEditUserModal?.(u); }
+  openUserDetailsModal(u){ window.adminModalManager?.openUserDetailsModal?.(u); }
 
-  async editUser(userId) {
-    const user = this.users.find((u) => u.id === userId);
-    if (!user) {
-      this.showNotification("User not found", "error");
-      return;
-    }
-
-    // Open edit modal with user data
-    this.openEditUserModal(user);
-  }
-
-  async updateUser(userId, userData) {
-    try {
-      const response = await this.apiRequest(`/api/admin/users/${userId}`, {
-        method: "PUT",
-        body: JSON.stringify(userData),
-      });
-
-      this.showNotification("User updated successfully!", "success");
-      await this.loadUsers(this.pagination.page);
-      return response;
-    } catch (error) {
-      console.error("Failed to update user:", error);
-      throw error;
-    }
-  }
-
-  async deleteUser(userId) {
-    const user = this.users.find((u) => u.id === userId);
-    if (!user) {
-      this.showNotification("User not found", "error");
-      return;
-    }
-
-    if (
-      !confirm(
-        `Are you sure you want to delete user "${user.full_name}" (${user.email})?\n\nThis action cannot be undone.`,
-      )
-    ) {
-      return;
-    }
-
-    try {
-      await this.apiRequest(`/api/admin/users/${userId}`, {
-        method: "DELETE",
-      });
-
-      this.showNotification("User deleted successfully", "success");
-      await this.loadUsers(this.pagination.page);
-    } catch (error) {
-      console.error("Failed to delete user:", error);
-    }
-  }
-
-  viewUser(userId) {
-    const user = this.users.find((u) => u.id === userId);
-    if (!user) {
-      this.showNotification("User not found", "error");
-      return;
-    }
-
-    // Open view modal with user details
-    this.openUserDetailsModal(user);
-  }
-
-  openAddUserModal() {
-    // Implementation depends on your modal system
-    if (window.adminModalManager && window.adminModalManager.openAddUserModal) {
-      window.adminModalManager.openAddUserModal();
-    } else {
-      console.log("Add user modal not implemented");
-    }
-  }
-
-  openEditUserModal(user) {
-    // Implementation depends on your modal system
-    if (
-      window.adminModalManager &&
-      window.adminModalManager.openEditUserModal
-    ) {
-      window.adminModalManager.openEditUserModal(user);
-    } else {
-      console.log("Edit user modal not implemented", user);
-    }
-  }
-
-  openUserDetailsModal(user) {
-    // Implementation depends on your modal system
-    if (
-      window.adminModalManager &&
-      window.adminModalManager.openUserDetailsModal
-    ) {
-      window.adminModalManager.openUserDetailsModal(user);
-    } else {
-      console.log("User details modal not implemented", user);
-    }
-  }
-
-  async refresh() {
-    await this.loadUsers(this.pagination.page);
-    this.render();
-    this.attachEvents();
-  }
-
+  /* ---------------------------- Export JSON ---------------------------- */
   async exportUsers() {
     try {
-      const response = await this.apiRequest("/api/admin/users/export");
-
-      // Create download link
-      const blob = new Blob([JSON.stringify(response, null, 2)], {
-        type: "application/json",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `users_export_${new Date().toISOString().split("T")[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      this.showNotification("Users exported successfully", "success");
-    } catch (error) {
-      console.error("Failed to export users:", error);
+      const data = await this._apiRequest("/api/admin/users/export");
+      this._downloadBlob(JSON.stringify(data, null, 2),
+        `users_export_${new Date().toISOString().split("T")[0]}.json`);
+      this._notify("Users exported", "success");
+    } catch (e) {
+      /* Offline mode: export the currently loaded list */
+      this._downloadBlob(JSON.stringify(this.users, null, 2),
+        `users_export_${new Date().toISOString().split("T")[0]}_mock.json`);
+      this._notify("Offline export", "info");
     }
   }
 
-  async refresh() {
-    await this.loadUsers(this.pagination.page);
-  }
-
-  formatDate(dateString) {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  }
-
-  formatDateTime(dateString) {
-    if (!dateString) return "Never";
-    return new Date(dateString).toLocaleString();
+  _downloadBlob(text, filename) {
+    const blob = new Blob([text], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement("a"), { href:url, download:filename });
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
 }
 
-// Global instance and initialization
-let userManager;
+/* ------------------------- Global singleton --------------------------- */
+const userManager = new UserManager(window.ApiClient);
+window.userManager = userManager;
 
-function initializeUserManager() {
-  if (!userManager) {
-    userManager = new UserManager();
-    userManager.init();
-    window.userManager = userManager;
-  }
-  return userManager;
-}
-
-// Auto-initialize when DOM is ready
+/* Auto-init when DOM is ready */
 if (document.readyState !== "loading") {
-  initializeUserManager();
+  userManager.init();
 } else {
-  document.addEventListener("DOMContentLoaded", initializeUserManager);
+  document.addEventListener("DOMContentLoaded", () => userManager.init());
 }
 
-// Export for module systems
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = { UserManager, initializeUserManager };
-}
+/* For ES-module / Node unit tests */
+export { UserManager };
+export default userManager;
