@@ -551,11 +551,12 @@ class BaseConnection(Connection):
 class QUICConnection(BaseConnection):
     """QUIC connection implementation"""
     
-    def __init__(self, protocol: EnhancedCSPQuicProtocol, 
+    def __init__(self, protocol: EnhancedCSPQuicProtocol,
                  transport: MultiProtocolTransport):
         super().__init__(transport)
         self.protocol = protocol
         self.stream: Optional[QUICStream] = None
+        self._recv_queue: asyncio.Queue[bytes] = asyncio.Queue()
         
         # Create primary stream
         self._create_stream()
@@ -579,17 +580,15 @@ class QUICConnection(BaseConnection):
         self.stats['messages_sent'] += 1
     
     async def receive(self) -> bytes:
-        """Receive data from QUIC"""
-        # This is handled by the stream's data_received callback
-        # For handshake, we'll need a different approach
-        # TODO: Implement proper async receive
-        raise NotImplementedError("Use message handler for QUIC")
+        """Receive data from QUIC."""
+        return await self._recv_queue.get()
     
     async def _handle_message(self, data: bytes):
         """Handle received message"""
         self.update_stats(received=len(data))
         self.stats['messages_received'] += 1
-        
+
+        await self._recv_queue.put(data)
         if self.message_handler:
             await self.message_handler(data)
     
