@@ -9,10 +9,13 @@ import logging
 import hashlib
 import json
 from typing import Optional, List, Dict, Any, Tuple
+
+logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta
 
 try:
     from libp2p import new_node
+    from libp2p.crypto.ed25519 import create_new_key_pair
     from libp2p.kademlia import KademliaServer
     from libp2p.peer.id import ID as PeerID
     from libp2p.peer.peerinfo import PeerInfo as LibP2PPeerInfo
@@ -24,9 +27,6 @@ except ImportError:
 
 from ..core.types import NodeID, PeerInfo, DHT as DHTProtocol
 from ..core.node import NetworkNode
-
-
-logger = logging.getLogger(__name__)
 
 
 class KademliaDHT(DHTProtocol):
@@ -83,9 +83,9 @@ class KademliaDHT(DHTProtocol):
     async def _start_libp2p(self, listen_addr: str, port: int):
         """Start with actual libp2p implementation"""
         try:
-            # Create libp2p node
+            key_pair = create_new_key_pair()
             self.libp2p_node = await new_node(
-                key_pair=self.node.private_key,  # Use node's Ed25519 key
+                key_pair=key_pair,
                 swarm_opt=[f"/ip4/{listen_addr}/tcp/{port}"]
             )
             
@@ -121,9 +121,8 @@ class KademliaDHT(DHTProtocol):
     
     async def _handle_kademlia_stream(self, stream: INetStream):
         """Handle incoming Kademlia protocol stream"""
-        # This would handle the actual Kademlia protocol messages
-        # Implementation depends on libp2p stream handling
-        pass
+        if self.kademlia:
+            await self.kademlia.handle_new_peer(stream)
     
     async def bootstrap(self, nodes: List[Tuple[str, int]]):
         """Bootstrap the DHT with known nodes"""
