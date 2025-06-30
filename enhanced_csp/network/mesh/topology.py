@@ -11,7 +11,7 @@ from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import networkx as nx
-import numpy as np
+import math
 
 from ..core.types import (
     NodeID, PeerInfo, PeerType, MeshConfig, NetworkStats
@@ -97,7 +97,7 @@ class MeshTopologyManager:
         # Use sqrt(n) * log(n) for good connectivity with reasonable overhead
         estimated_size = self.config.max_peers
         return min(
-            int(np.sqrt(estimated_size) * np.log(estimated_size)),
+            int(math.sqrt(estimated_size) * math.log(estimated_size)),
             self.config.max_peers // 2
         )
     
@@ -292,7 +292,9 @@ class MeshTopologyManager:
                 )
         
         # Check if graph is still connected
-        if not nx.is_connected(self.graph):
+        loop = asyncio.get_event_loop()
+        connected = await loop.run_in_executor(None, nx.is_connected, self.graph)
+        if not connected:
             logger.warning("Mesh topology disconnected, attempting repair...")
             await self._repair_partitioned_topology()
     
@@ -343,11 +345,12 @@ class MeshTopologyManager:
         
         return None
     
-    async def optimize_topology(self):
+    async def optimize_topology(self, current_metrics: Optional[TopologyMetrics] = None):
         """Optimize mesh topology for better performance"""
         logger.info("Optimizing mesh topology...")
-        
-        current_metrics = self._calculate_metrics()
+
+        if current_metrics is None:
+            current_metrics = await self._calculate_metrics()
         
         # Different optimization strategies based on topology type
         if self.topology_type == TopologyType.DYNAMIC_ADAPTIVE:
@@ -358,7 +361,7 @@ class MeshTopologyManager:
             await self._optimize_scale_free(current_metrics)
         
         # Update metrics
-        self.metrics = self._calculate_metrics()
+        self.metrics = await self._calculate_metrics()
         
         logger.info(f"Topology optimized - Avg path length: {self.metrics.avg_path_length:.2f}, "
                    f"Clustering: {self.metrics.clustering_coefficient:.3f}")
@@ -462,7 +465,7 @@ class MeshTopologyManager:
         for peer_id, _ in connection_scores[:to_remove]:
             await self._disconnect_peer(peer_id)
     
-    def _calculate_metrics(self) -> TopologyMetrics:
+    async def _calculate_metrics(self) -> TopologyMetrics:
         """Calculate topology metrics"""
         metrics = TopologyMetrics()
         
@@ -471,37 +474,40 @@ class MeshTopologyManager:
         
         try:
             # Basic metrics
-            if nx.is_connected(self.graph):
-                metrics.avg_path_length = nx.average_shortest_path_length(self.graph)
-                metrics.diameter = nx.diameter(self.graph)
-            
-            metrics.clustering_coefficient = nx.average_clustering(self.graph)
-            metrics.connectivity = nx.node_connectivity(self.graph)
+            loop = asyncio.get_event_loop()
+            connected = await loop.run_in_executor(None, nx.is_connected, self.graph)
+            if connected:
+                metrics.avg_path_length = await loop.run_in_executor(
+                    None, nx.average_shortest_path_length, self.graph
+                )
+                metrics.diameter = await loop.run_in_executor(None, nx.diameter, self.graph)
+
+            metrics.clustering_coefficient = await loop.run_in_executor(None, nx.average_clustering, self.graph)
+            metrics.connectivity = await loop.run_in_executor(None, nx.node_connectivity, self.graph)
             
             # Betweenness centrality
             centrality = nx.betweenness_centrality(self.graph)
-            metrics.betweenness_centrality = {
-                NodeID(k): v for k, v in centrality.items()
-            }
+            metrics.betweenness_centrality = centrality
             
             # Efficiency (how well connected the network is)
             metrics.efficiency = nx.global_efficiency(self.graph)
-            
+
             # Resilience score (resistance to node failures)
-            metrics.resilience_score = self._calculate_resilience()
+            metrics.resilience_score = await self._calculate_resilience()
             
         except Exception as e:
             logger.error(f"Error calculating metrics: {e}")
         
         return metrics
     
-    def _calculate_resilience(self) -> float:
+    async def _calculate_resilience(self) -> float:
         """Calculate network resilience to node failures"""
         if len(self.graph) < 10:
             return 1.0  # Small networks are considered fully resilient
         
         # Simulate random node failures
-        original_connectivity = nx.node_connectivity(self.graph)
+        loop = asyncio.get_event_loop()
+        original_connectivity = await loop.run_in_executor(None, nx.node_connectivity, self.graph)
         
         resilience_scores = []
         for _ in range(min(5, len(self.graph) // 10)):
@@ -511,8 +517,8 @@ class MeshTopologyManager:
             test_graph.remove_node(node_to_remove)
             
             # Check connectivity after failure
-            if nx.is_connected(test_graph):
-                remaining_connectivity = nx.node_connectivity(test_graph)
+            if await loop.run_in_executor(None, nx.is_connected, test_graph):
+                remaining_connectivity = await loop.run_in_executor(None, nx.node_connectivity, test_graph)
                 resilience_scores.append(remaining_connectivity / original_connectivity)
             else:
                 resilience_scores.append(0.0)
@@ -527,7 +533,7 @@ class MeshTopologyManager:
                 
                 # Check if optimization is needed
                 if time.time() - self.last_optimization > self.optimization_interval:
-                    await self.optimize_topology()
+                    await self.optimize_topology(self.metrics)
                     self.last_optimization = time.time()
                 
                 # Check topology health
@@ -558,7 +564,7 @@ class MeshTopologyManager:
         while True:
             try:
                 await asyncio.sleep(30)  # Every 30 seconds
-                self.metrics = self._calculate_metrics()
+                self.metrics = await self._calculate_metrics()
                 
                 # Log important metrics
                 if self.metrics.avg_path_length > 4.0:
@@ -594,7 +600,7 @@ class MeshTopologyManager:
         
         # Determine number of super-peers (sqrt of network size)
         network_size = len(self.graph)
-        target_super_peers = max(3, int(np.sqrt(network_size)))
+        target_super_peers = max(3, int(math.sqrt(network_size)))
         
         # Elect top candidates
         new_super_peers = set()

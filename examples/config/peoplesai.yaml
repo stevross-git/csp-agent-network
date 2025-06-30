@@ -1,0 +1,6 @@
+p2p:
+  bootstrap_nodes:
+    - /dnsaddr/boot1.peoplesainetwork.com
+    - /dnsaddr/boot2.peoplesainetwork.com
+  bootstrap_api_url: "https://api.peoplesainetwork.com/v1/bootstrap"
+  dns_seed_domain: "_bootstrap.peoplesainetwork.com"

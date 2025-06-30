@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Set, Any, Callable
 from datetime import datetime
 import json
 import os
+import time
 from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
@@ -39,6 +40,10 @@ class NetworkNode:
         self.routing_table: Dict[NodeID, RoutingEntry] = {}
         self.peers: Dict[NodeID, PeerInfo] = {}
         self.connections: Dict[NodeID, Connection] = {}
+
+        # Registered agents and channels
+        self.agents: Dict[str, Any] = {}
+        self.channels: Dict[str, Any] = {}
         
         # Statistics
         self.stats = NetworkStats()
@@ -72,16 +77,22 @@ class NetworkNode:
             private_key = ed25519.Ed25519PrivateKey.generate()
             
             # Save private key
-            with open(key_path, 'wb') as f:
-                f.write(private_key.private_bytes_raw())
+            key_bytes = private_key.private_bytes(
+                serialization.Encoding.Raw,
+                serialization.PrivateFormat.Raw,
+                serialization.NoEncryption()
+            )
+            with open(key_path, 'wb', opener=lambda p, f: os.open(p, f, 0o600)) as f:
+                f.write(key_bytes)
             
             logger.info(f"Generated new node identity, saved to {key_path}")
         
         self.private_key = private_key
         self.public_key = private_key.public_key()
         self.node_id = NodeID.from_public_key(self.public_key)
-        
-        logger.info(f"Node ID: {self.node_id.to_base58()}")
+
+        self.logger = logger.getChild(self.node_id.to_base58()[:8])
+        self.logger.info(f"Node ID: {self.node_id.to_base58()}")
     
     async def start(self):
         """Start the network node"""
@@ -136,6 +147,7 @@ class NetworkNode:
         
         if self._tasks:
             await asyncio.gather(*self._tasks, return_exceptions=True)
+        self._tasks.clear()
         
         # Close all connections
         for conn in list(self.connections.values()):
@@ -150,49 +162,33 @@ class NetworkNode:
     
     async def _init_transport(self):
         """Initialize transport layer (QUIC with TCP fallback)"""
-        # This will be implemented by the transport module
         logger.info("Initializing transport layer...")
-        # Placeholder for transport initialization
-        # self.transport = await create_transport(self.config, self.node_id)
+        raise NotImplementedError
     
     async def _init_dht(self):
         """Initialize Kademlia DHT"""
-        # This will be implemented by the DHT module
         logger.info("Initializing DHT...")
-        # Placeholder for DHT initialization
-        # self.dht = await create_dht(self.config, self.node_id)
+        raise NotImplementedError
     
     async def _start_discovery(self):
         """Start peer discovery (mDNS + bootstrap + DHT)"""
-        # This will be implemented by the discovery module
         logger.info("Starting peer discovery...")
-        
-        # Try mDNS discovery first (local network)
-        if self.config.p2p.enable_mdns:
-            await self._discover_mdns()
-        
-        # Connect to bootstrap nodes
-        for bootstrap in self.config.p2p.bootstrap_nodes:
-            await self._connect_to_peer(bootstrap)
-        
-        # Start DHT discovery
-        if self.config.p2p.enable_dht:
-            await self._discover_dht()
+        raise NotImplementedError
     
     async def _init_mesh(self):
         """Initialize mesh topology"""
-        # This will be implemented by the mesh module
         logger.info("Initializing mesh topology...")
+        raise NotImplementedError
     
     async def _init_dns(self):
         """Initialize DNS overlay"""
-        # This will be implemented by the DNS module
         logger.info("Initializing DNS overlay...")
+        raise NotImplementedError
     
     async def _init_routing(self):
         """Initialize adaptive routing"""
-        # This will be implemented by the routing module
         logger.info("Initializing adaptive routing...")
+        raise NotImplementedError
     
     def _start_background_tasks(self):
         """Start background maintenance tasks"""
@@ -209,10 +205,10 @@ class NetworkNode:
                 await asyncio.sleep(30)  # Run every 30 seconds
                 
                 # Remove stale peers
-                now = datetime.now()
+                now = time.monotonic()
                 stale_peers = [
                     peer_id for peer_id, peer in self.peers.items()
-                    if (now - peer.last_seen).total_seconds() > 300  # 5 minutes
+                    if now - peer.last_seen.timestamp() > 300
                 ]
                 
                 for peer_id in stale_peers:
@@ -300,9 +296,11 @@ class NetworkNode:
         if peer_id not in self.connections:
             logger.error(f"No connection to peer {peer_id.to_base58()}")
             return
-        
+
         try:
-            data = json.dumps(message).encode()
+            data = self._serialize_message(message)
+            if len(data) > self.config.max_message_size:
+                raise ValueError("message too large")
             await self.connections[peer_id].send(data)
             
             self.stats.messages_sent += 1
@@ -311,7 +309,7 @@ class NetworkNode:
         except Exception as e:
             logger.error(f"Failed to send message to {peer_id.to_base58()}: {e}")
     
-    async def broadcast_message(self, message: Dict[str, Any], 
+    async def broadcast_message(self, message: Dict[str, Any],
                               exclude_peers: Optional[Set[NodeID]] = None):
         """Broadcast a message to all connected peers"""
         exclude_peers = exclude_peers or set()
@@ -323,6 +321,41 @@ class NetworkNode:
         
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
+
+    def _serialize_message(self, message: Dict[str, Any]) -> bytes:
+        """Serialize message to bytes"""
+        return json.dumps(message).encode()
+
+    def _deserialize_message(self, data: bytes) -> Dict[str, Any]:
+        """Deserialize bytes back into a message."""
+        try:
+            return json.loads(data.decode())
+        except Exception:
+            return {}
+
+    def register_agent(self, agent_id: str, agent: Any) -> None:
+        """Register an agent for local dispatch."""
+        self.agents[agent_id] = agent
+
+    def register_channel(self, channel_id: str, channel: Any) -> None:
+        """Register a communication channel."""
+        self.channels[channel_id] = channel
+
+    async def handle_raw_message(self, data: bytes) -> None:
+        """Handle raw incoming data."""
+        message = self._deserialize_message(data)
+        await self._dispatch_message(message)
+
+    async def _dispatch_message(self, message: Dict[str, Any]) -> None:
+        recipient = message.get("recipient")
+        if recipient in self.agents:
+            agent = self.agents[recipient]
+            if hasattr(agent, "receive_csp_message"):
+                response = agent.receive_csp_message(message)
+                if isinstance(response, dict):
+                    await self._dispatch_message(response)
+        else:
+            await self.emit_event("message_received", message)
     
     def on_event(self, event_type: str, handler: Callable):
         """Register an event handler"""
@@ -358,14 +391,14 @@ class NetworkNode:
     async def _discover_mdns(self):
         """Discover peers using mDNS"""
         logger.info("Starting mDNS discovery...")
-        # To be implemented by discovery module
+        raise NotImplementedError
     
     async def _discover_dht(self):
         """Discover peers using DHT"""
         logger.info("Starting DHT discovery...")
-        # To be implemented by DHT module
+        raise NotImplementedError
     
     async def _connect_to_peer(self, address: str):
         """Connect to a peer"""
         logger.info(f"Connecting to peer: {address}")
-        # To be implemented by transport module
+        raise NotImplementedError

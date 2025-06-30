@@ -12,6 +12,9 @@ import random
 from typing import Optional, Tuple, Dict, List
 from dataclasses import dataclass
 from enum import Enum
+import secrets
+
+logger = logging.getLogger(__name__)
 
 try:
     import aiortc
@@ -22,9 +25,6 @@ except ImportError:
     logger.warning("aiortc not available, WebRTC-based NAT traversal disabled")
 
 from ..core.types import P2PConfig
-
-
-logger = logging.getLogger(__name__)
 
 
 class NATType(Enum):
@@ -142,7 +142,8 @@ class NATTraversal:
             sock.sendto(request, (host, port))
             
             # Receive response
-            data, addr = sock.recvfrom(1024)
+            loop = asyncio.get_event_loop()
+            data, addr = await loop.sock_recvfrom(sock, 1024)
             
             # Parse response
             response = self._parse_stun_response(data)
@@ -176,7 +177,7 @@ class NATTraversal:
         msg_length = 0
         
         # Transaction ID (12 bytes)
-        transaction_id = random.randbytes(12)
+        transaction_id = secrets.token_bytes(12)
         
         # Build message
         message = struct.pack(
@@ -260,7 +261,8 @@ class NATTraversal:
             sock2.sendto(request, (stun_host, stun_port))
             
             try:
-                data, _ = sock2.recvfrom(1024)
+                loop = asyncio.get_event_loop()
+                data, _ = await loop.sock_recvfrom(sock2, 1024)
                 response2 = self._parse_stun_response(data)
                 
                 # If external port changes with internal port, it's symmetric
@@ -482,7 +484,8 @@ class NATTraversal:
                 
                 # Try to receive
                 try:
-                    data, addr = sock.recvfrom(1024)
+                    loop = asyncio.get_event_loop()
+                    data, addr = await loop.sock_recvfrom(sock, 1024)
                     if data == punch_msg and addr[0] == target_ip:
                         logger.info(f"Hole punch successful with {target_ip}:{target_port}")
                         sock.close()

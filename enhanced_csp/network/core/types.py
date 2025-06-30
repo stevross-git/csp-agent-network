@@ -4,12 +4,13 @@ Core types and protocols for the Enhanced CSP Network Stack
 """
 
 from dataclasses import dataclass, field
-from typing import Protocol, Optional, Dict, List, Any, Tuple, Set
+from typing import Protocol, Optional, Dict, List, Any, Tuple, Set, runtime_checkable
 from enum import Enum, auto
 import asyncio
 from datetime import datetime
 import ipaddress
 from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives import serialization
 
 
 class NetworkProtocol(Enum):
@@ -36,7 +37,7 @@ class PeerType(Enum):
     RELAY = "relay"
 
 
-@dataclass
+@dataclass(frozen=True)
 class NodeID:
     """Self-certifying node identifier (multihash of Ed25519 public key)"""
     raw_id: bytes
@@ -47,7 +48,10 @@ class NodeID:
         """Create NodeID from public key using multihash format"""
         # Multihash: <hash-func><digest-size><digest>
         # Using identity hash (0x00) for now, can upgrade to SHA3-256 (0x16)
-        key_bytes = public_key.public_bytes_raw()
+        key_bytes = public_key.public_bytes(
+            serialization.Encoding.Raw,
+            serialization.PublicFormat.Raw,
+        )
         multihash = b'\x00' + len(key_bytes).to_bytes(1, 'big') + key_bytes
         return cls(raw_id=multihash, public_key=public_key)
     
@@ -60,7 +64,9 @@ class NodeID:
         while num > 0:
             num, remainder = divmod(num, 58)
             encoded = alphabet[remainder] + encoded
-        return encoded
+
+        n_pad = len(self.raw_id) - len(self.raw_id.lstrip(b"\x00"))
+        return "1" * n_pad + encoded
 
 
 @dataclass
@@ -79,15 +85,18 @@ class PeerInfo:
     @property
     def routing_cost(self) -> float:
         """Calculate routing cost metric"""
-        if not self.latency_ms or not self.bandwidth_mbps:
+        if self.latency_ms is None or self.bandwidth_mbps is None:
             return float('inf')
         
         # Cost = latency × (1/bandwidth) × loss_factor × security_weight
         loss_factor = 1.0 + self.packet_loss
         security_weight = 2.0 - self.security_score  # Lower score = higher cost
         
-        return (self.latency_ms * (1000.0 / self.bandwidth_mbps) * 
-                loss_factor * security_weight)
+        bandwidth = self.bandwidth_mbps if self.bandwidth_mbps > 0 else 1.0
+        return (
+            self.latency_ms * (1000.0 / bandwidth) *
+            loss_factor * security_weight
+        )
 
 
 @dataclass
@@ -105,6 +114,7 @@ class NetworkStats:
     uptime_seconds: float = 0.0
 
 
+@runtime_checkable
 class Transport(Protocol):
     """Transport layer protocol interface"""
     
@@ -121,6 +131,7 @@ class Transport(Protocol):
         ...
 
 
+@runtime_checkable
 class Connection(Protocol):
     """Network connection protocol"""
     
@@ -142,6 +153,7 @@ class Connection(Protocol):
         ...
 
 
+@runtime_checkable
 class DHT(Protocol):
     """Distributed Hash Table protocol"""
     
@@ -159,6 +171,14 @@ class DHT(Protocol):
     
     async def announce(self, key: bytes, port: int) -> None:
         """Announce availability of a resource"""
+        ...
+
+    async def find_providers(self, key: bytes, count: int = 10) -> List[Dict[str, Any]]:
+        """Find nodes providing a resource"""
+        ...
+
+    async def find_closest_peers(self, target: NodeID, k: int = 20) -> List[Dict[str, Any]]:
+        """Find k closest peers to target"""
         ...
 
 
@@ -193,10 +213,15 @@ class DNSRecord:
 @dataclass
 class P2PConfig:
     """P2P network configuration"""
+    listen_address: str = "0.0.0.0"
+    listen_port: int = 4001
+    enable_quic: bool = True
     bootstrap_nodes: List[str] = field(default_factory=list)
+    bootstrap_api_url: str = ""
+    dns_seed_domain: str = ""
     enable_mdns: bool = True
     enable_dht: bool = True
-    dht_protocol: str = "kadmelia"
+    dht_protocol: str = "kademlia"
     nat_traversal: bool = True
     stun_servers: List[str] = field(default_factory=lambda: [
         "stun:stun.l.google.com:19302",
@@ -220,6 +245,7 @@ class MeshConfig:
     routing_protocol: str = "batman_inspired"
     routing_update_interval: int = 10  # seconds
     max_hops: int = 10
+    max_peers: int = 50
 
 
 @dataclass
