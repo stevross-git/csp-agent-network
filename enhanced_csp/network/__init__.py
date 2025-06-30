@@ -348,4 +348,8 @@ if __name__ == "__main__":
                 
                 # Print stats
                 info = network.get_network_info()
-                print(f"Peers: {info.get('peers', 0)}, Routes
+                print(f"Peers: {info.get('peers', 0)}, Routes   : {info.get('routes', 0)}")
+        except KeyboardInterrupt:
+            print("Stopping network...")
+            await network.stop()
+            print("Network stopped successfully.")
