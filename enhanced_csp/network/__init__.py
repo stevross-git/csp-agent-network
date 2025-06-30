@@ -20,6 +20,7 @@ from pathlib import Path
 
 from .core.types import NetworkConfig, NodeID
 from .core.node import NetworkNode
+from enhanced_csp.config import settings
 
 # Heavy modules are loaded lazily inside EnhancedCSPNetwork.start()
 
@@ -33,6 +34,11 @@ class EnhancedCSPNetwork:
     def __init__(self, config: Optional[NetworkConfig] = None):
         """Initialize network stack with configuration"""
         self.config = config or NetworkConfig()
+
+        if not self.config.p2p.bootstrap_api_url:
+            self.config.p2p.bootstrap_api_url = settings.peoplesai_boot_api
+        if not self.config.p2p.dns_seed_domain:
+            self.config.p2p.dns_seed_domain = settings.peoplesai_boot_dns
         
         # Core components
         self.node: Optional[NetworkNode] = None
@@ -331,32 +337,3 @@ async def create_network(config: Optional[NetworkConfig] = None) -> EnhancedCSPN
     await network.start()
     return network
 
-
-# Example usage
-if __name__ == "__main__":
-    async def main():
-        # Create configuration
-        config = NetworkConfig(
-            p2p=P2PConfig(
-                bootstrap_nodes=[
-                    "/ip4/192.168.1.100/tcp/4001/p2p/QmBootstrap1",
-                    "/ip4/192.168.1.101/tcp/4001/p2p/QmBootstrap2"
-                ]
-            )
-        )
-        
-        # Create and start network
-        network = await create_network(config)
-        
-        try:
-            # Keep running
-            while True:
-                await asyncio.sleep(60)
-                
-                # Print stats
-                info = network.get_network_info()
-                print(f"Peers: {info.get('peers', 0)}, Routes   : {info.get('routes', 0)}")
-        except KeyboardInterrupt:
-            print("Stopping network...")
-            await network.stop()
-            print("Network stopped successfully.")

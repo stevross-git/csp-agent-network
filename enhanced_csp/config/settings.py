@@ -10,6 +10,9 @@ class CSPSettings(BaseSettings):
     vector_store_backend: str = "inmemory"  # or "chroma"
     log_store_limit: int = 100
 
+    peoplesai_boot_api: str = "https://api.peoplesainetwork.com/v1/bootstrap"
+    peoplesai_boot_dns: str = "_bootstrap.peoplesainetwork.com"
+
 
 settings = CSPSettings()
 
