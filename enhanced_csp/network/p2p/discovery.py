@@ -15,6 +15,8 @@ from typing import Dict, List, Optional, Set, Callable
 from datetime import datetime
 import ipaddress
 
+logger = logging.getLogger(__name__)
+
 # For mDNS we'll use zeroconf
 try:
     from zeroconf import ServiceBrowser, ServiceInfo, Zeroconf
@@ -39,6 +41,7 @@ class HybridDiscovery:
         self.node = node
         self.config = config
         self.discovered_peers: Set[str] = set()
+        self._lock = asyncio.Lock()
         
         # mDNS components
         self.zeroconf: Optional[Zeroconf] = None
@@ -291,9 +294,10 @@ class HybridDiscovery:
                 peers = await self.node.dht.find_closest_peers(target, k=3)
                 
                 for peer in peers:
-                    if peer['node_id'] not in self.discovered_peers:
-                        self.discovered_peers.add(peer['node_id'])
-                        discovered.append(peer)
+                    async with self._lock:
+                        if peer['node_id'] not in self.discovered_peers:
+                            self.discovered_peers.add(peer['node_id'])
+                            discovered.append(peer)
                 
                 if len(discovered) >= count:
                     break

@@ -8,6 +8,14 @@ import asyncio
 import logging
 import ssl
 import time
+import datetime
+import ipaddress
+import tempfile
+import random
+import os
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
 from typing import Optional, Dict, List, Callable, Any, Tuple
 from dataclasses import dataclass
 from enum import Enum
@@ -33,9 +41,6 @@ from ..core.types import (
     Transport, Connection, NodeID, PeerInfo, NetworkProtocol
 )
 from ..core.node import NetworkNode
-
-
-logger = logging.getLogger(__name__)
 
 
 class TransportState(Enum):
@@ -83,6 +88,8 @@ class MultiProtocolTransport(Transport):
         self._tls_cert = None
         self._tls_key = None
         self._tls_context = None
+        self._cert_tempfile = None
+        self._key_tempfile = None
         
         # Initialize TLS
         self._init_tls()
@@ -134,11 +141,17 @@ class MultiProtocolTransport(Transport):
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption()
         )
-        
-        self._tls_context.load_cert_chain(
-            cert_pem.decode(), 
-            key_pem.decode()
-        )
+
+        cert_tmp = tempfile.NamedTemporaryFile(delete=False)
+        key_tmp = tempfile.NamedTemporaryFile(delete=False)
+        cert_tmp.write(cert_pem)
+        key_tmp.write(key_pem)
+        cert_tmp.close()
+        key_tmp.close()
+        self._cert_tempfile = cert_tmp.name
+        self._key_tempfile = key_tmp.name
+
+        self._tls_context.load_cert_chain(self._cert_tempfile, self._key_tempfile)
     
     async def start(self):
         """Start transport listeners"""
@@ -168,7 +181,21 @@ class MultiProtocolTransport(Transport):
         if self.tcp_server:
             self.tcp_server.close()
             await self.tcp_server.wait_closed()
-        
+
+        if self._cert_tempfile:
+            try:
+                os.unlink(self._cert_tempfile)
+            except OSError:
+                pass
+            self._cert_tempfile = None
+
+        if self._key_tempfile:
+            try:
+                os.unlink(self._key_tempfile)
+            except OSError:
+                pass
+            self._key_tempfile = None
+
         logger.info("Transport stopped")
     
     async def _start_quic_server(self):
@@ -182,8 +209,8 @@ class MultiProtocolTransport(Transport):
             
             # Load certificate
             configuration.load_cert_chain(
-                certfile=self._get_cert_path(),
-                keyfile=self._get_key_path()
+                certfile=self._cert_tempfile,
+                keyfile=self._key_tempfile
             )
             
             # Configure ALPN
@@ -472,7 +499,8 @@ class BaseConnection(Connection):
     async def handshake(self, expected_peer_id: Optional[str] = None) -> Optional[PeerInfo]:
         """Perform connection handshake"""
         try:
-            # Send our info
+            await asyncio.sleep(random.uniform(0, 0.2))
+
             handshake_msg = {
                 'type': 'handshake',
                 'node_id': self.transport.node.node_id.to_base58(),
@@ -480,10 +508,9 @@ class BaseConnection(Connection):
                 'capabilities': ['mesh', 'dns', 'routing', 'quantum'],
                 'timestamp': time.time()
             }
-            
+
             await self.send(json.dumps(handshake_msg).encode())
-            
-            # Receive peer info
+
             data = await asyncio.wait_for(self.receive(), timeout=5.0)
             peer_msg = json.loads(data.decode())
             
