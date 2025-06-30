@@ -163,32 +163,92 @@ class NetworkNode:
     async def _init_transport(self):
         """Initialize transport layer (QUIC with TCP fallback)"""
         logger.info("Initializing transport layer...")
-        raise NotImplementedError
+
+        from ..p2p.transport import MultiProtocolTransport
+
+        self.transport = MultiProtocolTransport(self)
+        await self.transport.start()
+
+        # Register connection handler so peers are tracked
+        async def on_conn(conn):
+            peer = conn.remote_peer
+            if peer:
+                self.peers[peer.node_id] = peer
+
+        self.transport.on_connection = on_conn
     
     async def _init_dht(self):
         """Initialize Kademlia DHT"""
         logger.info("Initializing DHT...")
-        raise NotImplementedError
+
+        from ..p2p.dht import KademliaDHT
+
+        self.dht = KademliaDHT(self)
+        await self.dht.start(
+            self.config.p2p.listen_address,
+            self.config.p2p.listen_port + 2,
+        )
+
+        # Bootstrap if nodes are configured
+        if self.config.p2p.bootstrap_nodes:
+            await self.dht.bootstrap([
+                (addr.split('/')[2], int(addr.split('/')[4]))
+                for addr in self.config.p2p.bootstrap_nodes
+            ])
     
     async def _start_discovery(self):
         """Start peer discovery (mDNS + bootstrap + DHT)"""
         logger.info("Starting peer discovery...")
-        raise NotImplementedError
+
+        from ..p2p.discovery import HybridDiscovery
+
+        self.discovery = HybridDiscovery(self, self.config.p2p)
+
+        async def on_peer(peer_info):
+            for addr in peer_info.get('addresses', []):
+                await self._connect_to_peer(addr)
+
+        self.discovery.on_peer_discovered = on_peer
+        await self.discovery.start()
     
     async def _init_mesh(self):
         """Initialize mesh topology"""
         logger.info("Initializing mesh topology...")
-        raise NotImplementedError
+
+        from ..mesh.topology import MeshTopologyManager
+
+        self.mesh = MeshTopologyManager(self, self.config.mesh)
+        await self.mesh.start()
     
     async def _init_dns(self):
         """Initialize DNS overlay"""
         logger.info("Initializing DNS overlay...")
-        raise NotImplementedError
+
+        from ..dns.overlay import DNSOverlay
+
+        self.dns = DNSOverlay(self, self.config.dns)
+        if self.dht:
+            await self.dns.start(self.dht)
     
     async def _init_routing(self):
         """Initialize adaptive routing"""
         logger.info("Initializing adaptive routing...")
-        raise NotImplementedError
+
+        from ..mesh.routing import BatmanRouting
+        from ..mesh.topology import MeshTopologyManager
+        from ..routing.adaptive import AdaptiveRoutingEngine
+
+        if not hasattr(self, 'mesh'):
+            self.mesh = MeshTopologyManager(self, self.config.mesh)
+            await self.mesh.start()
+
+        self.batman = BatmanRouting(self, self.mesh)
+        await self.batman.start()
+
+        self.routing_engine = AdaptiveRoutingEngine(
+            self, self.config.routing, self.batman
+        )
+        await self.routing_engine.start()
     
     def _start_background_tasks(self):
         """Start background maintenance tasks"""
@@ -391,14 +451,34 @@ class NetworkNode:
     async def _discover_mdns(self):
         """Discover peers using mDNS"""
         logger.info("Starting mDNS discovery...")
-        raise NotImplementedError
+
+        if hasattr(self, 'discovery') and self.discovery:
+            await self.discovery._start_mdns()
     
     async def _discover_dht(self):
         """Discover peers using DHT"""
         logger.info("Starting DHT discovery...")
-        raise NotImplementedError
+
+        if not hasattr(self, 'discovery') or not self.discovery:
+            return
+
+        peers = await self.discovery.find_peers_dht()
+        for peer in peers:
+            for addr in peer.get('addresses', []):
+                await self._connect_to_peer(addr)
     
     async def _connect_to_peer(self, address: str):
         """Connect to a peer"""
         logger.info(f"Connecting to peer: {address}")
-        raise NotImplementedError
+
+        if not self.transport:
+            logger.error("Transport not initialized")
+            return
+
+        conn = await self.transport.connect(address)
+        if not conn:
+            return
+
+        peer = conn.remote_peer
+        if peer:
+            self.peers[peer.node_id] = peer

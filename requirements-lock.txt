@@ -1,2 +1,4 @@
-py-multiaddr==0.3.1
+py-multiaddr==0.0.3
 pytest-asyncio==0.21.0
+cryptography==45.0.4
+pydantic-settings==2.10.1

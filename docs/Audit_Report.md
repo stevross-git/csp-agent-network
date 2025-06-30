@@ -57,3 +57,7 @@ production deployment.
 6. Provide end‑to‑end integration tests that exercise discovery, DNS lookups and
    message passing between multiple nodes.
 
+
+## Migration Status
+Detailed mapping of legacy modules to their new home can be found in [import_matrix.md](import_matrix.md). Outstanding tasks are tracked in [migration_todo.md](migration_todo.md).
+

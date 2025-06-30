@@ -47,3 +47,14 @@ docker compose -f deploy/docker/docker-compose.yaml up -d
 ```bash
 helm install enhanced-csp deploy/helm/enhanced-csp
 ```
+
+## STUN/TURN Configuration
+Before running a cluster you may specify external STUN/TURN servers so that
+peers behind NATs can reach each other:
+
+```bash
+export P2P_STUN_SERVERS="stun:stun.l.google.com:19302"
+export P2P_TURN_SERVERS="turn:turn.example.com:3478"
+```
+
+These environment variables are consumed by the Docker compose and Helm charts.
