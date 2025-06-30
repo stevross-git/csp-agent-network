@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  backend:
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override hosts for container networking
+      - DB_HOST=csp_postgres
+      - REDIS_HOST=csp_redis
+      - AI_MODELS_DB_HOST=csp_ai_models_db
+      - VECTOR_DB_HOST=csp_postgres_vector
+      - CHROMA_HOST=csp_chroma
+      - QDRANT_HOST=csp_qdrant
+      - WEAVIATE_HOST=csp_weaviate
+      - PROMETHEUS_GATEWAY_URL=http://csp_prometheus:9091
+
+  frontend:
+    env_file:
+      - ./frontend/.env
+    environment:
+      # Override for container networking
+      - REACT_APP_API_URL=http://backend:8000
+      - REACT_APP_WS_URL=ws://backend:8000
