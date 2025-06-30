@@ -217,6 +217,8 @@ class P2PConfig:
     listen_port: int = 4001
     enable_quic: bool = True
     bootstrap_nodes: List[str] = field(default_factory=list)
+    bootstrap_api_url: str = ""
+    dns_seed_domain: str = ""
     enable_mdns: bool = True
     enable_dht: bool = True
     dht_protocol: str = "kademlia"

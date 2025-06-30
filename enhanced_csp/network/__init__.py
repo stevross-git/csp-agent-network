@@ -20,14 +20,8 @@ from pathlib import Path
 
 from .core.types import NetworkConfig, NodeID
 from .core.node import NetworkNode
-from .p2p.discovery import HybridDiscovery, PeerExchange
-from .p2p.dht import KademliaDHT
-from .p2p.nat import NATTraversal
-from .p2p.transport import MultiProtocolTransport
-from .mesh.topology import MeshTopologyManager
-from .mesh.routing import BatmanRouting
-from .dns.overlay import DNSOverlay
-from .routing.adaptive import AdaptiveRoutingEngine
+
+# Heavy modules are loaded lazily inside EnhancedCSPNetwork.start()
 
 
 logger = logging.getLogger(__name__)
@@ -66,6 +60,16 @@ class EnhancedCSPNetwork:
         logger.info("Starting Enhanced CSP Network Stack...")
         
         try:
+            # Import heavy modules lazily
+            from .p2p.transport import MultiProtocolTransport
+            from .p2p.nat import NATTraversal
+            from .p2p.dht import KademliaDHT
+            from .p2p.discovery import HybridDiscovery, PeerExchange
+            from .mesh.topology import MeshTopologyManager
+            from .mesh.routing import BatmanRouting
+            from .dns.overlay import DNSOverlay
+            from .routing.adaptive import AdaptiveRoutingEngine
+
             # Initialize node
             self.node = NetworkNode(self.config)
             await self.node.start()
@@ -194,7 +198,10 @@ class EnhancedCSPNetwork:
             # Add peer to topology
             if connection.remote_peer:
                 await self.topology.add_peer(connection.remote_peer)
-                
+
+            # Route incoming messages to the node
+            connection.message_handler = self.node.handle_raw_message
+
         except Exception as e:
             logger.error(f"Error handling new connection: {e}")
     

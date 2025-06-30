@@ -40,6 +40,10 @@ class NetworkNode:
         self.routing_table: Dict[NodeID, RoutingEntry] = {}
         self.peers: Dict[NodeID, PeerInfo] = {}
         self.connections: Dict[NodeID, Connection] = {}
+
+        # Registered agents and channels
+        self.agents: Dict[str, Any] = {}
+        self.channels: Dict[str, Any] = {}
         
         # Statistics
         self.stats = NetworkStats()
@@ -321,6 +325,37 @@ class NetworkNode:
     def _serialize_message(self, message: Dict[str, Any]) -> bytes:
         """Serialize message to bytes"""
         return json.dumps(message).encode()
+
+    def _deserialize_message(self, data: bytes) -> Dict[str, Any]:
+        """Deserialize bytes back into a message."""
+        try:
+            return json.loads(data.decode())
+        except Exception:
+            return {}
+
+    def register_agent(self, agent_id: str, agent: Any) -> None:
+        """Register an agent for local dispatch."""
+        self.agents[agent_id] = agent
+
+    def register_channel(self, channel_id: str, channel: Any) -> None:
+        """Register a communication channel."""
+        self.channels[channel_id] = channel
+
+    async def handle_raw_message(self, data: bytes) -> None:
+        """Handle raw incoming data."""
+        message = self._deserialize_message(data)
+        await self._dispatch_message(message)
+
+    async def _dispatch_message(self, message: Dict[str, Any]) -> None:
+        recipient = message.get("recipient")
+        if recipient in self.agents:
+            agent = self.agents[recipient]
+            if hasattr(agent, "receive_csp_message"):
+                response = agent.receive_csp_message(message)
+                if isinstance(response, dict):
+                    await self._dispatch_message(response)
+        else:
+            await self.emit_event("message_received", message)
     
     def on_event(self, event_type: str, handler: Callable):
         """Register an event handler"""
