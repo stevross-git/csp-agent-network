@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  node:
+    image: enhanced-csp/node:latest
+    ports:
+      - "4001:4001"
+    environment:
+      - P2P_STUN_SERVERS=stun:stun.l.google.com:19302

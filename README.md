@@ -26,3 +26,24 @@ channel.participants[agent.agent_id] = agent
 ```
 python examples/quick_demo.py --config examples/config/peoplesai.yaml
 ```
+
+## Running Tests
+
+Install requirements and run pytest:
+
+```bash
+pip install -r requirements-lock.txt
+pytest -vv
+```
+
+## Deploying with Docker Compose
+
+```bash
+docker compose -f deploy/docker/docker-compose.yaml up -d
+```
+
+## Helm Installation
+
+```bash
+helm install enhanced-csp deploy/helm/enhanced-csp
+```

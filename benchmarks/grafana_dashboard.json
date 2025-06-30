@@ -1,0 +1,11 @@
+{
+  "title": "Enhanced CSP Benchmarks",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Latency",
+      "targets": [],
+      "datasource": "Prometheus"
+    }
+  ]
+}
