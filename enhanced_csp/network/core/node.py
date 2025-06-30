@@ -14,6 +14,7 @@ from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
+from ...security.key_storage import SecureKeyManager
 from cryptography.hazmat.backends import default_backend
 
 from .types import (
@@ -63,29 +64,25 @@ class NetworkNode:
     
     def _load_or_generate_identity(self):
         """Load existing node identity or generate new one"""
-        key_path = self.config.node_key_path or self.data_dir / "node.key"
-        
-        if os.path.exists(key_path):
-            # Load existing key
-            with open(key_path, 'rb') as f:
-                private_key = ed25519.Ed25519PrivateKey.from_private_bytes(
-                    f.read()[:32]  # Ed25519 keys are 32 bytes
-                )
-            logger.info(f"Loaded node identity from {key_path}")
+        key_id = self.config.node_key_path or "default"
+        manager = SecureKeyManager()
+        stored = manager.load_node_key(key_id)
+
+        if stored and not manager.should_rotate(key_id):
+            private_key = ed25519.Ed25519PrivateKey.from_private_bytes(stored)
+            logger.info("Loaded node identity from secure storage")
         else:
-            # Generate new key
             private_key = ed25519.Ed25519PrivateKey.generate()
-            
-            # Save private key
             key_bytes = private_key.private_bytes(
                 serialization.Encoding.Raw,
                 serialization.PrivateFormat.Raw,
                 serialization.NoEncryption()
             )
-            with open(key_path, 'wb', opener=lambda p, f: os.open(p, f, 0o600)) as f:
-                f.write(key_bytes)
-            
-            logger.info(f"Generated new node identity, saved to {key_path}")
+            manager.store_node_key(key_id, key_bytes)
+            if stored:
+                logger.info("Rotated node identity and stored securely")
+            else:
+                logger.info("Generated new node identity and stored securely")
         
         self.private_key = private_key
         self.public_key = private_key.public_key()

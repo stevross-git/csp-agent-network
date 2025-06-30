@@ -419,3 +419,36 @@ class MockKademliaServer:
     def stop(self):
         """Mock stop"""
         pass
+
+
+class SecureDHT(KademliaDHT):
+    """DHT with basic security hardening"""
+
+    def __init__(self, node: NetworkNode):
+        super().__init__(node)
+        from ..utils.ratelimiter import RateLimiter
+        self.routing_limiter = RateLimiter(20, 3600)
+        self.difficulty = 4
+
+    def verify_pow(self, nonce: str) -> bool:
+        digest = hashlib.sha256(nonce.encode()).hexdigest()
+        return digest.startswith("0" * self.difficulty)
+
+    async def update_routing_table(self, node_info: PeerInfo, source_peer: NodeID) -> None:
+        """Update routing table with validation and rate limiting"""
+        if not self.routing_limiter.allow():
+            raise RuntimeError("routing update rate exceeded")
+
+        # Very basic reputation check placeholder
+        if source_peer in self.routing_table and self.routing_table[source_peer].get('failures', 0) > 5:
+            raise RuntimeError("low reputation peer")
+
+        if not node_info.pow_nonce or not self.verify_pow(node_info.pow_nonce):
+            raise RuntimeError("invalid proof of work")
+
+        self.routing_table[source_peer] = {
+            'node_id': node_info.node_id,
+            'address': node_info.address,
+            'last_seen': datetime.now().isoformat(),
+            'pow': node_info.pow_nonce
+        }

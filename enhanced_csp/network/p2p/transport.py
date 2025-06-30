@@ -13,6 +13,7 @@ import ipaddress
 import tempfile
 import random
 import os
+import atexit
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ class MultiProtocolTransport(Transport):
         
         # Active connections
         self.connections: Dict[str, Connection] = {}
+        self._conn_lock = asyncio.Lock()
         
         # Listeners
         self.quic_server = None
@@ -90,9 +92,24 @@ class MultiProtocolTransport(Transport):
         self._tls_context = None
         self._cert_tempfile = None
         self._key_tempfile = None
-        
+
         # Initialize TLS
         self._init_tls()
+
+    def verify_node_certificate(self, cert: Optional[x509.Certificate], expected_node_id: str) -> bool:
+        """Verify peer certificate CN matches expected node ID"""
+        if cert is None:
+            logger.error("Missing peer certificate")
+            return False
+        try:
+            cn = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+        except Exception:
+            logger.error("Failed to parse peer certificate")
+            return False
+        if cn != expected_node_id:
+            logger.error(f"Node ID mismatch in certificate: {cn} != {expected_node_id}")
+            return False
+        return True
     
     def _init_tls(self):
         """Initialize TLS certificates and context"""
@@ -131,8 +148,8 @@ class MultiProtocolTransport(Transport):
         
         # Create SSL context
         self._tls_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        self._tls_context.check_hostname = False
-        self._tls_context.verify_mode = ssl.CERT_NONE  # We verify node IDs instead
+        self._tls_context.check_hostname = True
+        self._tls_context.verify_mode = ssl.CERT_REQUIRED
         
         # Load cert and key
         cert_pem = self._tls_cert.public_bytes(serialization.Encoding.PEM)
@@ -148,10 +165,13 @@ class MultiProtocolTransport(Transport):
         key_tmp.write(key_pem)
         cert_tmp.close()
         key_tmp.close()
+        os.chmod(cert_tmp.name, 0o600)
+        os.chmod(key_tmp.name, 0o600)
         self._cert_tempfile = cert_tmp.name
         self._key_tempfile = key_tmp.name
 
         self._tls_context.load_cert_chain(self._cert_tempfile, self._key_tempfile)
+        atexit.register(self._cleanup_tempfiles)
     
     async def start(self):
         """Start transport listeners"""
@@ -182,6 +202,11 @@ class MultiProtocolTransport(Transport):
             self.tcp_server.close()
             await self.tcp_server.wait_closed()
 
+        self._cleanup_tempfiles()
+
+        logger.info("Transport stopped")
+
+    def _cleanup_tempfiles(self) -> None:
         if self._cert_tempfile:
             try:
                 os.unlink(self._cert_tempfile)
@@ -195,8 +220,6 @@ class MultiProtocolTransport(Transport):
             except OSError:
                 pass
             self._key_tempfile = None
-
-        logger.info("Transport stopped")
     
     async def _start_quic_server(self):
         """Start QUIC server"""
@@ -206,6 +229,7 @@ class MultiProtocolTransport(Transport):
                 is_client=False,
                 max_datagram_size=65536,
             )
+            configuration.verify_mode = ssl.CERT_REQUIRED
             
             # Load certificate
             configuration.load_cert_chain(
@@ -227,7 +251,7 @@ class MultiProtocolTransport(Transport):
             logger.info(f"QUIC server listening on "
                        f"{self.config.p2p.listen_address}:{self.config.p2p.listen_port}")
             
-        except Exception as e:
+        except (OSError, ssl.SSLError) as e:
             logger.error(f"Failed to start QUIC server: {e}")
     
     async def _start_tcp_server(self):
@@ -243,7 +267,7 @@ class MultiProtocolTransport(Transport):
             logger.info(f"TCP server listening on "
                        f"{self.config.p2p.listen_address}:{self.config.p2p.listen_port + 1}")
             
-        except Exception as e:
+        except (OSError, ssl.SSLError) as e:
             logger.error(f"Failed to start TCP server: {e}")
     
     def _create_quic_protocol(self) -> QuicConnectionProtocol:
@@ -268,7 +292,8 @@ class MultiProtocolTransport(Transport):
             
             # Store connection
             conn_id = f"tcp:{peer_info.node_id.to_base58()}"
-            self.connections[conn_id] = conn
+            async with self._conn_lock:
+                self.connections[conn_id] = conn
             
             # Notify handler
             if self.on_connection:
@@ -277,7 +302,7 @@ class MultiProtocolTransport(Transport):
             # Start receiving
             await conn._receive_loop()
             
-        except Exception as e:
+        except (asyncio.IncompleteReadError, ssl.SSLError, OSError) as e:
             logger.error(f"TCP connection error: {e}")
         finally:
             writer.close()
@@ -304,7 +329,7 @@ class MultiProtocolTransport(Transport):
             logger.error(f"Failed to connect to {address}")
             return None
             
-        except Exception as e:
+        except (asyncio.TimeoutError, ssl.SSLError, OSError, ValueError) as e:
             logger.error(f"Connection error: {e}")
             self.stats.connections_failed += 1
             return None
@@ -315,7 +340,8 @@ class MultiProtocolTransport(Transport):
         try:
             configuration = QuicConfiguration(is_client=True)
             configuration.alpn_protocols = ["enhanced-csp/1.0"]
-            configuration.verify_mode = ssl.CERT_NONE  # We verify node IDs
+            configuration.verify_mode = ssl.CERT_REQUIRED
+            configuration.check_hostname = True
             
             async with connect(
                 host, port,
@@ -332,14 +358,15 @@ class MultiProtocolTransport(Transport):
                 
                 # Store connection
                 conn_id = f"quic:{peer_info.node_id.to_base58()}"
-                self.connections[conn_id] = conn
+                async with self._conn_lock:
+                    self.connections[conn_id] = conn
                 
                 self.stats.connections_established += 1
                 logger.info(f"QUIC connection established to {peer_id[:16]}...")
                 
                 return conn
                 
-        except Exception as e:
+        except (asyncio.TimeoutError, ssl.SSLError, OSError) as e:
             logger.error(f"QUIC connection failed: {e}")
             return None
     
@@ -367,7 +394,8 @@ class MultiProtocolTransport(Transport):
             
             # Store connection
             conn_id = f"tcp:{peer_info.node_id.to_base58()}"
-            self.connections[conn_id] = conn
+            async with self._conn_lock:
+                self.connections[conn_id] = conn
             
             self.stats.connections_established += 1
             logger.info(f"TCP connection established to {peer_id[:16]}...")
@@ -377,7 +405,7 @@ class MultiProtocolTransport(Transport):
             
             return conn
             
-        except Exception as e:
+        except (asyncio.TimeoutError, ssl.SSLError, OSError) as e:
             logger.error(f"TCP connection failed: {e}")
             return None
     
@@ -519,12 +547,19 @@ class BaseConnection(Connection):
                 return None
             
             peer_id = peer_msg.get('node_id')
-            
+
             # Verify peer ID if expected
             if expected_peer_id and peer_id != expected_peer_id:
-                logger.error(f"Peer ID mismatch: expected {expected_peer_id}, "
-                           f"got {peer_id}")
+                logger.error(
+                    f"Peer ID mismatch: expected {expected_peer_id}, got {peer_id}"
+                )
                 return None
+
+            # Verify peer certificate matches node ID
+            if self.transport.config.enable_tls:
+                cert = self.get_peer_certificate()
+                if not self.transport.verify_node_certificate(cert, peer_id):
+                    return None
             
             # Create peer info
             # TODO: Create proper PeerInfo from handshake
@@ -533,7 +568,7 @@ class BaseConnection(Connection):
             self.state = TransportState.CONNECTED
             return self.remote_peer
             
-        except Exception as e:
+        except (asyncio.TimeoutError, json.JSONDecodeError) as e:
             logger.error(f"Handshake failed: {e}")
             return None
     
@@ -560,7 +595,7 @@ class QUICConnection(BaseConnection):
         
         # Create primary stream
         self._create_stream()
-    
+
     def _create_stream(self):
         """Create a new QUIC stream"""
         stream_id = self.protocol._quic.get_next_available_stream_id()
@@ -569,6 +604,13 @@ class QUICConnection(BaseConnection):
         
         # Set message handler
         self.stream.message_handler = self._handle_message
+
+    def get_peer_certificate(self) -> Optional[x509.Certificate]:
+        """Return peer certificate from QUIC TLS session"""
+        try:
+            return self.protocol._quic.tls._peer_certificate
+        except AttributeError:
+            return None
     
     async def send(self, data: bytes) -> None:
         """Send data over QUIC"""
@@ -651,10 +693,23 @@ class TCPConnection(BaseConnection):
                     
         except asyncio.IncompleteReadError:
             logger.info("TCP connection closed by peer")
-        except Exception as e:
+        except (asyncio.TimeoutError, OSError) as e:
             logger.error(f"TCP receive error: {e}")
         finally:
             await self.close()
+
+    def get_peer_certificate(self) -> Optional[x509.Certificate]:
+        """Return peer certificate from TLS connection"""
+        ssl_obj = self.writer.get_extra_info('ssl_object')
+        if not ssl_obj:
+            return None
+        der = ssl_obj.getpeercert(binary_form=True)
+        if not der:
+            return None
+        try:
+            return x509.load_der_x509_certificate(der, default_backend())
+        except Exception:
+            return None
     
     async def close(self) -> None:
         """Close TCP connection"""

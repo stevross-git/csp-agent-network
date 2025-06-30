@@ -17,6 +17,7 @@ import struct
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.backends import default_backend
+import secrets
 
 from ..core.types import NodeID, DNSRecord, DNSConfig
 from ..core.node import NetworkNode
@@ -59,6 +60,12 @@ class DNSResponse:
 
 
 @dataclass
+class PendingQuery:
+    future: asyncio.Future
+    peers: List[NodeID]
+
+
+@dataclass
 class DNSZone:
     """DNS zone for authoritative records"""
     name: str  # e.g., "alice.web4ai"
@@ -70,6 +77,7 @@ class DNSZone:
     expire: int = 86400
     minimum: int = 300
     signatures: Dict[str, bytes] = field(default_factory=dict)
+    nsec3_salt: str = field(default_factory=lambda: secrets.token_hex(4))
 
 
 class DNSOverlay:
@@ -91,7 +99,7 @@ class DNSOverlay:
         self.cache_order: List[Tuple[str, DNSRecordType]] = []
         
         # Resolver state
-        self.pending_queries: Dict[int, asyncio.Future] = {}
+        self.pending_queries: Dict[int, "PendingQuery"] = {}
         self.query_id_counter = 0
         
         # DNSSEC keys
@@ -240,6 +248,7 @@ class DNSOverlay:
             'name': zone.name,
             'owner_key': self._encode_public_key(zone.owner_key),
             'serial': zone.serial,
+            'nsec3_salt': zone.nsec3_salt,
             'records': [
                 {
                     'name': r.name,
@@ -261,6 +270,7 @@ class DNSOverlay:
             record_key = self._get_record_key(record.name, record.record_type)
             await self.dht.put(record_key, json.dumps({
                 'zone': zone.name,
+                'salt': zone.nsec3_salt,
                 'record': {
                     'name': record.name,
                     'type': record.record_type,
@@ -276,7 +286,21 @@ class DNSOverlay:
     
     def _get_record_key(self, name: str, record_type: str) -> bytes:
         """Generate DHT key for record"""
-        return hashlib.sha256(f"dns:record:{name}:{record_type}".encode()).digest()
+        zone = None
+        if name in self.authoritative_zones:
+            zone = self.authoritative_zones[name]
+        else:
+            for zn, z in self.authoritative_zones.items():
+                if name.endswith(zn):
+                    zone = z
+                    break
+
+        if zone:
+            hashed = hashlib.sha1((name + zone.nsec3_salt).encode()).hexdigest()
+            key_base = f"dns:record:{hashed}:{record_type}:{zone.nsec3_salt}"
+        else:
+            key_base = f"dns:record:{name}:{record_type}"
+        return hashlib.sha256(key_base.encode()).digest()
     
     async def resolve(self, name: str, record_type: DNSRecordType,
                      timeout: float = 5.0) -> Optional[DNSResponse]:
@@ -335,7 +359,7 @@ class DNSOverlay:
             # Look up record in DHT
             record_key = self._get_record_key(name, record_type.value)
             data = await self.dht.get(record_key)
-            
+
             if data:
                 record_data = json.loads(data.decode())
                 record_info = record_data['record']
@@ -370,6 +394,37 @@ class DNSOverlay:
                     authoritative=False
                 )
             
+            else:
+                # Attempt lookup using zone NSEC3 salt
+                zone_key = self._get_zone_key(name)
+                zone_data = await self.dht.get(zone_key)
+                if zone_data:
+                    zone_info = json.loads(zone_data.decode())
+                    salt = zone_info.get('nsec3_salt')
+                    if salt:
+                        hashed = hashlib.sha1((name + salt).encode()).hexdigest()
+                        key_base = f"dns:record:{hashed}:{record_type.value}:{salt}"
+                        alt_key = hashlib.sha256(key_base.encode()).digest()
+                        data = await self.dht.get(alt_key)
+                        if data:
+                            record_data = json.loads(data.decode())
+                            record_info = record_data['record']
+                            record = DNSRecord(
+                                name=record_info['name'],
+                                record_type=record_info['type'],
+                                value=record_info['value'],
+                                ttl=record_info['ttl'],
+                                signature=bytes.fromhex(record_info['signature'])
+                                if record_info.get('signature') else None,
+                            )
+
+                            query = DNSQuery(name, record_type, 0)
+                            return DNSResponse(
+                                query=query,
+                                records=[record],
+                                authoritative=False,
+                            )
+
         except Exception as e:
             logger.error(f"DHT query failed for {name}: {e}")
         
@@ -390,7 +445,7 @@ class DNSOverlay:
         
         # Create future for response
         future = asyncio.Future()
-        self.pending_queries[query_id] = future
+        self.pending_queries[query_id] = PendingQuery(future, [])
         
         try:
             # Send query to neighbors
@@ -415,6 +470,7 @@ class DNSOverlay:
         """Send DNS query to neighbors"""
         message = {
             'type': 'dns_query',
+            'sender_id': self.node.node_id.to_base58(),
             'query': {
                 'name': query.name,
                 'type': query.record_type.value,
@@ -422,10 +478,15 @@ class DNSOverlay:
                 'flags': query.flags
             }
         }
-        
-        # Send to connected peers
-        # Could implement anycast or specific resolver selection
-        await self.node.broadcast_message(message)
+
+        peers = list(self.node.connections.keys())
+        for pid in peers:
+            await self.node.send_message(pid, message)
+
+        if query.query_id in self.pending_queries:
+            self.pending_queries[query.query_id].peers = peers
+        else:
+            self.pending_queries[query.query_id] = PendingQuery(asyncio.Future(), peers)
     
     async def handle_dns_query(self, data: Dict):
         """Handle incoming DNS query"""
@@ -455,6 +516,7 @@ class DNSOverlay:
         """Send DNS response"""
         message = {
             'type': 'dns_response',
+            'sender_id': self.node.node_id.to_base58(),
             'query_id': query.query_id,
             'response': {
                 'records': [
@@ -478,8 +540,9 @@ class DNSOverlay:
         """Handle incoming DNS response"""
         try:
             query_id = data['query_id']
-            
-            if query_id in self.pending_queries:
+            sender = data.get('sender_id')
+
+            if query_id in self.pending_queries and sender in self.pending_queries[query_id].peers:
                 response_data = data['response']
                 
                 # Parse records
@@ -505,7 +568,7 @@ class DNSOverlay:
                 )
                 
                 # Complete future
-                self.pending_queries[query_id].set_result(response)
+                self.pending_queries[query_id].future.set_result(response)
             
         except Exception as e:
             logger.error(f"Error handling DNS response: {e}")

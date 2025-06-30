@@ -81,6 +81,7 @@ class PeerInfo:
     security_score: float = 1.0
     last_seen: datetime = field(default_factory=datetime.now)
     capabilities: Set[str] = field(default_factory=set)
+    pow_nonce: Optional[str] = None
     
     @property
     def routing_cost(self) -> float:
@@ -228,6 +229,7 @@ class P2PConfig:
         "stun:global.stun.twilio.com:3478"
     ])
     turn_servers: List[Dict[str, str]] = field(default_factory=list)
+    stun_secret: str = ""
     max_peers: int = 50
     connection_timeout: int = 30
 

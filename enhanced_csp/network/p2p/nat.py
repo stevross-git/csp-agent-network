@@ -13,6 +13,9 @@ from typing import Optional, Tuple, Dict, List
 from dataclasses import dataclass
 from enum import Enum
 import secrets
+import hmac
+import hashlib
+from ..utils.ratelimiter import RateLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +76,8 @@ class NATTraversal:
         self.nat_info: Optional[NATInfo] = None
         self.stun_cache: Dict[str, STUNResponse] = {}
         self.active_hole_punches: Dict[str, asyncio.Task] = {}
+        from ..utils.ratelimiter import RateLimiter
+        self._stun_limiter = RateLimiter(10, 1.0)
         
         # UPnP client
         self.upnp_client = None
@@ -123,6 +128,8 @@ class NATTraversal:
     async def _query_stun(self, stun_url: str, local_port: int) -> STUNResponse:
         """Query STUN server for external address"""
         try:
+            if not self._stun_limiter.allow():
+                raise RuntimeError("STUN rate limit exceeded")
             # Parse STUN URL
             if stun_url.startswith("stun:"):
                 stun_url = stun_url[5:]
@@ -179,6 +186,28 @@ class NATTraversal:
         # Transaction ID (12 bytes)
         transaction_id = secrets.token_bytes(12)
         
+        attrs = b""
+
+        if self.config.stun_secret:
+            username = str(int(time.time())).encode()
+            mac = hmac.new(
+                self.config.stun_secret.encode(), username, hashlib.sha256
+            ).digest()
+
+            # USERNAME attribute (0x0006)
+            attrs += struct.pack("!HH", 0x0006, len(username)) + username
+            padding = (4 - (len(username) % 4)) % 4
+            if padding:
+                attrs += b"\x00" * padding
+
+            # HMAC-SHA256 attribute (custom 0x8001)
+            attrs += struct.pack("!HH", 0x8001, len(mac)) + mac
+            padding = (4 - (len(mac) % 4)) % 4
+            if padding:
+                attrs += b"\x00" * padding
+
+            msg_length = len(attrs)
+
         # Build message
         message = struct.pack(
             "!HHI12s",
@@ -186,8 +215,8 @@ class NATTraversal:
             msg_length,
             self.STUN_MAGIC_COOKIE,
             transaction_id
-        )
-        
+        ) + attrs
+
         return message
     
     def _parse_stun_response(self, data: bytes) -> Dict[str, any]:
