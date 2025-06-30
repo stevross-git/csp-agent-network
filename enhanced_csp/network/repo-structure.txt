@@ -1,0 +1,27 @@
+.
+├── core
+│   ├── node.py
+│   └── types.py
+├── dns
+│   └── overlay.py
+├── examples
+│   └── chat_application.py
+├── __init__.py
+├── main.py
+├── mesh
+│   ├── routing.py
+│   └── topology.py
+├── p2p
+│   ├── dht.py
+│   ├── discovery.py
+│   ├── nat.py
+│   └── transport.py
+├── repo-structure.txt
+├── routing
+│   ├── adaptive.py
+│   ├── metrics.py
+│   └── multipath.py
+└── tests
+    └── test_network_stack.py
+
+7 directories, 17 files

@@ -141,3 +141,10 @@ enhanced_csp/frontend/.env
 enhanced_csp/backend/config/__pycache__/settings.cpython-310.pyc
 enhanced_csp/backend/api/endpoints/__pycache__/infrastructure.cpython-310.pyc
 enhanced_csp/backend/api/endpoints/__pycache__/settings.cpython-310.pyc
+**/__pycache__/**
+enhanced_csp/__pycache__/quantum_csp_engine.cpython-310.pyc
+enhanced_csp/__pycache__/security_hardening.cpython-310.pyc
+enhanced_csp/agents/__pycache__/__init__.cpython-310.pyc
+enhanced_csp/agents/__pycache__/base.cpython-310.pyc
+enhanced_csp/agents/__pycache__/cleaner.cpython-310.pyc
+enhanced_csp/agents/__pycache__/planner.cpython-310.pyc
