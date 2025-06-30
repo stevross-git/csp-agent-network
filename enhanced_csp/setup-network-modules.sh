@@ -1,3 +1,658 @@
+#!/bin/bash
+
+# Script to create all necessary network module files
+# Run this from the enhanced_csp directory
+
+echo "Setting up Enhanced CSP Network modules..."
+
+# Create core module files
+cat > network/core/__init__.py << 'EOF'
+"""Core network components."""
+from .node import NetworkConfig, EnhancedCSPNetwork
+from .types import NodeID, NodeCapabilities, MessageType, PeerInfo
+
+__all__ = [
+    'NetworkConfig',
+    'EnhancedCSPNetwork',
+    'NodeID',
+    'NodeCapabilities',
+    'MessageType',
+    'PeerInfo'
+]
+EOF
+
+cat > network/core/config.py << 'EOF'
+"""Network configuration classes."""
+from dataclasses import dataclass, field
+from typing import List, Dict, Any, Optional
+from pathlib import Path
+
+
+@dataclass
+class SecurityConfig:
+    """Security configuration for the network."""
+    enable_tls: bool = True
+    enable_mtls: bool = False
+    enable_pq_crypto: bool = True
+    enable_zero_trust: bool = False
+    tls_cert_path: Optional[str] = None
+    tls_key_path: Optional[str] = None
+    ca_cert_path: Optional[str] = None
+    allowed_cipher_suites: List[str] = field(default_factory=lambda: ["TLS_AES_256_GCM_SHA384"])
+    min_tls_version: str = "1.3"
+    audit_log_path: Optional[Path] = None
+    rate_limit_requests: int = 100
+    rate_limit_window: int = 60
+    enable_threat_detection: bool = True
+    threat_detection_threshold: float = 0.8
+    enable_intrusion_prevention: bool = True
+    max_connection_rate: int = 50
+    enable_compliance_mode: bool = False
+    compliance_standards: List[str] = field(default_factory=list)
+    data_retention_days: int = 90
+    enable_data_encryption: bool = True
+    encryption_algorithm: str = "AES-256-GCM"
+    key_rotation_interval: int = 86400
+    tls_rotation_interval: int = 2592000
+    enable_ca_mode: bool = False
+    trust_anchors: List[str] = field(default_factory=list)
+
+
+@dataclass
+class NetworkConfig:
+    """Main network configuration."""
+    bootstrap_nodes: List[str] = field(default_factory=list)
+    listen_address: str = "0.0.0.0"
+    listen_port: int = 30300
+    stun_servers: List[str] = field(default_factory=list)
+    turn_servers: List[str] = field(default_factory=list)
+    is_super_peer: bool = False
+    enable_relay: bool = True
+    enable_nat_traversal: bool = True
+    enable_upnp: bool = True
+    max_peers: int = 100
+    peer_discovery_interval: int = 30
+    peer_cleanup_interval: int = 300
+    message_ttl: int = 64
+    max_message_size: int = 1048576
+    enable_compression: bool = True
+    enable_encryption: bool = True
+    node_capabilities: Dict[str, Any] = field(default_factory=dict)
+    network_id: str = "enhanced-csp"
+    protocol_version: str = "1.0.0"
+    enable_metrics: bool = True
+    metrics_interval: int = 60
+    enable_dht: bool = True
+    dht_bootstrap_nodes: List[str] = field(default_factory=list)
+    routing_algorithm: str = "batman-adv"
+    enable_qos: bool = True
+    bandwidth_limit: int = 0
+    enable_ipv6: bool = True
+    dns_seeds: List[str] = field(default_factory=list)
+    gossip_interval: int = 5
+    gossip_fanout: int = 6
+    enable_mdns: bool = True
+    security: SecurityConfig = field(default_factory=SecurityConfig)
+EOF
+
+# Update node.py to import from config
+cat > network/core/node.py << 'EOF'
+"""Enhanced CSP Network node implementation."""
+import asyncio
+import logging
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+import os
+
+from .config import NetworkConfig, SecurityConfig
+from .types import NodeID, PeerInfo
+from ..dns.overlay import DNSOverlay
+from ..p2p.transport import P2PTransport
+from ..mesh.topology import MeshTopology
+
+
+class EnhancedCSPNetwork:
+    """Main network node implementation."""
+    
+    def __init__(self, config: NetworkConfig):
+        self.config = config
+        self.node_id = NodeID.generate()
+        self.is_running = False
+        self.start_time = datetime.utcnow()
+        self.stats: Dict[str, Any] = {
+            "messages_sent": 0,
+            "messages_received": 0,
+            "bandwidth_in": 0,
+            "bandwidth_out": 0,
+            "bootstrap_requests": 0,
+        }
+        
+        # Initialize components
+        self.transport = P2PTransport(config)
+        self.topology = MeshTopology(self)
+        self.dns_overlay = DNSOverlay(self)
+        self.peers: List[PeerInfo] = []
+        
+        self.logger = logging.getLogger(f"enhanced_csp.node.{self.node_id}")
+        
+    async def start(self):
+        """Start the network node."""
+        self.logger.info(f"Starting Enhanced CSP Node {self.node_id}")
+        
+        # Start transport layer
+        await self.transport.start()
+        
+        # Start DNS overlay
+        await self.dns_overlay.start()
+        
+        # Start topology management
+        await self.topology.start()
+        
+        self.is_running = True
+        self.start_time = datetime.utcnow()
+        
+        # Bootstrap if not genesis
+        if self.config.bootstrap_nodes:
+            await self._bootstrap()
+            
+    async def stop(self):
+        """Stop the network node."""
+        self.logger.info("Stopping Enhanced CSP Node")
+        self.is_running = False
+        
+        await self.topology.stop()
+        await self.dns_overlay.stop()
+        await self.transport.stop()
+        
+    async def _bootstrap(self):
+        """Bootstrap the node by connecting to bootstrap nodes."""
+        for bootstrap in self.config.bootstrap_nodes:
+            try:
+                # Resolve DNS if needed
+                if bootstrap.endswith('.web4ai'):
+                    resolved = await self.dns_overlay.resolve(bootstrap)
+                    if resolved:
+                        bootstrap = resolved
+                        
+                # Connect to bootstrap node
+                await self.transport.connect(bootstrap)
+                self.stats["bootstrap_requests"] += 1
+            except Exception as e:
+                self.logger.warning(f"Failed to connect to bootstrap {bootstrap}: {e}")
+                
+    def get_peers(self) -> List[PeerInfo]:
+        """Get list of connected peers."""
+        return self.peers
+        
+    async def send_message(self, peer_id: str, message: Any):
+        """Send a message to a peer."""
+        await self.transport.send(peer_id, message)
+        self.stats["messages_sent"] += 1
+
+
+# Re-export config classes
+__all__ = ['NetworkConfig', 'SecurityConfig', 'EnhancedCSPNetwork']
+EOF
+
+cat > network/core/types.py << 'EOF'
+"""Core network types and data structures."""
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Optional, Dict, Any, List
+import uuid
+import hashlib
+
+
+class MessageType(Enum):
+    """Types of network messages."""
+    PING = "ping"
+    PONG = "pong"
+    DATA = "data"
+    DHT_QUERY = "dht_query"
+    DHT_RESPONSE = "dht_response"
+    DNS_QUERY = "dns_query"
+    DNS_RESPONSE = "dns_response"
+    BOOTSTRAP = "bootstrap"
+    PEER_ANNOUNCE = "peer_announce"
+    ROUTE_UPDATE = "route_update"
+
+
+@dataclass
+class NodeID:
+    """Node identifier."""
+    value: str
+    
+    def __str__(self):
+        return self.value
+        
+    @classmethod
+    def generate(cls) -> 'NodeID':
+        """Generate a new node ID."""
+        return cls(f"Qm{hashlib.sha256(uuid.uuid4().bytes).hexdigest()[:44]}")
+        
+    @classmethod
+    def from_string(cls, value: str) -> 'NodeID':
+        """Create NodeID from string."""
+        return cls(value)
+
+
+@dataclass
+class NodeCapabilities:
+    """Node capability flags."""
+    relay: bool = False
+    storage: bool = False
+    compute: bool = False
+    quantum: bool = False
+    blockchain: bool = False
+    dns: bool = False
+    bootstrap: bool = False
+    
+
+@dataclass
+class PeerInfo:
+    """Information about a peer node."""
+    id: NodeID
+    address: str
+    port: int
+    capabilities: NodeCapabilities
+    last_seen: datetime
+    latency: Optional[float] = None
+    reputation: float = 1.0
+    metadata: Dict[str, Any] = None
+    
+    def __post_init__(self):
+        if self.metadata is None:
+            self.metadata = {}
+
+
+@dataclass
+class NetworkMessage:
+    """Network message structure."""
+    id: str
+    type: MessageType
+    sender: NodeID
+    recipient: Optional[NodeID]
+    payload: Any
+    timestamp: datetime
+    ttl: int = 64
+    signature: Optional[bytes] = None
+    
+    @classmethod
+    def create(cls, msg_type: MessageType, sender: NodeID, payload: Any, 
+               recipient: Optional[NodeID] = None, ttl: int = 64) -> 'NetworkMessage':
+        """Create a new network message."""
+        return cls(
+            id=str(uuid.uuid4()),
+            type=msg_type,
+            sender=sender,
+            recipient=recipient,
+            payload=payload,
+            timestamp=datetime.utcnow(),
+            ttl=ttl
+        )
+EOF
+
+# Create DNS overlay module
+cat > network/dns/__init__.py << 'EOF'
+"""DNS overlay for .web4ai domains."""
+from .overlay import DNSOverlay
+
+__all__ = ['DNSOverlay']
+EOF
+
+cat > network/dns/overlay.py << 'EOF'
+"""DNS overlay implementation for .web4ai domains."""
+import asyncio
+import logging
+from typing import Dict, Optional, Any
+from datetime import datetime, timedelta
+
+
+class DNSRecord:
+    """DNS record entry."""
+    def __init__(self, name: str, value: str, ttl: int = 3600):
+        self.name = name
+        self.value = value
+        self.ttl = ttl
+        self.created_at = datetime.utcnow()
+        
+    def is_expired(self) -> bool:
+        """Check if record is expired."""
+        return datetime.utcnow() > self.created_at + timedelta(seconds=self.ttl)
+
+
+class DNSOverlay:
+    """DNS overlay for .web4ai domain resolution."""
+    
+    def __init__(self, network_node):
+        self.node = network_node
+        self.records: Dict[str, DNSRecord] = {}
+        self.cache: Dict[str, DNSRecord] = {}
+        self.logger = logging.getLogger("enhanced_csp.dns")
+        
+    async def start(self):
+        """Start DNS overlay service."""
+        self.logger.info("Starting DNS overlay")
+        # Start cleanup task
+        asyncio.create_task(self._cleanup_expired())
+        
+    async def stop(self):
+        """Stop DNS overlay service."""
+        self.logger.info("Stopping DNS overlay")
+        
+    async def register(self, name: str, value: str, ttl: int = 3600):
+        """Register a DNS name."""
+        if not name.endswith('.web4ai'):
+            name = f"{name}.web4ai"
+            
+        record = DNSRecord(name, value, ttl)
+        self.records[name] = record
+        self.logger.info(f"Registered DNS: {name} -> {value}")
+        
+        # Propagate to network if not genesis
+        if self.node.config.bootstrap_nodes:
+            await self._propagate_record(record)
+            
+    async def resolve(self, name: str) -> Optional[str]:
+        """Resolve a DNS name."""
+        if not name.endswith('.web4ai'):
+            name = f"{name}.web4ai"
+            
+        # Check local records
+        if name in self.records and not self.records[name].is_expired():
+            return self.records[name].value
+            
+        # Check cache
+        if name in self.cache and not self.cache[name].is_expired():
+            return self.cache[name].value
+            
+        # Query network
+        result = await self._query_network(name)
+        if result:
+            self.cache[name] = DNSRecord(name, result)
+            return result
+            
+        return None
+        
+    async def list_records(self) -> Dict[str, str]:
+        """List all DNS records."""
+        return {
+            name: record.value 
+            for name, record in self.records.items() 
+            if not record.is_expired()
+        }
+        
+    async def _propagate_record(self, record: DNSRecord):
+        """Propagate DNS record to the network."""
+        # TODO: Implement DHT-based propagation
+        pass
+        
+    async def _query_network(self, name: str) -> Optional[str]:
+        """Query the network for a DNS name."""
+        # TODO: Implement DHT-based query
+        return None
+        
+    async def _cleanup_expired(self):
+        """Cleanup expired records periodically."""
+        while True:
+            await asyncio.sleep(60)  # Run every minute
+            
+            # Clean expired records
+            expired = [
+                name for name, record in self.records.items()
+                if record.is_expired()
+            ]
+            for name in expired:
+                del self.records[name]
+                
+            # Clean expired cache
+            expired = [
+                name for name, record in self.cache.items()
+                if record.is_expired()
+            ]
+            for name in expired:
+                del self.cache[name]
+EOF
+
+# Create P2P transport module
+cat > network/p2p/__init__.py << 'EOF'
+"""P2P networking components."""
+from .transport import P2PTransport
+from .discovery import PeerDiscovery
+from .nat import NATTraversal
+
+__all__ = ['P2PTransport', 'PeerDiscovery', 'NATTraversal']
+EOF
+
+cat > network/p2p/transport.py << 'EOF'
+"""P2P transport layer implementation."""
+import asyncio
+import logging
+from typing import Dict, Optional, Any
+
+
+class P2PTransport:
+    """P2P transport layer for network communication."""
+    
+    def __init__(self, config):
+        self.config = config
+        self.connections: Dict[str, Any] = {}
+        self.server = None
+        self.logger = logging.getLogger("enhanced_csp.p2p.transport")
+        
+    async def start(self):
+        """Start P2P transport."""
+        self.logger.info(f"Starting P2P transport on {self.config.listen_address}:{self.config.listen_port}")
+        
+        # Start TCP server
+        self.server = await asyncio.start_server(
+            self._handle_connection,
+            self.config.listen_address,
+            self.config.listen_port
+        )
+        
+    async def stop(self):
+        """Stop P2P transport."""
+        if self.server:
+            self.server.close()
+            await self.server.wait_closed()
+            
+        # Close all connections
+        for conn in self.connections.values():
+            conn.close()
+            
+    async def connect(self, address: str) -> bool:
+        """Connect to a peer."""
+        try:
+            # Parse multiaddr or address
+            if address.startswith("/ip4/"):
+                parts = address.split("/")
+                host = parts[2]
+                port = int(parts[4])
+            else:
+                host, port = address.split(":")
+                port = int(port)
+                
+            reader, writer = await asyncio.open_connection(host, port)
+            self.connections[address] = (reader, writer)
+            self.logger.info(f"Connected to {address}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to connect to {address}: {e}")
+            return False
+            
+    async def send(self, peer_id: str, message: Any):
+        """Send message to a peer."""
+        # TODO: Implement message sending
+        pass
+        
+    async def _handle_connection(self, reader, writer):
+        """Handle incoming connection."""
+        addr = writer.get_extra_info('peername')
+        self.logger.info(f"New connection from {addr}")
+        
+        # TODO: Implement connection handling
+        
+        writer.close()
+        await writer.wait_closed()
+EOF
+
+# Create mesh topology module
+cat > network/mesh/__init__.py << 'EOF'
+"""Mesh network topology management."""
+from .topology import MeshTopology
+
+__all__ = ['MeshTopology']
+EOF
+
+cat > network/mesh/topology.py << 'EOF'
+"""Mesh topology management."""
+import asyncio
+import logging
+from typing import Set, Dict, Any
+
+
+class MeshTopology:
+    """Manages mesh network topology."""
+    
+    def __init__(self, network_node):
+        self.node = network_node
+        self.peers: Set[str] = set()
+        self.routes: Dict[str, Any] = {}
+        self.logger = logging.getLogger("enhanced_csp.mesh")
+        
+    async def start(self):
+        """Start topology management."""
+        self.logger.info("Starting mesh topology management")
+        # Start periodic tasks
+        asyncio.create_task(self._maintain_topology())
+        
+    async def stop(self):
+        """Stop topology management."""
+        self.logger.info("Stopping mesh topology management")
+        
+    async def _maintain_topology(self):
+        """Maintain mesh topology."""
+        while self.node.is_running:
+            await asyncio.sleep(30)  # Run every 30 seconds
+            
+            # TODO: Implement topology maintenance
+            # - Peer discovery
+            # - Route optimization
+            # - Dead peer removal
+EOF
+
+# Create the blockchain integration file in the root enhanced_csp directory
+cat > blockchain_csp_network.py << 'EOF'
+"""Blockchain integration for Enhanced CSP Network."""
+import logging
+from typing import Optional
+
+
+class BlockchainCSPNetwork:
+    """Blockchain integration for CSP network."""
+    
+    def __init__(self, network_node):
+        self.network = network_node
+        self.logger = logging.getLogger("enhanced_csp.blockchain")
+        self.initialized = False
+        
+    async def initialize(self):
+        """Initialize blockchain integration."""
+        self.logger.info("Initializing blockchain integration")
+        # TODO: Implement blockchain initialization
+        self.initialized = True
+        
+    async def shutdown(self):
+        """Shutdown blockchain integration."""
+        self.logger.info("Shutting down blockchain integration")
+        self.initialized = False
+EOF
+
+# Create the quantum engine file in the root enhanced_csp directory
+cat > quantum_csp_engine.py << 'EOF'
+"""Quantum computing integration for Enhanced CSP Network."""
+import logging
+from typing import Optional
+
+
+class QuantumCSPEngine:
+    """Quantum computing engine for CSP network."""
+    
+    def __init__(self, network_node):
+        self.network = network_node
+        self.logger = logging.getLogger("enhanced_csp.quantum")
+        self.initialized = False
+        
+    async def initialize(self):
+        """Initialize quantum engine."""
+        self.logger.info("Initializing quantum CSP engine")
+        # TODO: Implement quantum initialization
+        self.initialized = True
+        
+    async def shutdown(self):
+        """Shutdown quantum engine."""
+        self.logger.info("Shutting down quantum engine")
+        self.initialized = False
+EOF
+
+# Create the security hardening file in the root enhanced_csp directory
+cat > security_hardening.py << 'EOF'
+"""Security hardening for Enhanced CSP Network."""
+import asyncio
+import logging
+from typing import Optional
+from pathlib import Path
+
+
+class SecurityOrchestrator:
+    """Orchestrates security features for the network."""
+    
+    def __init__(self, config):
+        self.config = config
+        self.logger = logging.getLogger("enhanced_csp.security")
+        self.threat_monitor_task = None
+        
+    async def initialize(self):
+        """Initialize security orchestrator."""
+        self.logger.info("Initializing security orchestrator")
+        
+        # Generate self-signed certificates if needed
+        if self.config.enable_tls and not self.config.tls_cert_path:
+            await self._generate_certificates()
+            
+    async def shutdown(self):
+        """Shutdown security orchestrator."""
+        self.logger.info("Shutting down security orchestrator")
+        
+        if self.threat_monitor_task:
+            self.threat_monitor_task.cancel()
+            
+    async def monitor_threats(self):
+        """Monitor for security threats."""
+        while True:
+            await asyncio.sleep(60)
+            # TODO: Implement threat monitoring
+            
+    async def rotate_tls_certificates(self):
+        """Rotate TLS certificates."""
+        self.logger.info("Rotating TLS certificates")
+        # TODO: Implement certificate rotation
+        
+    async def _generate_certificates(self):
+        """Generate self-signed certificates."""
+        self.logger.info("Generating self-signed certificates")
+        # TODO: Implement certificate generation
+
+
+# Re-export for compatibility
+from network.core.config import SecurityConfig
+__all__ = ['SecurityConfig', 'SecurityOrchestrator']
+EOF
+
+# Update main.py imports to use the new structure
+cat > network/main.py << 'EOF'
 #!/usr/bin/env python3
 """
 Enhanced CSP Network - Production Entry Script
@@ -37,21 +692,11 @@ try:
 except ImportError:
     AIOHTTP_AVAILABLE = False
 
-# Enhanced CSP imports - use relative imports when running directly
-try:
-    # Try absolute imports first (for installed package)
-    from enhanced_csp.network.core.node import NetworkConfig, SecurityConfig, EnhancedCSPNetwork
-    from enhanced_csp.security_hardening import SecurityOrchestrator
-    from enhanced_csp.quantum_csp_engine import QuantumCSPEngine
-    from enhanced_csp.blockchain_csp_network import BlockchainCSPNetwork
-except ImportError:
-    # Fall back to relative imports (for direct execution)
-    sys.path.insert(0, str(Path(__file__).parent))
-    from core.node import NetworkConfig, SecurityConfig, EnhancedCSPNetwork
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from security_hardening import SecurityOrchestrator
-    from quantum_csp_engine import QuantumCSPEngine
-    from blockchain_csp_network import BlockchainCSPNetwork
+# Enhanced CSP imports
+from enhanced_csp.network.core.node import NetworkConfig, SecurityConfig, EnhancedCSPNetwork
+from enhanced_csp.security_hardening import SecurityOrchestrator
+from enhanced_csp.quantum_csp_engine import QuantumCSPEngine
+from enhanced_csp.blockchain_csp_network import BlockchainCSPNetwork
 
 # Constants
 DEFAULT_BOOTSTRAP_NODES = []  # Empty for genesis node
@@ -907,3 +1552,26 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+EOF
+
+echo "✅ All network module files created successfully!"
+echo ""
+echo "File structure created:"
+echo "  - network/core/__init__.py"
+echo "  - network/core/config.py"
+echo "  - network/core/node.py (updated with imports)"
+echo "  - network/core/types.py"
+echo "  - network/dns/__init__.py"
+echo "  - network/dns/overlay.py"
+echo "  - network/p2p/__init__.py"
+echo "  - network/p2p/transport.py"
+echo "  - network/mesh/__init__.py"
+echo "  - network/mesh/topology.py"
+echo "  - blockchain_csp_network.py (in root enhanced_csp)"
+echo "  - quantum_csp_engine.py (in root enhanced_csp)"
+echo "  - security_hardening.py (in root enhanced_csp)"
+echo "  - network/main.py (updated with correct imports)"
+echo ""
+echo "You can now run the genesis node with:"
+echo "  cd network"
+echo "  python main.py --genesis --status-port 8080"
