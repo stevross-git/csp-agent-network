@@ -1,0 +1,697 @@
+# Chart.yaml
+apiVersion: v2
+name: enhanced-csp-network
+description: Enhanced CSP P2P Network Stack with QUIC, Mesh Networking, and Adaptive Routing
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - p2p
+  - csp
+  - mesh-network
+  - quic
+  - distributed-systems
+home: https://github.com/enhanced-csp/network
+maintainers:
+  - name: CSP Network Team
+    email: team@enhanced-csp.network
+
+---
+# values.yaml
+# Default values for enhanced-csp-network
+
+replicaCount: 3
+
+image:
+  repository: enhanced-csp/network-node
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Network configuration
+network:
+  p2p:
+    listenAddress: "0.0.0.0"
+    listenPort: 9000
+    enableQuic: true
+    enableTLS: true
+    tlsVersion: "1.3"
+    enablePQC: true  # Post-quantum cryptography
+    pqcAlgorithm: "kyber768"
+    
+    # Bootstrap nodes for initial discovery
+    bootstrapNodes:
+      - "bootstrap-1.csp.network:9000"
+      - "bootstrap-2.csp.network:9000"
+      - "bootstrap-3.csp.network:9000"
+    
+    # NAT traversal
+    stunServers:
+      - "stun:stun.l.google.com:19302"
+      - "stun:global.stun.twilio.com:3478"
+    
+    turnServers: []
+    # - url: "turn:turn.csp.network:3478"
+    #   username: "user"
+    #   credential: "pass"
+    
+    connectionTimeout: 30
+    maxPeers: 50
+  
+  mesh:
+    topologyType: "dynamic_partial"
+    enableSuperPeers: true
+    superPeerCapacityThreshold: 100.0  # Mbps
+    maxPeers: 20
+    routingUpdateInterval: 10
+    
+  dns:
+    rootDomain: ".web4ai"
+    enableDNSSEC: true
+    defaultTTL: 3600
+    cacheSize: 10000
+    
+  routing:
+    enableMultipath: true
+    enableMLPredictor: true
+    maxPathsPerDestination: 3
+    failoverThresholdMs: 500
+
+# Node identity and security
+nodeIdentity:
+  # If not provided, will be auto-generated
+  privateKeySecret: ""
+  # Or generate new keys
+  generateKeys: true
+  keyRotationDays: 30
+
+# Persistence for node data
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  # Existing PVC to use
+  existingClaim: ""
+
+# Service configuration
+service:
+  type: ClusterIP
+  quicPort: 9000
+  tcpPort: 9001
+  metricsPort: 9090
+  annotations: {}
+  
+# Load balancer for external access
+loadBalancer:
+  enabled: false
+  type: LoadBalancer
+  annotations: {}
+    # service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+
+# Resource limits
+resources:
+  requests:
+    memory: "2Gi"
+    cpu: "1000m"
+  limits:
+    memory: "4Gi"
+    cpu: "2000m"
+
+# Autoscaling
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Monitoring and metrics
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    path: /metrics
+  
+  # Grafana dashboard
+  grafanaDashboard:
+    enabled: true
+    labels:
+      grafana_dashboard: "1"
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE
+
+# Pod security policy
+podSecurityPolicy:
+  enabled: false
+
+# Network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: enhanced-csp-network
+      ports:
+      - protocol: UDP
+        port: 9000
+      - protocol: TCP
+        port: 9001
+  
+  egress:
+    - to:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: enhanced-csp-network
+      ports:
+      - protocol: UDP
+        port: 9000
+      - protocol: TCP  
+        port: 9001
+    # Allow DNS
+    - to:
+      - namespaceSelector: {}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      ports:
+      - protocol: UDP
+        port: 53
+
+# Node affinity for geographic distribution
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - enhanced-csp-network
+        topologyKey: kubernetes.io/hostname
+    - weight: 50
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - enhanced-csp-network
+        topologyKey: topology.kubernetes.io/zone
+
+# Topology spread for even distribution
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: enhanced-csp-network
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Environment variables
+env: []
+  # - name: LOG_LEVEL
+  #   value: "INFO"
+
+# Additional volumes
+extraVolumes: []
+  # - name: tls-certs
+  #   secret:
+  #     secretName: tls-certificates
+
+extraVolumeMounts: []
+  # - name: tls-certs
+  #   mountPath: /etc/tls
+  #   readOnly: true
+
+# Init containers
+initContainers: []
+
+# Sidecar containers  
+sidecarContainers: []
+
+# Bootstrap nodes configuration (for super-peer deployment)
+bootstrap:
+  enabled: false
+  replicaCount: 3
+  
+  # Use different resource limits for bootstrap nodes
+  resources:
+    requests:
+      memory: "4Gi"
+      cpu: "2000m"
+    limits:
+      memory: "8Gi"
+      cpu: "4000m"
+  
+  # Dedicated node selector for bootstrap nodes
+  nodeSelector: {}
+    # node-role.kubernetes.io/bootstrap: "true"
+  
+  # Geographic distribution
+  zones:
+    - us-east-1a
+    - eu-west-1a
+    - ap-southeast-1a
+
+---
+# templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "enhanced-csp-network.fullname" . }}
+  labels:
+    {{- include "enhanced-csp-network.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "enhanced-csp-network.fullname" . }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "enhanced-csp-network.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "enhanced-csp-network.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "enhanced-csp-network.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          
+          ports:
+            - name: quic
+              containerPort: {{ .Values.network.p2p.listenPort }}
+              protocol: UDP
+            - name: tcp
+              containerPort: {{ add .Values.network.p2p.listenPort 1 }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.service.metricsPort }}
+              protocol: TCP
+          
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          
+          envFrom:
+            - configMapRef:
+                name: {{ include "enhanced-csp-network.fullname" . }}
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/enhanced-csp
+            - name: config
+              mountPath: /etc/enhanced-csp
+              readOnly: true
+            {{- if .Values.nodeIdentity.privateKeySecret }}
+            - name: node-key
+              mountPath: /etc/enhanced-csp/keys
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        
+        {{- with .Values.sidecarContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "enhanced-csp-network.fullname" . }}
+        {{- if .Values.nodeIdentity.privateKeySecret }}
+        - name: node-key
+          secret:
+            secretName: {{ .Values.nodeIdentity.privateKeySecret }}
+            defaultMode: 0400
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "enhanced-csp-network.labels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode }}
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- else }}
+    - name: data
+      emptyDir: {}
+  {{- end }}
+
+---
+# templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "enhanced-csp-network.fullname" . }}
+  labels:
+    {{- include "enhanced-csp-network.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  clusterIP: None  # Headless service for StatefulSet
+  ports:
+    - port: {{ .Values.service.quicPort }}
+      targetPort: quic
+      protocol: UDP
+      name: quic
+    - port: {{ .Values.service.tcpPort }}
+      targetPort: tcp
+      protocol: TCP
+      name: tcp
+    - port: {{ .Values.service.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "enhanced-csp-network.selectorLabels" . | nindent 4 }}
+
+{{- if .Values.loadBalancer.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "enhanced-csp-network.fullname" . }}-lb
+  labels:
+    {{- include "enhanced-csp-network.labels" . | nindent 4 }}
+  {{- with .Values.loadBalancer.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.loadBalancer.type }}
+  ports:
+    - port: {{ .Values.service.quicPort }}
+      targetPort: quic
+      protocol: UDP
+      name: quic
+    - port: {{ .Values.service.tcpPort }}
+      targetPort: tcp
+      protocol: TCP
+      name: tcp
+  selector:
+    {{- include "enhanced-csp-network.selectorLabels" . | nindent 4 }}
+{{- end }}
+
+---
+# templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "enhanced-csp-network.fullname" . }}
+  labels:
+    {{- include "enhanced-csp-network.labels" . | nindent 4 }}
+data:
+  network-config.yaml: |
+    p2p:
+      listenAddress: {{ .Values.network.p2p.listenAddress | quote }}
+      listenPort: {{ .Values.network.p2p.listenPort }}
+      enableQuic: {{ .Values.network.p2p.enableQuic }}
+      enableTLS: {{ .Values.network.p2p.enableTLS }}
+      tlsVersion: {{ .Values.network.p2p.tlsVersion | quote }}
+      enablePQC: {{ .Values.network.p2p.enablePQC }}
+      pqcAlgorithm: {{ .Values.network.p2p.pqcAlgorithm | quote }}
+      bootstrapNodes:
+        {{- range .Values.network.p2p.bootstrapNodes }}
+        - {{ . | quote }}
+        {{- end }}
+      stunServers:
+        {{- range .Values.network.p2p.stunServers }}
+        - {{ . | quote }}
+        {{- end }}
+      {{- if .Values.network.p2p.turnServers }}
+      turnServers:
+        {{- toYaml .Values.network.p2p.turnServers | nindent 8 }}
+      {{- end }}
+      connectionTimeout: {{ .Values.network.p2p.connectionTimeout }}
+      maxPeers: {{ .Values.network.p2p.maxPeers }}
+    
+    mesh:
+      topologyType: {{ .Values.network.mesh.topologyType | quote }}
+      enableSuperPeers: {{ .Values.network.mesh.enableSuperPeers }}
+      superPeerCapacityThreshold: {{ .Values.network.mesh.superPeerCapacityThreshold }}
+      maxPeers: {{ .Values.network.mesh.maxPeers }}
+      routingUpdateInterval: {{ .Values.network.mesh.routingUpdateInterval }}
+    
+    dns:
+      rootDomain: {{ .Values.network.dns.rootDomain | quote }}
+      enableDNSSEC: {{ .Values.network.dns.enableDNSSEC }}
+      defaultTTL: {{ .Values.network.dns.defaultTTL }}
+      cacheSize: {{ .Values.network.dns.cacheSize }}
+    
+    routing:
+      enableMultipath: {{ .Values.network.routing.enableMultipath }}
+      enableMLPredictor: {{ .Values.network.routing.enableMLPredictor }}
+      maxPathsPerDestination: {{ .Values.network.routing.maxPathsPerDestination }}
+      failoverThresholdMs: {{ .Values.network.routing.failoverThresholdMs }}
+
+---
+# templates/servicemonitor.yaml
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "enhanced-csp-network.fullname" . }}
+  labels:
+    {{- include "enhanced-csp-network.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "enhanced-csp-network.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: metrics
+      interval: {{ .Values.monitoring.serviceMonitor.interval }}
+      path: {{ .Values.monitoring.serviceMonitor.path }}
+{{- end }}
+
+---
+# templates/networkpolicy.yaml
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "enhanced-csp-network.fullname" . }}
+  labels:
+    {{- include "enhanced-csp-network.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "enhanced-csp-network.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
+  egress:
+    {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
+{{- end }}
+
+---
+# templates/poddisruptionbudget.yaml
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "enhanced-csp-network.fullname" . }}
+  labels:
+    {{- include "enhanced-csp-network.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "enhanced-csp-network.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+---
+# templates/hpa.yaml
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "enhanced-csp-network.fullname" . }}
+  labels:
+    {{- include "enhanced-csp-network.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: {{ include "enhanced-csp-network.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+
+---
+# templates/_helpers.tpl
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "enhanced-csp-network.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+*/}}
+{{- define "enhanced-csp-network.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "enhanced-csp-network.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "enhanced-csp-network.labels" -}}
+helm.sh/chart: {{ include "enhanced-csp-network.chart" . }}
+{{ include "enhanced-csp-network.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "enhanced-csp-network.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "enhanced-csp-network.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "enhanced-csp-network.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "enhanced-csp-network.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
