@@ -23,6 +23,8 @@ try:
     MDNS_AVAILABLE = True
 except ImportError:
     MDNS_AVAILABLE = False
+    Zeroconf = object  # type: ignore
+    ServiceBrowser = ServiceInfo = object  # type: ignore
     logger.warning("zeroconf not available, mDNS discovery disabled")
 
 from ..core.types import NodeID, PeerInfo, PeerType, P2PConfig
@@ -54,7 +56,20 @@ class HybridDiscovery:
     async def start(self):
         """Start all discovery mechanisms"""
         logger.info("Starting hybrid peer discovery...")
-        
+
+        # Fetch additional bootstrap nodes from external sources
+        if self.config.bootstrap_api_url:
+            nodes = await self._fetch_bootstrap_api()
+            for n in nodes:
+                if n not in self.config.bootstrap_nodes:
+                    self.config.bootstrap_nodes.append(n)
+
+        if self.config.dns_seed_domain:
+            nodes = await self._fetch_dns_seed()
+            for n in nodes:
+                if n not in self.config.bootstrap_nodes:
+                    self.config.bootstrap_nodes.append(n)
+
         # Start mDNS discovery for local network
         if self.config.enable_mdns and MDNS_AVAILABLE:
             await self._start_mdns()
@@ -242,7 +257,7 @@ class HybridDiscovery:
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
         connected = sum(1 for r in results if r and not isinstance(r, Exception))
-        logger.info(f"Connected to {connected}/{len(self.config.bootstrap_nodes)} bootstrap nodes")
+        logger.info(f"Successfully bootstrapped from {connected}/{len(self.config.bootstrap_nodes)} nodes")
     
     async def _connect_bootstrap(self, address: str) -> bool:
         """Connect to a single bootstrap node"""
@@ -271,6 +286,45 @@ class HybridDiscovery:
         except Exception as e:
             logger.error(f"Failed to connect to bootstrap {address}: {e}")
             return False
+
+    async def _fetch_bootstrap_api(self) -> List[str]:
+        """Retrieve bootstrap nodes from REST API"""
+        try:
+            import requests
+            resp = await asyncio.to_thread(requests.get, self.config.bootstrap_api_url, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            if isinstance(data, list):
+                return [str(n) for n in data]
+            if isinstance(data, dict):
+                return [str(n) for n in data.get("bootstrap_nodes", [])]
+        except Exception as e:
+            logger.error(f"Bootstrap API fetch failed: {e}")
+        return []
+
+    async def _fetch_dns_seed(self) -> List[str]:
+        """Resolve TXT records for dnsaddr seeds"""
+        try:
+            import dns.resolver  # type: ignore
+        except Exception:
+            logger.warning("dnspython not available; skipping DNS seed lookup")
+            return []
+
+        try:
+            resolver = dns.resolver.Resolver()
+            answers = await asyncio.get_event_loop().run_in_executor(
+                None, resolver.resolve, self.config.dns_seed_domain, "TXT"
+            )
+            nodes: List[str] = []
+            for rdata in answers:
+                for txt in rdata.strings:
+                    entry = txt.decode()
+                    if entry.startswith("dnsaddr="):
+                        nodes.append(entry.split("=", 1)[1])
+            return nodes
+        except Exception as e:
+            logger.error(f"DNS seed lookup failed: {e}")
+            return []
     
     async def find_peers_dht(self, count: int = 10) -> List[Dict[str, any]]:
         """Find random peers using DHT"""

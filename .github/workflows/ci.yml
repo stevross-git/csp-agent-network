@@ -19,7 +19,7 @@ jobs:
         run: |
           ruff . && mypy -p enhanced_csp
       - name: Test
-        run: pytest -q
+        run: pytest -q tests_migrated
         env:
           PYTHONPATH: .
       - name: Cache pip

@@ -24,5 +24,5 @@ channel.participants[agent.agent_id] = agent
 ### Quick Demo
 
 ```
-python examples/quick_demo.py
+python examples/quick_demo.py --config examples/config/peoplesai.yaml
 ```
