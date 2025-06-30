@@ -1,0 +1,18 @@
+# config/bootstrap.yaml
+p2p:
+  # 1️⃣ Hard-coded peers
+  bootstrap_nodes:
+    # Dial order is left-to-right; QUIC first, TCP fallback.
+    # Use dnsaddr if you publish multiaddrs over DNS-TXT,
+    # otherwise specify the full multiaddr.
+    - /dnsaddr/boot1.peoplesainetwork.com
+    - /dnsaddr/boot2.peoplesainetwork.com
+
+  # 2️⃣ DNS seed (optional – if you publish TXT records)
+  dns_seed_domain: "_bootstrap.peoplesainetwork.com"
+
+  # 3️⃣ HTTPS metadata API (optional)
+  bootstrap_api_url: "https://api.peoplesainetwork.com/v1/bootstrap"
+
+  # 4️⃣ Disable the packaged default list so only yours are tried
+  disable_default_bootstrap: true
