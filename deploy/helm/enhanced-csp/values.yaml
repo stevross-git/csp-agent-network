@@ -1,0 +1,9 @@
+image:
+  repository: enhanced-csp/node
+  tag: latest
+service:
+  type: ClusterIP
+  port: 4001
+p2p:
+  stunServers:
+    - stun:stun.l.google.com:19302
