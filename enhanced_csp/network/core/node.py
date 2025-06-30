@@ -1,106 +1,212 @@
-"""Enhanced CSP Network node implementation."""
+#!/usr/bin/env python3
+"""
+Enhanced CSP • Core • network_node.py
+=====================================
+
+High-level orchestration wrapper around EnhancedCSPNetwork that:
+
+  • Owns the underlying transport / topology / DNS overlay lifecycle
+  • Integrates the SecurityOrchestrator (TLS rotation, threat detection …)
+  • Optionally wires in QuantumCSPEngine and BlockchainCSPNetwork
+  • Provides convenience methods: connect(), broadcast(), metrics(), …
+
+This class is what the rest of the stack should import when it just needs
+“a running node” without caring about all the subsystems.
+"""
+
+from __future__ import annotations
+
 import asyncio
 import logging
-from datetime import datetime
-from typing import Dict, List, Optional, Any
-import os
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from .config import NetworkConfig, SecurityConfig
-from .types import NodeID, PeerInfo
+from enhanced_csp.network.core.config import NetworkConfig, SecurityConfig
+from enhanced_csp.network.core.types import NodeID, PeerInfo
 
-# Import DNS and other components with proper paths
+# Optional subsystems — fall back to stubs if the user hasn’t installed them
 try:
-    from ..dns.overlay import DNSOverlay
-    from ..p2p.transport import P2PTransport
-    from ..mesh.topology import MeshTopology
-except ImportError:
-    # Fallback imports for when running from different locations
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from dns.overlay import DNSOverlay
-    from p2p.transport import P2PTransport
-    from mesh.topology import MeshTopology
+    from enhanced_csp.security_hardening import SecurityOrchestrator
+except ImportError:                                    # pragma: no cover
+    class SecurityOrchestrator:                        # type: ignore
+        def __init__(self, *_, **__): pass
+        async def initialize(self): pass
+        async def shutdown(self): pass
+        async def monitor_threats(self): pass
+        async def rotate_tls_certificates(self): pass
+
+try:
+    from enhanced_csp.quantum_csp_engine import QuantumCSPEngine
+except ImportError:                                    # pragma: no cover
+    class QuantumCSPEngine:                            # type: ignore
+        def __init__(self, *_): pass
+        async def initialize(self): pass
+        async def shutdown(self): pass
+
+try:
+    from enhanced_csp.blockchain_csp_network import BlockchainCSPNetwork
+except ImportError:                                    # pragma: no cover
+    class BlockchainCSPNetwork:                        # type: ignore
+        def __init__(self, *_): pass
+        async def initialize(self): pass
+        async def shutdown(self): pass
 
 
-class EnhancedCSPNetwork:
-    """Main network node implementation."""
-    
-    def __init__(self, config: NetworkConfig):
-        self.config = config
-        self.node_id = NodeID.generate()
-        self.is_running = False
-        self.start_time = datetime.utcnow()
-        self.stats: Dict[str, Any] = {
-            "messages_sent": 0,
-            "messages_received": 0,
-            "bandwidth_in": 0,
-            "bandwidth_out": 0,
-            "bootstrap_requests": 0,
+@dataclass
+class NodeStats:
+    start_time:      datetime
+    peers:           int = 0
+    messages_sent:   int = 0
+    messages_recv:   int = 0
+    bandwidth_in:    int = 0          # bytes
+    bandwidth_out:   int = 0
+    bootstrap_reqs:  int = 0
+
+
+class NetworkNode:
+    """
+    High-level façade for an Enhanced CSP node.
+    -------------------------------------------------------
+    Usage
+    -----
+        cfg   = NetworkConfig(...)
+        node  = NetworkNode(cfg)
+        await node.start()
+        await node.connect('/ip4/1.2.3.4/tcp/30300/p2p/xyz…')
+        await node.broadcast({'cmd': 'ping'})
+        print(await node.metrics())
+        await node.stop()
+    """
+
+    def __init__(
+        self,
+        config:           NetworkConfig,
+        *,
+        enable_quantum:   bool = False,
+        enable_blockchain: bool = False,
+        logger:           Optional[logging.Logger] = None,
+    ) -> None:
+        self.cfg                      = config
+        self.logger                   = logger or logging.getLogger(f"enhanced_csp.NetworkNode.{id(self):x}")
+        self.net                      = EnhancedCSPNetwork(config)
+
+        # Subsystems
+        self.sec                      = SecurityOrchestrator(config.security)
+        self.qengine:  Optional[QuantumCSPEngine]     = QuantumCSPEngine(self.net) if enable_quantum   else None
+        self.bchain:  Optional[BlockchainCSPNetwork]  = BlockchainCSPNetwork(self.net) if enable_blockchain else None
+
+        # Internal
+        self._tasks:  List[asyncio.Task]  = []
+        self._tls_rotation_next           = datetime.utcnow() + timedelta(seconds=config.security.tls_rotation_interval)
+        self.stats                        = NodeStats(start_time=datetime.utcnow())
+
+    # --------------------------------------------------------------------- lifecycle
+    async def start(self) -> None:
+        self.logger.info("▶ Starting NetworkNode %s", self.net.node_id)
+
+        await self.sec.initialize()
+        if self.qengine:  await self.qengine.initialize()
+        if self.bchain:   await self.bchain.initialize()
+
+        await self.net.start()
+        self._tasks.append(asyncio.create_task(self._background_security()))
+        self._tasks.append(asyncio.create_task(self._background_metrics()))
+
+    async def stop(self) -> None:
+        self.logger.info("■ Stopping NetworkNode %s", self.net.node_id)
+
+        for t in self._tasks:
+            t.cancel()
+        await asyncio.gather(*self._tasks, return_exceptions=True)
+
+        if self.bchain:   await self.bchain.shutdown()
+        if self.qengine:  await self.qengine.shutdown()
+        await self.sec.shutdown()
+        await self.net.stop()
+
+    # --------------------------------------------------------------------- high-level API
+    async def connect(self, multiaddr: str) -> None:
+        """Connect to another peer (multiaddr or DNS name)."""
+        await self.net.transport.connect(multiaddr)
+        self.stats.bootstrap_reqs += 1
+
+    async def send(self, peer_id: str, payload: Any) -> None:
+        """Send a unicast payload."""
+        await self.net.send_message(peer_id, payload)
+        self.stats.messages_sent += 1
+
+    async def broadcast(self, payload: Any) -> None:
+        """Send to every connected peer."""
+        peers = self.net.get_peers()
+        await asyncio.gather(*(self.net.send_message(p.id, payload) for p in peers))
+        self.stats.messages_sent += len(peers)
+
+    def peers(self) -> List[PeerInfo]:
+        return self.net.get_peers()
+
+    async def metrics(self) -> Dict[str, Any]:
+        """Return a merged dict of node + subsystem metrics."""
+        core = await self.net.topology.get_metrics() if hasattr(self.net.topology, "get_metrics") else {}
+        return {
+            **vars(self.stats),
+            "uptime_s": (datetime.utcnow() - self.stats.start_time).total_seconds(),
+            "core": core,
         }
-        
-        # Initialize components
-        self.transport = P2PTransport(config)
-        self.topology = MeshTopology(self)
-        self.dns_overlay = DNSOverlay(self)
-        self.peers: List[PeerInfo] = []
-        
-        self.logger = logging.getLogger(f"enhanced_csp.node.{self.node_id}")
-        
-    async def start(self):
-        """Start the network node."""
-        self.logger.info(f"Starting Enhanced CSP Node {self.node_id}")
-        
-        # Start transport layer
-        await self.transport.start()
-        
-        # Start DNS overlay
-        await self.dns_overlay.start()
-        
-        # Start topology management
-        await self.topology.start()
-        
-        self.is_running = True
-        self.start_time = datetime.utcnow()
-        
-        # Bootstrap if not genesis
-        if self.config.bootstrap_nodes:
-            await self._bootstrap()
-            
-    async def stop(self):
-        """Stop the network node."""
-        self.logger.info("Stopping Enhanced CSP Node")
-        self.is_running = False
-        
-        await self.topology.stop()
-        await self.dns_overlay.stop()
-        await self.transport.stop()
-        
-    async def _bootstrap(self):
-        """Bootstrap the node by connecting to bootstrap nodes."""
-        for bootstrap in self.config.bootstrap_nodes:
-            try:
-                # Resolve DNS if needed
-                if bootstrap.endswith('.web4ai'):
-                    resolved = await self.dns_overlay.resolve(bootstrap)
-                    if resolved:
-                        bootstrap = resolved
-                        
-                # Connect to bootstrap node
-                await self.transport.connect(bootstrap)
-                self.stats["bootstrap_requests"] += 1
-            except Exception as e:
-                self.logger.warning(f"Failed to connect to bootstrap {bootstrap}: {e}")
-                
-    def get_peers(self) -> List[PeerInfo]:
-        """Get list of connected peers."""
-        return self.peers
-        
-    async def send_message(self, peer_id: str, message: Any):
-        """Send a message to a peer."""
-        await self.transport.send(peer_id, message)
-        self.stats["messages_sent"] += 1
+
+    # --------------------------------------------------------------------- background tasks
+    async def _background_security(self) -> None:
+        """Security orchestrator helper loop (TLS rotation, threat-monitor etc.)."""
+        try:
+            while True:
+                # Threat monitor is its own task inside sec.monitor_threats()
+                await asyncio.sleep(5)
+
+                # TLS rotation
+                if datetime.utcnow() >= self._tls_rotation_next:
+                    self.logger.info("🔒 Rotating TLS certificates")
+                    await self.sec.rotate_tls_certificates()
+                    self._tls_rotation_next = datetime.utcnow() + timedelta(
+                        seconds=self.cfg.security.tls_rotation_interval
+                    )
+        except asyncio.CancelledError:
+            pass
+
+    async def _background_metrics(self) -> None:
+        """Lightweight metrics updater (peer count, bandwidth …)."""
+        try:
+            while True:
+                self.stats.peers = len(self.net.get_peers())
+                # Pull bandwidth counters from transport if available
+                if hasattr(self.net.transport, "stats"):
+                    tstats = self.net.transport.stats
+                    self.stats.bandwidth_in  = tstats.get("bytes_in",  0)
+                    self.stats.bandwidth_out = tstats.get("bytes_out", 0)
+                await asyncio.sleep(15)
+        except asyncio.CancelledError:
+            pass
 
 
-# Re-export config classes
-__all__ = ['NetworkConfig', 'SecurityConfig', 'EnhancedCSPNetwork']
+# --------------------------------------------------------------------------- convenience factory
+async def create_network_node(
+    cfg: NetworkConfig | None = None,
+    *,
+    enable_quantum: bool = False,
+    enable_blockchain: bool = False,
+    tls_rotation_days: int = 30,
+) -> NetworkNode:
+    """
+    Helper that fills reasonable defaults and returns a started node.
+
+        node = await create_network_node()
+    """
+    if cfg is None:
+        cfg = NetworkConfig(
+            security=SecurityConfig(
+                tls_rotation_interval=tls_rotation_days * 86_400,
+            )
+        )
+    node = NetworkNode(cfg, enable_quantum=enable_quantum, enable_blockchain=enable_blockchain)
+    await node.start()
+    return node

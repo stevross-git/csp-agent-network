@@ -8,5 +8,6 @@ __all__ = [
     'NodeID',
     'NodeCapabilities',
     'MessageType',
+    'EnhancedCSPNetwork',
     'PeerInfo'
 ]

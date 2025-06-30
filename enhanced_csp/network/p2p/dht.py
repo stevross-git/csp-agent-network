@@ -25,8 +25,8 @@ except ImportError:
     LIBP2P_AVAILABLE = False
     logger.warning("py-libp2p not available, using mock DHT")
 
-from ..core.types import NodeID, PeerInfo, DHT as DHTProtocol
-from ..core.node import NetworkNode
+from enhanced_csp.network.core.types import NodeID, PeerInfo, DHT as DHTProtocol
+from enhanced_csp.network.core.node import NetworkNode
 
 
 class KademliaDHT(DHTProtocol):

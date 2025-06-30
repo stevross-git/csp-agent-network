@@ -27,8 +27,8 @@ except ImportError:
     ServiceBrowser = ServiceInfo = object  # type: ignore
     logger.warning("zeroconf not available, mDNS discovery disabled")
 
-from ..core.types import NodeID, PeerInfo, PeerType, P2PConfig
-from ..core.node import NetworkNode
+from enhanced_csp.network.core.node import NetworkNode
+from enhanced_csp.network.core.types import NodeID, PeerInfo, PeerType, P2PConfig
 
 
 logger = logging.getLogger(__name__)

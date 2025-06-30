@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 import struct
 
-from ..core.types import NodeID, RoutingEntry
-from ..core.node import NetworkNode
+from enhanced_csp.network.core.types import NodeID, RoutingEntry
+from enhanced_csp.network.core.node import NetworkNode
 from .topology import MeshTopologyManager
 
 
