@@ -1,0 +1,63 @@
+# File: monitoring/process_exporter/config.yml
+process_names:
+  # CSP Core Processes
+  - name: "{{.Comm}}"
+    cmdline:
+    - 'python.*main\.py'
+    
+  - name: "{{.Comm}}"
+    cmdline:
+    - 'python.*network.*main\.py'
+    
+  - name: "{{.Comm}}"
+    cmdline:
+    - 'uvicorn.*backend\.main'
+    
+  # Database Processes
+  - name: "postgres"
+    cmdline:
+    - 'postgres'
+    
+  - name: "redis"
+    cmdline:
+    - 'redis-server'
+    
+  - name: "mongod"
+    cmdline:
+    - 'mongod'
+    
+  # Vector Database Processes
+  - name: "chroma"
+    cmdline:
+    - 'chroma'
+    
+  - name: "qdrant"
+    cmdline:
+    - 'qdrant'
+    
+  - name: "weaviate"
+    cmdline:
+    - 'weaviate'
+    
+  # Python Workers
+  - name: "python_worker"
+    cmdline:
+    - 'python.*worker'
+    
+  # Node.js processes
+  - name: "node"
+    cmdline:
+    - 'node'
+    
+  # System processes
+  - name: "systemd"
+    cmdline:
+    - '/usr/lib/systemd/systemd'
+    
+  - name: "docker"
+    cmdline:
+    - 'docker'
+    
+  - name: "containerd"
+    cmdline:
+    - 'containerd'

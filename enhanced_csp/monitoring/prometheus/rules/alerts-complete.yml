@@ -1,0 +1,407 @@
+# File: monitoring/prometheus/rules/alerts-complete.yml
+groups:
+  # ============================================================================
+  # API & BACKEND ALERTS
+  # ============================================================================
+  - name: api_alerts
+    interval: 30s
+    rules:
+      - alert: HighAPIErrorRate
+        expr: |
+          (
+            sum(rate(csp_http_requests_total{status_code=~"5.."}[5m])) by (method, endpoint)
+            /
+            sum(rate(csp_http_requests_total[5m])) by (method, endpoint)
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High error rate on {{ $labels.method }} {{ $labels.endpoint }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      - alert: HighAPILatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(csp_http_request_duration_seconds_bucket[5m])) by (method, endpoint, le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High latency on {{ $labels.method }} {{ $labels.endpoint }}"
+          description: "95th percentile latency is {{ $value }}s"
+
+      - alert: APIDown
+        expr: up{job="csp-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "CSP API is down"
+          description: "The CSP API has been down for more than 1 minute"
+
+  # ============================================================================
+  # AUTHENTICATION ALERTS
+  # ============================================================================
+  - name: auth_alerts
+    rules:
+      - alert: HighFailedLoginRate
+        expr: |
+          sum(rate(csp_auth_login_attempts_total{status="failure"}[5m])) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: auth
+        annotations:
+          summary: "High rate of failed login attempts"
+          description: "{{ $value }} failed login attempts per second"
+
+      - alert: SuspiciousAuthActivity
+        expr: |
+          sum(rate(csp_auth_token_validations_total{status="invalid"}[5m])) by (type) > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: auth
+        annotations:
+          summary: "High rate of invalid {{ $labels.type }} tokens"
+          description: "{{ $value }} invalid token validations per second"
+
+      - alert: NoActiveSessions
+        expr: sum(csp_auth_active_sessions) == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: auth
+        annotations:
+          summary: "No active user sessions"
+          description: "There have been no active sessions for 10 minutes"
+
+  # ============================================================================
+  # EXECUTION ENGINE ALERTS
+  # ============================================================================
+  - name: execution_alerts
+    rules:
+      - alert: HighExecutionQueueDepth
+        expr: csp_execution_queue_depth > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: execution
+        annotations:
+          summary: "Execution queue depth is high"
+          description: "Queue depth is {{ $value }} for priority {{ $labels.priority }}"
+
+      - alert: ExecutionFailureRate
+        expr: |
+          sum(rate(csp_execution_duration_seconds_count{status="error"}[5m]))
+          /
+          sum(rate(csp_execution_duration_seconds_count[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: execution
+        annotations:
+          summary: "High execution failure rate"
+          description: "{{ $value | humanizePercentage }} of executions are failing"
+
+      - alert: LongRunningExecution
+        expr: |
+          histogram_quantile(0.99, csp_execution_duration_seconds_bucket) > 3600
+        for: 10m
+        labels:
+          severity: warning
+          service: execution
+        annotations:
+          summary: "Executions taking too long"
+          description: "99th percentile execution time is {{ $value | humanizeDuration }}"
+
+  # ============================================================================
+  # DATABASE ALERTS
+  # ============================================================================
+  - name: database_alerts
+    rules:
+      - alert: DatabaseDown
+        expr: up{job=~"postgres.*|redis|mongodb"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database {{ $labels.job }} is down"
+          description: "Database has been unreachable for more than 1 minute"
+
+      - alert: HighDatabaseConnections
+        expr: csp_db_connections_active / csp_db_pool_size > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "{{ $value | humanizePercentage }} of connections in use for {{ $labels.pool_name }}"
+
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95, sum(rate(csp_db_query_duration_seconds_bucket[5m])) by (operation, le)) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Slow database queries for {{ $labels.operation }}"
+          description: "95th percentile query time is {{ $value }}s"
+
+      - alert: DatabaseConnectionWaiting
+        expr: csp_db_pool_waiting_requests > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Requests waiting for database connections"
+          description: "{{ $value }} requests waiting for connections in {{ $labels.pool_name }}"
+
+  # ============================================================================
+  # AI SERVICE ALERTS
+  # ============================================================================
+  - name: ai_alerts
+    rules:
+      - alert: HighAITokenUsage
+        expr: |
+          sum(rate(csp_ai_tokens_total[1h])) by (provider, model) > 10000
+        for: 5m
+        labels:
+          severity: warning
+          service: ai
+          cost_impact: high
+        annotations:
+          summary: "High AI token usage for {{ $labels.provider }}/{{ $labels.model }}"
+          description: "Using {{ $value }} tokens per hour"
+
+      - alert: AIServiceErrors
+        expr: |
+          sum(rate(csp_ai_requests_total{status="error"}[5m])) by (provider) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: ai
+        annotations:
+          summary: "AI service {{ $labels.provider }} experiencing errors"
+          description: "{{ $value }} errors per second"
+
+      - alert: AIResponseLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(csp_ai_request_duration_seconds_bucket[5m])) by (provider, le)) > 30
+        for: 10m
+        labels:
+          severity: warning
+          service: ai
+        annotations:
+          summary: "High AI response latency for {{ $labels.provider }}"
+          description: "95th percentile latency is {{ $value }}s"
+
+  # ============================================================================
+  # NETWORK NODE ALERTS
+  # ============================================================================
+  - name: network_alerts
+    rules:
+      - alert: NetworkNodeDown
+        expr: up{job="csp-network-nodes"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: network
+        annotations:
+          summary: "Network node {{ $labels.instance }} is down"
+          description: "Node has been unreachable for more than 2 minutes"
+
+      - alert: LowPeerCount
+        expr: enhanced_csp_peers < 3
+        for: 10m
+        labels:
+          severity: warning
+          service: network
+        annotations:
+          summary: "Low peer count on {{ $labels.instance }}"
+          description: "Only {{ $value }} peers connected"
+
+      - alert: HighNetworkBandwidth
+        expr: |
+          rate(enhanced_csp_bandwidth_out_bytes[5m]) > 10485760
+        for: 5m
+        labels:
+          severity: warning
+          service: network
+        annotations:
+          summary: "High outbound bandwidth on {{ $labels.instance }}"
+          description: "Sending {{ $value | humanize }}B/s"
+
+      - alert: MessageBacklog
+        expr: |
+          rate(enhanced_csp_messages_sent[5m]) < rate(enhanced_csp_messages_received[5m]) * 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: network
+        annotations:
+          summary: "Message processing backlog on {{ $labels.instance }}"
+          description: "Processing falling behind reception rate"
+
+  # ============================================================================
+  # CACHE ALERTS
+  # ============================================================================
+  - name: cache_alerts
+    rules:
+      - alert: LowCacheHitRate
+        expr: csp_cache_hit_rate < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}"
+
+      - alert: HighCacheMemoryUsage
+        expr: csp_cache_memory_bytes > 1073741824
+        for: 5m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "High cache memory usage"
+          description: "Cache using {{ $value | humanize }}B of memory"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis has been unreachable for more than 1 minute"
+
+  # ============================================================================
+  # SYSTEM RESOURCE ALERTS
+  # ============================================================================
+  - name: system_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: csp_system_cpu_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: csp_system_memory_percent > 90
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}%"
+
+      - alert: HighDiskUsage
+        expr: csp_system_disk_percent > 85
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value }}%"
+
+      - alert: ContainerRestarting
+        expr: |
+          increase(container_restart_count[1h]) > 5
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Container {{ $labels.name }} restarting frequently"
+          description: "Container has restarted {{ $value }} times in the last hour"
+
+  # ============================================================================
+  # SLO ALERTS
+  # ============================================================================
+  - name: slo_alerts
+    rules:
+      - alert: SLOAvailabilityBreach
+        expr: csp_sli_availability < 0.999
+        for: 5m
+        labels:
+          severity: critical
+          service: slo
+          slo: availability
+        annotations:
+          summary: "Availability SLO breach"
+          description: "Availability is {{ $value | humanizePercentage }}, below 99.9% target"
+
+      - alert: SLOLatencyBreach
+        expr: csp_sli_latency_p99_seconds > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: slo
+          slo: latency
+        annotations:
+          summary: "Latency SLO breach"
+          description: "P99 latency is {{ $value }}s, above 200ms target"
+
+      - alert: SLOErrorRateBreach
+        expr: csp_sli_error_rate > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: slo
+          slo: error_rate
+        annotations:
+          summary: "Error rate SLO breach"
+          description: "Error rate is {{ $value | humanizePercentage }}, above 1% target"
+
+  # ============================================================================
+  # SECURITY ALERTS
+  # ============================================================================
+  - name: security_alerts
+    rules:
+      - alert: RateLimitExceeded
+        expr: |
+          sum(rate(csp_rate_limit_hits_total[5m])) by (endpoint) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High rate limit hits on {{ $labels.endpoint }}"
+          description: "{{ $value }} rate limit hits per second"
+
+      - alert: SuspiciousFileUpload
+        expr: |
+          sum(rate(csp_file_uploads_total{status="failure"}[5m])) by (type) > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Multiple failed file uploads of type {{ $labels.type }}"
+          description: "{{ $value }} failed uploads per second"
+
+      - alert: UnauthorizedAccessAttempts
+        expr: |
+          sum(rate(csp_http_requests_total{status_code="403"}[5m])) > 10
+        for: 2m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "High rate of unauthorized access attempts"
+          description: "{{ $value }} 403 responses per second"

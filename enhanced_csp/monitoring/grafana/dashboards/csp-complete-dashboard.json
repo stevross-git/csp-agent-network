@@ -1,0 +1,445 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "csp-complete",
+    "title": "CSP Complete Monitoring Dashboard",
+    "tags": ["csp", "monitoring"],
+    "timezone": "browser",
+    "schemaVersion": 30,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Overview",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 0, "w": 24, "h": 1}
+      },
+      {
+        "id": 2,
+        "title": "API Request Rate",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 1, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(csp_http_requests_total[5m])) by (method)",
+            "legendFormat": "{{method}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "API Response Time (95th percentile)",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 1, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(csp_http_request_duration_seconds_bucket[5m])) by (endpoint, le))",
+            "legendFormat": "{{endpoint}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 9, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "sum(rate(csp_http_requests_total{status_code=~\"5..\"}[5m])) / sum(rate(csp_http_requests_total[5m]))",
+            "legendFormat": "Error Rate",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Error %"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Active Connections",
+        "type": "stat",
+        "gridPos": {"x": 8, "y": 9, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "csp_websocket_connections_active",
+            "legendFormat": "WebSocket",
+            "refId": "A"
+          },
+          {
+            "expr": "csp_db_connections_active",
+            "legendFormat": "Database",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "System Resources",
+        "type": "stat",
+        "gridPos": {"x": 16, "y": 9, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "csp_system_cpu_percent",
+            "legendFormat": "CPU %",
+            "refId": "A"
+          },
+          {
+            "expr": "csp_system_memory_percent",
+            "legendFormat": "Memory %",
+            "refId": "B"
+          },
+          {
+            "expr": "csp_system_disk_percent",
+            "legendFormat": "Disk %",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Authentication & Security",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 15, "w": 24, "h": 1}
+      },
+      {
+        "id": 11,
+        "title": "Authentication Activity",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(csp_auth_login_attempts_total[5m])) by (status)",
+            "legendFormat": "Login {{status}}",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(csp_auth_token_validations_total[5m])) by (status)",
+            "legendFormat": "Token {{status}}",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Active Sessions",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "csp_auth_active_sessions",
+            "legendFormat": "{{auth_method}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "AI Services",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 24, "w": 24, "h": 1}
+      },
+      {
+        "id": 21,
+        "title": "AI Request Rate",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 25, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(csp_ai_requests_total[5m])) by (provider, model)",
+            "legendFormat": "{{provider}}/{{model}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "title": "AI Token Usage",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 25, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(csp_ai_tokens_total[1h])) by (provider, type)",
+            "legendFormat": "{{provider}} {{type}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 30,
+        "title": "Execution Engine",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 33, "w": 24, "h": 1}
+      },
+      {
+        "id": 31,
+        "title": "Execution Queue Depth",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 34, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "csp_execution_queue_depth",
+            "legendFormat": "{{priority}} priority",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 32,
+        "title": "Execution Duration (P99)",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 34, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(csp_execution_duration_seconds_bucket[5m])) by (status, le))",
+            "legendFormat": "{{status}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "title": "Network Nodes",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 42, "w": 24, "h": 1}
+      },
+      {
+        "id": 41,
+        "title": "Network Peer Count",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 43, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "enhanced_csp_peers",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 42,
+        "title": "Network Bandwidth",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 43, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(enhanced_csp_bandwidth_in_bytes[5m])",
+            "legendFormat": "{{instance}} IN",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(enhanced_csp_bandwidth_out_bytes[5m])",
+            "legendFormat": "{{instance}} OUT",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "Bps", "label": "Bandwidth"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 50,
+        "title": "Database Performance",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 51, "w": 24, "h": 1}
+      },
+      {
+        "id": 51,
+        "title": "Database Query Duration (P95)",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 52, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(csp_db_query_duration_seconds_bucket[5m])) by (operation, le))",
+            "legendFormat": "{{operation}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 52,
+        "title": "Connection Pool Usage",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 52, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "csp_db_pool_active_connections / csp_db_pool_size",
+            "legendFormat": "{{pool_name}} usage",
+            "refId": "A"
+          },
+          {
+            "expr": "csp_db_pool_waiting_requests",
+            "legendFormat": "{{pool_name}} waiting",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Pool Usage", "max": 1},
+          {"format": "short", "label": "Waiting Requests"}
+        ]
+      },
+      {
+        "id": 60,
+        "title": "Cache Performance",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 60, "w": 24, "h": 1}
+      },
+      {
+        "id": 61,
+        "title": "Cache Hit Rate",
+        "type": "gauge",
+        "gridPos": {"x": 0, "y": 61, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "csp_cache_hit_rate",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "calcs": ["lastNotNull"]
+          },
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 1,
+            "unit": "percentunit",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.5},
+                {"color": "green", "value": 0.8}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 62,
+        "title": "Cache Memory Usage",
+        "type": "stat",
+        "gridPos": {"x": 8, "y": 61, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "csp_cache_memory_bytes",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "calcs": ["lastNotNull"]
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decbytes"
+          }
+        }
+      },
+      {
+        "id": 63,
+        "title": "Cache Operations",
+        "type": "graph",
+        "gridPos": {"x": 16, "y": 61, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(csp_cache_operations_total[5m])) by (status)",
+            "legendFormat": "{{status}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 70,
+        "title": "SLI/SLO Status",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 69, "w": 24, "h": 1}
+      },
+      {
+        "id": 71,
+        "title": "Service Level Indicators",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 70, "w": 24, "h": 4},
+        "targets": [
+          {
+            "expr": "csp_sli_availability",
+            "legendFormat": "Availability",
+            "refId": "A"
+          },
+          {
+            "expr": "csp_sli_latency_p99_seconds",
+            "legendFormat": "Latency P99",
+            "refId": "B"
+          },
+          {
+            "expr": "csp_sli_error_rate",
+            "legendFormat": "Error Rate",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Availability"},
+              "properties": [
+                {"id": "unit", "value": "percentunit"},
+                {"id": "thresholds", "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 0.99},
+                    {"color": "green", "value": 0.999}
+                  ]
+                }}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "Latency P99"},
+              "properties": [
+                {"id": "unit", "value": "s"},
+                {"id": "thresholds", "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.2},
+                    {"color": "red", "value": 0.5}
+                  ]
+                }}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "Error Rate"},
+              "properties": [
+                {"id": "unit", "value": "percentunit"},
+                {"id": "thresholds", "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.01},
+                    {"color": "red", "value": 0.05}
+                  ]
+                }}
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
