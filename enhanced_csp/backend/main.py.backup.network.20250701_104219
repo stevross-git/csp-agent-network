@@ -1,4 +1,9 @@
 # backend/main.py
+"""
+Enhanced CSP Visual Designer Backend - Dual Authentication System
+===============================================================
+Complete backend implementation with Azure AD + Local Email/Password authentication
+"""
 
 import asyncio
 import logging
@@ -800,14 +805,6 @@ async def lifespan(app: FastAPI):
         if COMPONENTS_AVAILABLE:
             component_registry = await get_component_registry()
         
-        # Initialize network service
-        if NETWORK_AVAILABLE:
-            await initialize_network_service(app)
-            
-            # Integrate WebSocket with network
-            if WEBSOCKET_AVAILABLE and network_service and network_service.is_initialized:
-                integrate_websocket_with_network(connection_manager, network_service)
-        
         # Initialize execution engine if available
         if EXECUTION_AVAILABLE:
             execution_engine = await get_execution_engine()
@@ -836,10 +833,6 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("🛑 Shutting down Enhanced CSP Visual Designer Backend")
-        
-        # Shutdown network service
-    if NETWORK_AVAILABLE and network_service:
-            await shutdown_network_service()
     
     try:
         if WEBSOCKET_AVAILABLE:
@@ -1090,9 +1083,9 @@ async def logout_unified(
 # ============================================================================
 
 @app.post("/api/auth/local/register", 
-        response_model=LocalUserInfo, 
-        status_code=201,
-        tags=["authentication"])
+          response_model=LocalUserInfo, 
+          status_code=201,
+          tags=["authentication"])
 async def register_local_user(
     registration: LocalAuthSchemas.UserRegistration,
     background_tasks: BackgroundTasks = BackgroundTasks()
@@ -1126,8 +1119,8 @@ async def register_local_user(
         raise HTTPException(500, "Registration failed")
 
 @app.post("/api/auth/local/login", 
-        response_model=LocalAuthSchemas.TokenResponse, 
-        tags=["authentication"])
+          response_model=LocalAuthSchemas.TokenResponse, 
+          tags=["authentication"])
 async def login_local_user(
     login: LocalAuthSchemas.UserLogin,
     background_tasks: BackgroundTasks = BackgroundTasks()
@@ -1161,8 +1154,8 @@ async def login_local_user(
         raise HTTPException(500, "Authentication failed")
 
 @app.post("/api/auth/local/refresh", 
-        response_model=LocalAuthSchemas.TokenResponse, 
-        tags=["authentication"])
+          response_model=LocalAuthSchemas.TokenResponse, 
+          tags=["authentication"])
 async def refresh_local_token(
     token_refresh: LocalAuthSchemas.TokenRefresh,
     background_tasks: BackgroundTasks = BackgroundTasks()
@@ -1196,8 +1189,8 @@ async def refresh_local_token(
         raise HTTPException(500, "Token refresh failed")
 
 @app.post("/api/auth/local/forgot-password", 
-        response_model=BaseResponse, 
-        tags=["authentication"])
+          response_model=BaseResponse, 
+          tags=["authentication"])
 async def forgot_password(
     request: Dict[str, str],  # {"email": "user@example.com"}
     background_tasks: BackgroundTasks = BackgroundTasks()
@@ -1708,11 +1701,6 @@ async def root():
             "real_time_collaboration": WEBSOCKET_AVAILABLE,
             "ai_integration": True,
             "component_registry": COMPONENTS_AVAILABLE,
-            "network": {
-                "enabled": NETWORK_AVAILABLE and network_service and network_service.is_initialized,
-                "node_id": network_service.network.node_id.to_base58() if (network_service and network_service.is_initialized) else None,
-                "peers": len(network_service.node_registry) - 1 if (network_service and network_service.is_initialized) else 0
-            },
             "execution_engine": EXECUTION_AVAILABLE,
             "performance_monitoring": True,
             "database": DATABASE_AVAILABLE
@@ -2142,7 +2130,7 @@ def custom_openapi():
     
     # Apply security to endpoints except public ones
     public_paths = ["/health", "/api/auth/info", "/docs", "/redoc", "/openapi.json", 
-                "/api/auth/local/register", "/api/auth/local/login"]
+                   "/api/auth/local/register", "/api/auth/local/login"]
     
     for path, path_item in openapi_schema["paths"].items():
         if not any(path.startswith(public) for public in public_paths):
@@ -2177,24 +2165,24 @@ INTEGRATION INSTRUCTIONS:
 
 3. **Update your startup function** by adding the initialize_ai_coordination() call to your existing startup handler:
 
-@app.on_event("startup") 
-async def startup():
-    # Your existing startup code...
-    
-    # Add AI coordination initialization
-    await initialize_ai_coordination()
+   @app.on_event("startup") 
+   async def startup():
+       # Your existing startup code...
+       
+       # Add AI coordination initialization
+       await initialize_ai_coordination()
 
 4. **Add the health endpoints** to provide AI system monitoring
 
 5. **Test the integration** by starting your server and checking:
-- GET /health/ai-coordination
-- GET /api/ai-coordination/features  
-- GET /api/ai-coordination/system/status
+   - GET /health/ai-coordination
+   - GET /api/ai-coordination/features  
+   - GET /api/ai-coordination/system/status
 
 6. **Verify all endpoints work**:
-- POST /api/ai-coordination/synchronize (requires authentication)
-- GET /api/ai-coordination/performance/metrics (requires authentication)
-- All individual system endpoints (consciousness, quantum, wisdom, temporal, emergence)
+   - POST /api/ai-coordination/synchronize (requires authentication)
+   - GET /api/ai-coordination/performance/metrics (requires authentication)
+   - All individual system endpoints (consciousness, quantum, wisdom, temporal, emergence)
 
 The AI coordination system provides 5 advanced algorithms targeting >95% performance:
 ✅ Multi-Dimensional Consciousness Synchronization 
