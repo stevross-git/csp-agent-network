@@ -27,6 +27,7 @@ import uuid
 import sqlite3
 import glob
 import random
+from enum import Enum
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Union
@@ -197,8 +198,10 @@ except ImportError as e:
 
 try:
     from runtime.csp_runtime_environment import (
-        CSPRuntimeOrchestrator, RuntimeConfig, ExecutionModel, 
-        SchedulingPolicy
+        CSPRuntimeOrchestrator,
+        RuntimeConfig,
+        ExecutionModel,
+        SchedulingPolicy as CoreSchedulingPolicy,
     )
     RUNTIME_AVAILABLE = True
     logging.info("✅ Runtime Environment loaded")
@@ -345,6 +348,13 @@ class AIConfig(BaseModel):
     reasoning_timeout: int = 300
     protocol_synthesis_enabled: bool = True
 
+class SchedulingPolicy(str, Enum):
+    """Task scheduling strategies for the runtime execution engine"""
+    round_robin = "round_robin"
+    priority = "priority"
+    fair_share = "fair_share"
+
+
 class RuntimeSettings(BaseModel):
     """Runtime configuration"""
     execution_model: str = "MULTI_THREADED"
@@ -352,6 +362,22 @@ class RuntimeSettings(BaseModel):
     memory_limit_gb: float = 8.0
     enable_optimization: bool = True
     enable_debugging: bool = False
+    scheduling_policy: SchedulingPolicy = Field(
+        default_factory=lambda: SchedulingPolicy(
+            os.getenv("RUNTIME_SCHEDULING_POLICY", SchedulingPolicy.round_robin.value)
+        ),
+        description="Task scheduling strategy for the CSP execution engine",
+    )
+
+    @field_validator("scheduling_policy", mode="before")
+    @classmethod
+    def validate_policy(cls, v):
+        if isinstance(v, str):
+            try:
+                return SchedulingPolicy(v)
+            except ValueError:
+                raise ValueError(f"Invalid scheduling policy '{v}'")
+        return v
 
 class CSPConfig(BaseModel):
     """Enhanced CSP System Configuration"""
@@ -626,27 +652,51 @@ async def initialize_csp_system():
         
         # 3. Initialize runtime orchestrator
         if RUNTIME_AVAILABLE:
-            runtime_config = RuntimeSettings(  # Use the fallback RuntimeConfig class
-                execution_model=getattr(ExecutionModel, 'MULTI_THREADED', 'MULTI_THREADED'),
-                scheduling_policy=getattr(SchedulingPolicy, 'ADAPTIVE', 'ADAPTIVE'),
+            runtime_config = RuntimeSettings(
+                execution_model=getattr(
+                    ExecutionModel, config.runtime.execution_model, ExecutionModel.MULTI_THREADED
+                ),
+                scheduling_policy=config.runtime.scheduling_policy,
                 max_workers=config.runtime.max_workers,
                 memory_limit_gb=config.runtime.memory_limit_gb,
                 enable_monitoring=True,
                 enable_optimization=config.runtime.enable_optimization,
-                debug_mode=config.runtime.enable_debugging
+                debug_mode=config.runtime.enable_debugging,
             )
-            system_state.runtime_orchestrator = CSPRuntimeOrchestrator(runtime_config)
+            # Map to core scheduling policy enum for the execution engine
+            core_policy = getattr(
+                CoreSchedulingPolicy,
+                runtime_config.scheduling_policy.name.upper(),
+                CoreSchedulingPolicy.ROUND_ROBIN,
+            )
+            runtime_cfg = RuntimeConfig(
+                execution_model=getattr(
+                    ExecutionModel, runtime_config.execution_model, ExecutionModel.MULTI_THREADED
+                ),
+                scheduling_policy=core_policy,
+                max_workers=runtime_config.max_workers,
+                memory_limit_gb=runtime_config.memory_limit_gb,
+                enable_monitoring=True,
+                enable_optimization=runtime_config.enable_optimization,
+                debug_mode=runtime_config.enable_debugging,
+            )
+            system_state.runtime_orchestrator = CSPRuntimeOrchestrator(runtime_cfg)
             await system_state.runtime_orchestrator.start()
-            logger.info("✅ Runtime orchestrator initialized")
+            logger.info(
+                f"✅ Runtime orchestrator initialized | policy: {runtime_config.scheduling_policy.value}"
+            )
         else:
             # Use fallback runtime orchestrator
             runtime_config = RuntimeSettings(
                 execution_model="MULTI_THREADED",
-                max_workers=config.runtime.max_workers
+                max_workers=config.runtime.max_workers,
+                scheduling_policy=config.runtime.scheduling_policy,
             )
             system_state.runtime_orchestrator = CSPRuntimeOrchestrator(runtime_config)
             await system_state.runtime_orchestrator.start()
-            logger.info("✅ Runtime orchestrator initialized (fallback mode)")
+            logger.info(
+                f"✅ Runtime orchestrator initialized (fallback mode) | policy: {runtime_config.scheduling_policy.value}"
+            )
         
         # 4. Initialize deployment orchestrator
         if DEPLOYMENT_AVAILABLE:
