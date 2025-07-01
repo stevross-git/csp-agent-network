@@ -1,0 +1,64 @@
+name: Deploy Production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.x
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Terraform Init
+        run: terraform -chdir=terraform init
+      - name: Terraform Format
+        run: terraform -chdir=terraform fmt -check
+      - name: Terraform Validate
+        run: terraform -chdir=terraform validate
+      - name: Terraform Apply Staging
+        run: terraform -chdir=terraform apply -auto-approve
+
+  production:
+    runs-on: ubuntu-latest
+    needs: staging
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.x
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Terraform Init
+        run: terraform -chdir=terraform init
+      - name: Terraform Format
+        run: terraform -chdir=terraform fmt -check
+      - name: Terraform Validate
+        run: terraform -chdir=terraform validate
+      - name: Terraform Apply Production
+        id: apply
+        run: terraform -chdir=terraform apply -auto-approve
+      - name: Rollback on failure
+        if: failure()
+        run: terraform -chdir=terraform destroy -auto-approve
+      - name: Slack Notification
+        if: always()
+        env:
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          STATUS: ${{ job.status }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{"text":"Deploy ${STATUS} for ${{ github.sha }}"}' "$WEBHOOK"
+

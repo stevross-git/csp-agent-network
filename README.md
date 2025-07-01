@@ -1,5 +1,9 @@
 # csp-agent-network
 
+[![Tests](https://github.com/stevross-git/enhanced_csp/actions/workflows/build-test.yml/badge.svg)](https://github.com/stevross-git/enhanced_csp/actions/workflows/build-test.yml)
+[![Docker Build](https://github.com/stevross-git/enhanced_csp/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/stevross-git/enhanced_csp/actions/workflows/docker-publish.yml)
+[![Prod Deploy](https://github.com/stevross-git/enhanced_csp/actions/workflows/deploy-production.yml/badge.svg)](https://github.com/stevross-git/enhanced_csp/actions/workflows/deploy-production.yml)
+
 ## Migration Map
 Old Symbol | New Module
 --- | ---
@@ -47,3 +51,17 @@ docker compose -f deploy/docker/docker-compose.yaml up -d
 ```bash
 helm install enhanced-csp deploy/helm/enhanced-csp
 ```
+
+## Secrets and Variables
+
+Add the following secrets in **Settings → Secrets** for CI/CD workflows:
+
+| Name | Purpose |
+| ---- | ------- |
+| `AWS_ACCESS_KEY_ID` | AWS access key for automation |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key |
+| `AWS_REGION` | Default AWS region |
+| `TF_BACKEND_BUCKET` | S3 bucket for Terraform state |
+| `TF_DYNAMODB_TABLE` | DynamoDB table for state locking |
+| `GITHUB_TOKEN` | Automatically provided GitHub token |
+
