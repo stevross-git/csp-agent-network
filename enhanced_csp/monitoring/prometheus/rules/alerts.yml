@@ -1,0 +1,149 @@
+groups:
+  - name: api_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(csp_http_requests_total{status_code=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High API error rate"
+          description: "Error rate is {{ $value }} for the last 5 minutes"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(csp_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is {{ $value }}s"
+
+  - name: auth_alerts
+    rules:
+      - alert: HighAuthFailureRate
+        expr: rate(csp_auth_login_attempts_total{status="failure"}[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Auth failure rate is {{ $value }} per second"
+
+      - alert: NoActiveSessions
+        expr: sum(csp_auth_active_sessions) == 0
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "No active user sessions"
+          description: "No users are currently logged in"
+
+  - name: ai_alerts
+    rules:
+      - alert: HighAITokenUsage
+        expr: rate(csp_ai_tokens_total[1h]) > 10000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High AI token usage"
+          description: "Using {{ $value }} tokens per hour"
+
+      - alert: AIServiceDown
+        expr: up{job="csp-ai-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI service is down"
+          description: "AI service has been down for {{ $value }} minutes"
+
+  - name: database_alerts
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: csp_db_pool_active_connections / csp_db_pool_size > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "{{ $value }}% of connections in use"
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(csp_db_query_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time is {{ $value }}s"
+
+  - name: slo_alerts
+    rules:
+      - alert: SLOViolation
+        expr: csp_slo_compliance < 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SLO violation detected"
+          description: "{{ $labels.slo_name }} compliance is {{ $value }}%"
+
+      - alert: AvailabilitySLOAtRisk
+        expr: csp_sli_availability < 0.995
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Availability SLO at risk"
+          description: "Current availability is {{ $value }}"
+
+  - name: system_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: csp_system_cpu_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: csp_system_memory_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}%"
+
+      - alert: DiskSpaceLow
+        expr: csp_system_disk_percent > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value }}%"
+
+  - name: network_alerts
+    rules:
+      - alert: NetworkNodeDown
+        expr: up{job="csp-network-nodes"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Network node down"
+          description: "Node {{ $labels.instance }} is not responding"
+
+      - alert: LowPeerCount
+        expr: csp_peers_total < 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low peer count"
+          description: "Only {{ $value }} peers connected"

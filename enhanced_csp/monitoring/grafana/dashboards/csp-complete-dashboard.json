@@ -221,7 +221,7 @@
         "gridPos": {"x": 0, "y": 43, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "enhanced_csp_peers",
+            "expr": "csp_peers_total",
             "legendFormat": "{{instance}}",
             "refId": "A"
           }
@@ -234,12 +234,12 @@
         "gridPos": {"x": 12, "y": 43, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "rate(enhanced_csp_bandwidth_in_bytes[5m])",
+            "expr": "rate(csp_network_bandwidth_in_bytes[5m])",
             "legendFormat": "{{instance}} IN",
             "refId": "A"
           },
           {
-            "expr": "rate(enhanced_csp_bandwidth_out_bytes[5m])",
+            "expr": "rate(csp_network_bandwidth_out_bytes[5m])",
             "legendFormat": "{{instance}} OUT",
             "refId": "B"
           }

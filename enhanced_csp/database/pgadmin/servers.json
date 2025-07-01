@@ -1,0 +1,31 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "CSP Main Database",
+            "Group": "CSP Databases",
+            "Port": 5432,
+            "Username": "csp_user",
+            "Host": "postgres",
+            "SSLMode": "prefer",
+            "MaintenanceDB": "postgres"
+        },
+        "2": {
+            "Name": "CSP AI Models Database",
+            "Group": "CSP Databases",
+            "Port": 5432,
+            "Username": "csp_user",
+            "Host": "postgres_ai_models",
+            "SSLMode": "prefer",
+            "MaintenanceDB": "postgres"
+        },
+        "3": {
+            "Name": "CSP Vector Database",
+            "Group": "CSP Databases",
+            "Port": 5432,
+            "Username": "csp_user",
+            "Host": "postgres_vector",
+            "SSLMode": "prefer",
+            "MaintenanceDB": "postgres"
+        }
+    }
+}

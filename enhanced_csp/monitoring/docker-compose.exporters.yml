@@ -1,4 +1,4 @@
-# File: monitoring/docker-compose.exporters.yml
+# monitoring/docker-compose.exporters.yml
 version: '3.8'
 
 services:
@@ -6,115 +6,112 @@ services:
   postgres_exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: csp_postgres_exporter
-    restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://csp_user:${DB_PASSWORD}@csp_postgres:5432/csp_db?sslmode=disable"
-      PG_EXPORTER_AUTO_DISCOVER_DATABASES: "true"
-      PG_EXPORTER_INCLUDE_DATABASES: "csp_db,csp_ai_models"
+      DATA_SOURCE_NAME: "postgresql://csp_user:${DB_PASSWORD:-csp_secure_pass_2024!}@csp_postgres:5432/csp_system?sslmode=disable"
     ports:
       - "9187:9187"
     networks:
-      - csp_network
-    depends_on:
-      - csp_postgres
-    labels:
-      - "prometheus.scrape=true"
-      - "prometheus.port=9187"
-      - "prometheus.path=/metrics"
+      - scripts_csp-network
+    restart: unless-stopped
 
-  # PostgreSQL Exporter for AI Models database
+  # PostgreSQL Exporter for AI models database
   postgres_ai_exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: csp_postgres_ai_exporter
-    restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://csp_user:${DB_PASSWORD}@csp_postgres_ai_models:5432/csp_ai_models?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://csp_user:${DB_PASSWORD:-csp_secure_pass_2024!}@csp_ai_models_db:5432/ai_models?sslmode=disable"
     ports:
       - "9188:9187"
     networks:
-      - csp_network
-    depends_on:
-      - csp_postgres_ai_models
+      - scripts_csp-network
+    restart: unless-stopped
 
-  # PostgreSQL Exporter for Vector database
+  # PostgreSQL Exporter for vector database
   postgres_vector_exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: csp_postgres_vector_exporter
-    restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://csp_user:${DB_PASSWORD}@csp_postgres_vector:5432/csp_vector?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://csp_user:${DB_PASSWORD:-csp_secure_pass_2024!}@csp_postgres_vector:5432/csp_vectors?sslmode=disable"
     ports:
       - "9189:9187"
     networks:
-      - csp_network
-    depends_on:
-      - csp_postgres_vector
+      - scripts_csp-network
+    restart: unless-stopped
 
   # Redis Exporter
   redis_exporter:
     image: oliver006/redis_exporter:latest
     container_name: csp_redis_exporter
-    restart: unless-stopped
     environment:
       REDIS_ADDR: "redis://csp_redis:6379"
-      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-redis_secure_pass_2024!}"
     ports:
       - "9121:9121"
     networks:
-      - csp_network
-    depends_on:
-      - csp_redis
-    command:
-      - '--redis.addr=redis://csp_redis:6379'
-      - '--redis.password=${REDIS_PASSWORD}'
+      - scripts_csp-network
+    restart: unless-stopped
 
   # MongoDB Exporter
   mongodb_exporter:
-    image: percona/mongodb_exporter:latest
+    image: percona/mongodb_exporter:0.40
     container_name: csp_mongodb_exporter
-    restart: unless-stopped
-    environment:
-      MONGODB_URI: "mongodb://csp_user:${MONGO_PASSWORD}@csp_mongodb:27017"
+    command:
+      - "--mongodb.uri=mongodb://csp_admin:${MONGO_PASSWORD:-mongo_secure_pass_2024!}@csp_mongodb:27017"
+      - "--collect-all"
     ports:
       - "9216:9216"
     networks:
-      - csp_network
-    depends_on:
-      - csp_mongodb
+      - scripts_csp-network
+    restart: unless-stopped
+
+  # Node Exporter for system metrics
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: csp_node_exporter
     command:
-      - '--mongodb.uri=mongodb://csp_user:${MONGO_PASSWORD}@csp_mongodb:27017'
-      - '--collect-all'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - scripts_csp-network
+    restart: unless-stopped
 
   # Blackbox Exporter for endpoint probing
   blackbox_exporter:
     image: prom/blackbox-exporter:latest
     container_name: csp_blackbox_exporter
-    restart: unless-stopped
     ports:
       - "9115:9115"
-    networks:
-      - csp_network
     volumes:
-      - ./blackbox_exporter/config.yml:/etc/blackbox_exporter/config.yml
+      - ./blackbox_exporter/config.yml:/config/blackbox.yml
     command:
-      - '--config.file=/etc/blackbox_exporter/config.yml'
+      - '--config.file=/config/blackbox.yml'
+    networks:
+      - scripts_csp-network
+    restart: unless-stopped
 
-  # Process Exporter for system process monitoring
+  # Process Exporter
   process_exporter:
     image: ncabatoff/process-exporter:latest
     container_name: csp_process_exporter
-    restart: unless-stopped
     ports:
       - "9256:9256"
-    networks:
-      - csp_network
     volumes:
       - /proc:/host/proc:ro
       - ./process_exporter/config.yml:/config/process_exporter.yml
     command:
       - '--procfs=/host/proc'
       - '--config.path=/config/process_exporter.yml'
+    networks:
+      - scripts_csp-network
+    restart: unless-stopped
 
 networks:
-  csp_network:
+  scripts_csp-network:
     external: true

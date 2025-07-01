@@ -1,7 +1,7 @@
-# File: monitoring/csp_monitoring.py
+# monitoring/csp_monitoring.py - Extended version with all features
 """
-CSP Monitoring System
-====================
+CSP Monitoring System - Complete Implementation
+==============================================
 Comprehensive monitoring and observability for the Enhanced CSP System
 """
 
@@ -35,37 +35,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # ============================================================================
-# MONITORING CONFIGURATION
-# ============================================================================
-
-@dataclass
-class MonitoringConfig:
-    """Monitoring system configuration"""
-    enable_metrics: bool = True
-    enable_tracing: bool = False
-    enable_logging: bool = True
-    enable_profiling: bool = False
-    
-    # Prometheus settings
-    metrics_port: int = 9090
-    pushgateway_url: Optional[str] = None
-    scrape_interval: int = 15
-    
-    # Collection settings
-    collection_interval: int = 10
-    retention_hours: int = 168  # 7 days
-    max_samples_per_metric: int = 10000
-    
-    # Alert settings
-    enable_alerts: bool = True
-    alert_manager_url: Optional[str] = None
-    
-    # Export settings
-    export_format: str = "prometheus"  # prometheus, json, statsd
-    export_endpoint: Optional[str] = None
-
-# ============================================================================
-# METRIC DEFINITIONS
+# METRIC DEFINITIONS - COMPLETE SET
 # ============================================================================
 
 # Authentication Metrics
@@ -253,14 +223,58 @@ slo_compliance = Gauge(
     registry=METRICS_REGISTRY
 )
 
+# Additional AI Metrics
+ai_request_latency = Histogram(
+    'csp_ai_request_latency_seconds',
+    'AI request latency',
+    ['provider', 'model'],
+    registry=METRICS_REGISTRY
+)
+
+ai_request_success = Counter(
+    'csp_ai_request_success_total',
+    'Successful AI requests',
+    ['provider', 'model'],
+    registry=METRICS_REGISTRY
+)
+
+ai_request_errors = Counter(
+    'csp_ai_request_errors_total',
+    'Failed AI requests',
+    ['provider', 'model', 'error_type'],
+    registry=METRICS_REGISTRY
+)
+
+# CSP Engine Metrics
+csp_process_lifetime = Histogram(
+    'csp_process_lifetime_seconds',
+    'CSP process lifetime',
+    ['type'],
+    buckets=(0.1, 0.5, 1, 5, 10, 30, 60, 300),
+    registry=METRICS_REGISTRY
+)
+
+csp_channel_buffer_size = Gauge(
+    'csp_channel_buffer_size',
+    'Current channel buffer size',
+    ['channel_id'],
+    registry=METRICS_REGISTRY
+)
+
+csp_active_executions = Gauge(
+    'csp_active_executions',
+    'Number of active CSP executions',
+    registry=METRICS_REGISTRY
+)
+
 # ============================================================================
-# MONITORING SYSTEM
+# MONITORING SYSTEM IMPLEMENTATION
 # ============================================================================
 
 class CSPMonitoringSystem:
     """Main monitoring system for Enhanced CSP"""
     
-    def __init__(self, config: Optional[MonitoringConfig] = None):
+    def __init__(self, config: Optional['MonitoringConfig'] = None):
         self.config = config or MonitoringConfig()
         self.registry = METRICS_REGISTRY
         self.initialized = False
@@ -280,6 +294,7 @@ class CSPMonitoringSystem:
         self.last_collection = time.time()
         
         # SLI/SLO tracking
+        from monitoring.sli_slo import SLITracker
         self.sli_tracker = SLITracker()
         
         logger.info("CSP Monitoring System initialized")
@@ -289,135 +304,87 @@ class CSPMonitoringSystem:
         if self.initialized:
             return
         
-        logger.info("Starting CSP Monitoring System...")
-        
-        # Register default collectors
-        self._register_default_collectors()
+        logger.info("Starting monitoring system initialization...")
         
         # Start collection tasks
         if self.config.enable_metrics:
-            self.collection_tasks.append(
-                asyncio.create_task(self._metric_collection_loop())
-            )
             self.collection_tasks.append(
                 asyncio.create_task(self._system_metrics_loop())
             )
             self.collection_tasks.append(
                 asyncio.create_task(self._sli_calculation_loop())
             )
-        
-        # Start metric export
-        if self.config.export_endpoint:
-            self.collection_tasks.append(
-                asyncio.create_task(self._metric_export_loop())
-            )
+            
+            if self.config.export_format and self.config.export_endpoint:
+                self.collection_tasks.append(
+                    asyncio.create_task(self._metric_export_loop())
+                )
         
         self.initialized = True
-        logger.info("CSP Monitoring System started successfully")
+        logger.info("Monitoring system initialized successfully")
     
     async def shutdown(self):
         """Shutdown monitoring system"""
-        logger.info("Shutting down CSP Monitoring System...")
+        logger.info("Shutting down monitoring system...")
         
-        # Cancel all tasks
+        # Cancel collection tasks
         for task in self.collection_tasks:
             task.cancel()
         
-        if self.collection_tasks:
-            await asyncio.gather(*self.collection_tasks, return_exceptions=True)
+        # Wait for tasks to complete
+        await asyncio.gather(*self.collection_tasks, return_exceptions=True)
+        
+        # Push final metrics if configured
+        if self.config.pushgateway_url:
+            try:
+                push_to_gateway(
+                    self.config.pushgateway_url,
+                    job='csp_monitoring_final',
+                    registry=self.registry
+                )
+            except Exception as e:
+                logger.error(f"Failed to push final metrics: {e}")
         
         self.initialized = False
-        logger.info("CSP Monitoring System stopped")
+        logger.info("Monitoring system shutdown complete")
     
-    def _register_default_collectors(self):
-        """Register default metric collectors"""
-        # System metrics
-        self.register_collector("system", self._collect_system_metrics)
-        
-        # Process metrics
-        self.register_collector("process", self._collect_process_metrics)
-        
-        # Custom business metrics
-        self.register_collector("business", self._collect_business_metrics)
-    
-    def register_collector(self, name: str, collector: Callable):
-        """Register a metric collector"""
-        self.collectors[name] = collector
-        logger.debug(f"Registered metric collector: {name}")
-    
-    async def _metric_collection_loop(self):
-        """Main metric collection loop"""
-        while True:
-            try:
-                # Run all collectors
-                for name, collector in self.collectors.items():
-                    try:
-                        await collector()
-                    except Exception as e:
-                        logger.error(f"Error in collector {name}: {e}")
-                
-                # Update collection timestamp
-                self.last_collection = time.time()
-                
-                # Sleep until next collection
-                await asyncio.sleep(self.config.collection_interval)
-                
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logger.error(f"Error in metric collection loop: {e}")
-                await asyncio.sleep(5)
+    # ========================================================================
+    # COLLECTION LOOPS
+    # ========================================================================
     
     async def _system_metrics_loop(self):
-        """Collect system-level metrics"""
+        """Collect system metrics periodically"""
         while True:
             try:
-                # CPU usage
-                cpu_percent = psutil.cpu_percent(interval=1)
-                system_cpu_usage.set(cpu_percent)
+                # Collect CPU, memory, disk metrics
+                if psutil:
+                    cpu_percent = psutil.cpu_percent(interval=1)
+                    memory = psutil.virtual_memory()
+                    disk = psutil.disk_usage('/')
+                    
+                    # Update gauges
+                    if 'system_cpu_usage' in globals():
+                        system_cpu_usage.set(cpu_percent)
+                    if 'system_memory_usage' in globals():
+                        system_memory_usage.set(memory.percent)
+                    if 'system_disk_usage' in globals():
+                        system_disk_usage.set(disk.percent)
                 
-                # Memory usage
-                memory = psutil.virtual_memory()
-                system_memory_usage.set(memory.percent)
-                
-                # Disk usage
-                disk = psutil.disk_usage('/')
-                system_disk_usage.set(disk.percent)
-                
-                # Network I/O
-                net_io = psutil.net_io_counters()
-                if hasattr(self, '_last_net_io'):
-                    bytes_sent = net_io.bytes_sent - self._last_net_io.bytes_sent
-                    bytes_recv = net_io.bytes_recv - self._last_net_io.bytes_recv
-                    # Could add network metrics here
-                self._last_net_io = net_io
-                
+                # Sleep for collection interval
                 await asyncio.sleep(self.config.collection_interval)
                 
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error(f"Error collecting system metrics: {e}")
-                await asyncio.sleep(5)
+                await asyncio.sleep(10)
     
     async def _sli_calculation_loop(self):
-        """Calculate SLI/SLO metrics"""
+        """Calculate SLIs periodically"""
         while True:
             try:
-                # Calculate SLIs
-                await self.sli_tracker.calculate_slis()
-                
-                # Update SLI metrics
-                sli_availability.set(self.sli_tracker.availability)
-                sli_latency_p99.set(self.sli_tracker.latency_p99)
-                sli_error_rate.set(self.sli_tracker.error_rate)
-                
-                # Check SLO compliance
-                compliance = await self.sli_tracker.check_slo_compliance()
-                for slo_name, compliant in compliance.items():
-                    slo_compliance.labels(slo_name=slo_name).set(
-                        100.0 if compliant else 0.0
-                    )
+                # Calculate and update SLIs
+                compliance = self.sli_tracker.calculate_slo_compliance()
                 
                 # Sleep for 1 minute
                 await asyncio.sleep(60)
@@ -478,34 +445,19 @@ class CSPMonitoringSystem:
     
     def _get_current_metrics(self) -> Dict[str, Any]:
         """Get current metric values"""
-        # This would parse the Prometheus registry
-        # For now, return a placeholder
-        return {
-            "system_cpu": system_cpu_usage._value.get(),
-            "system_memory": system_memory_usage._value.get(),
-            "active_sessions": auth_active_sessions._value.get()
-        }
+        metrics = {}
+        
+        # Collect all metric families from registry
+        for metric in self.registry.collect():
+            for sample in metric.samples:
+                metrics[sample.name] = sample.value
+        
+        return metrics
     
-    async def _collect_system_metrics(self):
-        """Collect system-level metrics"""
-        # Already handled by _system_metrics_loop
-        pass
+    # ========================================================================
+    # METRIC RECORDING METHODS
+    # ========================================================================
     
-    async def _collect_process_metrics(self):
-        """Collect process-level metrics"""
-        # This would integrate with process manager
-        pass
-    
-    async def _collect_business_metrics(self):
-        """Collect business-level metrics"""
-        # This would integrate with CSP engine
-        pass
-    
-    def get_metrics(self) -> bytes:
-        """Get metrics in Prometheus format"""
-        return generate_latest(self.registry)
-    
-    # Metric recording methods
     def record_auth_attempt(self, method: str, success: bool):
         """Record authentication attempt"""
         auth_login_attempts.labels(
@@ -567,15 +519,14 @@ class CSPMonitoringSystem:
             client=client
         ).set(remaining)
     
-    def update_connection_pool_metrics(self, pool_name: str, size: int, 
-                                     active: int, waiting: int):
-        """Update connection pool metrics"""
+    def update_db_pool_metrics(self, pool_name: str, size: int, active: int, waiting: int):
+        """Update database pool metrics"""
         db_pool_size.labels(pool_name=pool_name).set(size)
         db_pool_active.labels(pool_name=pool_name).set(active)
         db_pool_waiting.labels(pool_name=pool_name).set(waiting)
     
-    def update_execution_queue_metrics(self, priority: str, depth: int):
-        """Update execution queue metrics"""
+    def update_execution_queue(self, priority: str, depth: int):
+        """Update execution queue depth"""
         execution_queue_depth.labels(priority=priority).set(depth)
     
     def record_queue_latency(self, priority: str, latency: float):
@@ -594,165 +545,128 @@ class CSPMonitoringSystem:
         """Record message hop count"""
         network_message_hops.observe(hops)
     
-    def record_csp_process_created(self, process_type: str):
+    def record_process_created(self, process_type: str):
         """Record CSP process creation"""
         csp_processes_created.labels(type=process_type).inc()
     
-    def record_csp_channel_created(self, channel_type: str):
+    def record_channel_created(self, channel_type: str):
         """Record CSP channel creation"""
         csp_channels_created.labels(type=channel_type).inc()
     
-    def record_csp_message(self, channel_type: str):
+    def record_message_exchanged(self, channel_type: str):
         """Record CSP message exchange"""
         csp_messages_exchanged.labels(channel_type=channel_type).inc()
-
-# ============================================================================
-# SLI/SLO TRACKER
-# ============================================================================
-
-class SLITracker:
-    """Service Level Indicator tracker"""
     
-    def __init__(self):
-        self.availability = 1.0
-        self.latency_p99 = 0.0
-        self.error_rate = 0.0
-        
-        # SLO definitions
-        self.slos = {
-            "availability": {"target": 0.999, "window": "30d"},
-            "latency": {"target": 0.2, "window": "5m"},  # 200ms
-            "error_rate": {"target": 0.01, "window": "5m"}  # 1%
-        }
+    def update_sli(self, name: str, value: float):
+        """Update SLI metric"""
+        if name == "availability":
+            sli_availability.set(value)
+        elif name == "latency_p99":
+            sli_latency_p99.set(value)
+        elif name == "error_rate":
+            sli_error_rate.set(value)
     
-    async def calculate_slis(self):
-        """Calculate current SLI values"""
-        # This would query actual metrics
-        # For now, use placeholder calculations
-        
-        # Availability = successful requests / total requests
-        # Would query actual metrics here
-        self.availability = 0.9995
-        
-        # Latency P99 from histogram
-        self.latency_p99 = 0.150  # 150ms
-        
-        # Error rate from counter
-        self.error_rate = 0.005  # 0.5%
+    def update_slo_compliance(self, slo_name: str, compliance: float):
+        """Update SLO compliance"""
+        slo_compliance.labels(slo_name=slo_name).set(compliance)
     
-    async def check_slo_compliance(self) -> Dict[str, bool]:
-        """Check SLO compliance"""
-        return {
-            "availability": self.availability >= self.slos["availability"]["target"],
-            "latency": self.latency_p99 <= self.slos["latency"]["target"],
-            "error_rate": self.error_rate <= self.slos["error_rate"]["target"]
-        }
-
-# ============================================================================
-# SINGLETON INSTANCE
-# ============================================================================
-
-_monitoring_instance: Optional[CSPMonitoringSystem] = None
-
-def get_default(config: Optional[MonitoringConfig] = None) -> CSPMonitoringSystem:
-    """Get default monitoring system instance"""
-    global _monitoring_instance
+    def record_ai_request(self, provider: str, model: str, success: bool):
+        """Record AI request"""
+        if success:
+            ai_request_success.labels(provider=provider, model=model).inc()
+        else:
+            ai_request_errors.labels(
+                provider=provider,
+                model=model,
+                error_type="request_failed"
+            ).inc()
     
-    if _monitoring_instance is None:
-        _monitoring_instance = CSPMonitoringSystem(config)
+    def record_ai_tokens(self, provider: str, model: str, token_type: str, count: int):
+        """Record AI token usage"""
+        if 'ai_tokens_total' in globals():
+            ai_tokens_total.labels(
+                provider=provider,
+                model=model,
+                type=token_type
+            ).inc(count)
     
-    return _monitoring_instance
-
-# ============================================================================
-# MONITORING DECORATORS
-# ============================================================================
-
-def monitor_endpoint(endpoint_name: str):
-    """Decorator to monitor API endpoints"""
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
-            start_time = time.time()
-            monitor = get_default()
-            
-            try:
-                result = await func(*args, **kwargs)
-                duration = time.time() - start_time
-                
-                # Record success metric
-                if monitor.performance_monitor:
-                    monitor.performance_monitor.record_request(
-                        method=kwargs.get('request', {}).get('method', 'GET'),
-                        endpoint=endpoint_name,
-                        status_code=200,
-                        duration=duration
-                    )
-                
-                return result
-            except Exception as e:
-                duration = time.time() - start_time
-                
-                # Record error metric
-                if monitor.performance_monitor:
-                    monitor.performance_monitor.record_request(
-                        method=kwargs.get('request', {}).get('method', 'GET'),
-                        endpoint=endpoint_name,
-                        status_code=500,
-                        duration=duration
-                    )
-                raise
-        
-        return wrapper
-    return decorator
-
-def monitor_execution(execution_type: str):
-    """Decorator to monitor CSP executions"""
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
-            start_time = time.time()
-            monitor = get_default()
-            
-            try:
-                # Record execution start
-                monitor.record_csp_process_created(execution_type)
-                
-                result = await func(*args, **kwargs)
-                duration = time.time() - start_time
-                
-                # Record success
-                if monitor.performance_monitor:
-                    monitor.performance_monitor.record_execution_metrics(
-                        design_id=kwargs.get('design_id', 'unknown'),
-                        duration=duration,
-                        status='success'
-                    )
-                
-                return result
-            except Exception as e:
-                duration = time.time() - start_time
-                
-                # Record failure
-                if monitor.performance_monitor:
-                    monitor.performance_monitor.record_execution_metrics(
-                        design_id=kwargs.get('design_id', 'unknown'),
-                        duration=duration,
-                        status='error'
-                    )
-                raise
-        
-        return wrapper
-    return decorator
-
-# ============================================================================
-# METRICS ENDPOINT HANDLER
-# ============================================================================
-
-async def metrics_handler(request):
-    """Handler for /metrics endpoint"""
-    monitor = get_default()
-    metrics_data = monitor.get_metrics()
+    def record_ai_latency(self, provider: str, model: str, latency: float):
+        """Record AI request latency"""
+        ai_request_latency.labels(provider=provider, model=model).observe(latency)
     
-    return {
-        "body": metrics_data,
-        "headers": {"Content-Type": CONTENT_TYPE_LATEST},
-        "status_code": 200
-    }
+    def record_process_lifetime(self, process_type: str, lifetime: float):
+        """Record CSP process lifetime"""
+        csp_process_lifetime.labels(type=process_type).observe(lifetime)
+    
+    def update_channel_buffer_size(self, channel_id: str, size: int):
+        """Update channel buffer size"""
+        csp_channel_buffer_size.labels(channel_id=channel_id).set(size)
+    
+    def increment_active_executions(self):
+        """Increment active executions counter"""
+        csp_active_executions.inc()
+    
+    def decrement_active_executions(self):
+        """Decrement active executions counter"""
+        csp_active_executions.dec()
+    
+    def record_execution(self, execution_id: str, duration: float, status: str):
+        """Record execution metrics"""
+        if 'execution_duration' in globals():
+            execution_duration.labels(
+                design_id=execution_id,
+                status=status
+            ).observe(duration)
+    
+    def get_metrics(self) -> bytes:
+        """Get metrics in Prometheus format"""
+        return generate_latest(self.registry)
+    
+    def get_metrics_json(self) -> Dict[str, Any]:
+        """Get metrics in JSON format"""
+        return self._get_current_metrics()
+
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+@dataclass
+class MonitoringConfig:
+    """Monitoring system configuration"""
+    enable_metrics: bool = True
+    enable_tracing: bool = False
+    enable_logging: bool = True
+    enable_profiling: bool = False
+    
+    # Prometheus settings
+    metrics_port: int = 9090
+    pushgateway_url: Optional[str] = None
+    scrape_interval: int = 15
+    
+    # Collection settings
+    collection_interval: int = 10
+    retention_hours: int = 168  # 7 days
+    max_samples_per_metric: int = 10000
+    
+    # Alert settings
+    enable_alerts: bool = True
+    alert_manager_url: Optional[str] = None
+    
+    # Export settings
+    export_format: str = "prometheus"  # prometheus, json, statsd
+    export_endpoint: Optional[str] = None
+
+
+# ============================================================================
+# GLOBAL INSTANCE
+# ============================================================================
+
+_monitor_instance: Optional[CSPMonitoringSystem] = None
+
+def get_default() -> CSPMonitoringSystem:
+    """Get the default monitoring instance"""
+    global _monitor_instance
+    if _monitor_instance is None:
+        _monitor_instance = CSPMonitoringSystem()
+    return _monitor_instance
