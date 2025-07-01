@@ -310,6 +310,7 @@
 │   └── documentation_and_webui.md
 ├── .env.docker
 ├── .env.docker.backup.20250626_203713
+├── fix-imports-script.sh
 ├── frontend
 │   ├── assets
 │   ├── components
@@ -528,20 +529,28 @@
 ├── multimodal_ai_hub.py
 ├── network
 │   ├── core
+│   │   ├── config.py
+│   │   ├── __init__.py
 │   │   ├── node.py
 │   │   └── types.py
+│   ├── dashboard
+│   │   ├── index.html
+│   │   └── status_server_update.py
 │   ├── dns
+│   │   ├── __init__.py
 │   │   └── overlay.py
 │   ├── examples
 │   │   └── chat_application.py
 │   ├── __init__.py
 │   ├── main.py
 │   ├── mesh
+│   │   ├── __init__.py
 │   │   ├── routing.py
 │   │   └── topology.py
 │   ├── p2p
 │   │   ├── dht.py
 │   │   ├── discovery.py
+│   │   ├── __init__.py
 │   │   ├── nat.py
 │   │   └── transport.py
 │   ├── repo-structure.txt
@@ -615,6 +624,7 @@
 │   └── testing
 ├── security_hardening.py
 ├── services
+├── setup-network-modules.sh
 ├── setup-secure-databases.sh
 ├── static
 ├── testing
@@ -633,4 +643,4 @@
     ├── postgres
     └── redis
 
-220 directories, 413 files
+221 directories, 422 files

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CSP Network Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .status-online { color: #10b981; }
+        .status-offline { color: #ef4444; }
+        .peer-node {
+            transition: all 0.3s ease;
+        }
+        .peer-node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="gradient-bg text-white p-6">
+        <div class="container mx-auto">
+            <h1 class="text-4xl font-bold mb-2">Enhanced CSP Network Dashboard</h1>
+            <p class="text-lg opacity-90">Real-time monitoring and control</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-6">
+        <!-- Status Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="card rounded-lg shadow-lg p-6">
+                <h3 class="text-gray-600 text-sm font-medium">Node Status</h3>
+                <p class="text-2xl font-bold mt-2">
+                    <span id="node-status" class="status-online">● Online</span>
+                </p>
+                <p class="text-sm text-gray-500 mt-1" id="node-id">Loading...</p>
+            </div>
+            
+            <div class="card rounded-lg shadow-lg p-6">
+                <h3 class="text-gray-600 text-sm font-medium">Connected Peers</h3>
+                <p class="text-3xl font-bold mt-2" id="peer-count">0</p>
+                <p class="text-sm text-gray-500 mt-1">Active connections</p>
+            </div>
+            
+            <div class="card rounded-lg shadow-lg p-6">
+                <h3 class="text-gray-600 text-sm font-medium">Messages</h3>
+                <p class="text-3xl font-bold mt-2">
+                    <span id="message-count">0</span>
+                </p>
+                <p class="text-sm text-gray-500 mt-1">
+                    <span id="messages-sent">0</span> sent / <span id="messages-recv">0</span> received
+                </p>
+            </div>
+            
+            <div class="card rounded-lg shadow-lg p-6">
+                <h3 class="text-gray-600 text-sm font-medium">Uptime</h3>
+                <p class="text-3xl font-bold mt-2" id="uptime">0h 0m</p>
+                <p class="text-sm text-gray-500 mt-1">Since <span id="start-time">-</span></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Network Graph -->
+            <div class="card rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-4">Network Topology</h2>
+                <div class="relative h-96">
+                    <canvas id="network-topology"></canvas>
+                </div>
+            </div>
+
+            <!-- Metrics Chart -->
+            <div class="card rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-4">Network Metrics</h2>
+                <canvas id="metrics-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Peers List -->
+        <div class="card rounded-lg shadow-lg p-6 mt-6">
+            <h2 class="text-xl font-bold mb-4">Connected Peers</h2>
+            <div id="peers-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <p class="text-gray-500 col-span-full">No peers connected</p>
+            </div>
+        </div>
+
+        <!-- DNS Records -->
+        <div class="card rounded-lg shadow-lg p-6 mt-6" id="dns-section" style="display: none;">
+            <h2 class="text-xl font-bold mb-4">DNS Records (.web4ai)</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b">
+                            <th class="text-left py-2">Domain</th>
+                            <th class="text-left py-2">Address</th>
+                            <th class="text-left py-2">TTL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dns-records">
+                        <tr><td colspan="3" class="text-gray-500 py-4">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="card rounded-lg shadow-lg p-6 mt-6">
+            <h2 class="text-xl font-bold mb-4">Control Panel</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="refreshData()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                    Refresh Data
+                </button>
+                <button onclick="showPeerDialog()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
+                    Connect to Peer
+                </button>
+                <button onclick="exportMetrics()" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">
+                    Export Metrics
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connect Peer Dialog -->
+    <div id="peer-dialog" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-96">
+            <h3 class="text-xl font-bold mb-4">Connect to Peer</h3>
+            <input type="text" id="peer-address" placeholder="Enter peer address or .web4ai domain" 
+                   class="w-full border rounded px-3 py-2 mb-4">
+            <div class="flex justify-end gap-2">
+                <button onclick="hidePeerDialog()" class="px-4 py-2 border rounded">Cancel</button>
+                <button onclick="connectPeer()" class="px-4 py-2 bg-blue-500 text-white rounded">Connect</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = window.location.origin;
+        let nodeData = {};
+        let metricsChart = null;
+        let networkCanvas = null;
+        let refreshInterval = null;
+
+        // Initialize dashboard
+        async function init() {
+            console.log('Initializing dashboard...');
+            
+            // Setup charts
+            setupMetricsChart();
+            setupNetworkTopology();
+            
+            // Load initial data
+            await refreshData();
+            
+            // Start auto-refresh
+            refreshInterval = setInterval(refreshData, 5000);
+        }
+
+        // Fetch node data
+        async function refreshData() {
+            try {
+                // Fetch node info
+                const infoRes = await fetch(`${API_BASE}/api/info`);
+                if (infoRes.ok) {
+                    const info = await infoRes.json();
+                    updateNodeInfo(info);
+                }
+
+                // Fetch metrics
+                const metricsRes = await fetch(`${API_BASE}/api/status`);
+                if (metricsRes.ok) {
+                    const metrics = await metricsRes.json();
+                    updateMetrics(metrics);
+                }
+
+                // Fetch peers
+                const peersRes = await fetch(`${API_BASE}/api/peers`);
+                if (peersRes.ok) {
+                    const peers = await peersRes.json();
+                    updatePeers(peers);
+                }
+
+                // Fetch DNS records (if genesis node)
+                const dnsRes = await fetch(`${API_BASE}/api/dns`);
+                if (dnsRes.ok) {
+                    const dns = await dnsRes.json();
+                    updateDNS(dns);
+                }
+            } catch (error) {
+                console.error('Failed to refresh data:', error);
+                document.getElementById('node-status').textContent = '● Offline';
+                document.getElementById('node-status').className = 'status-offline';
+            }
+        }
+
+        // Update node information
+        function updateNodeInfo(info) {
+            document.getElementById('node-id').textContent = info.node_id || 'Unknown';
+            document.getElementById('node-status').textContent = '● Online';
+            document.getElementById('node-status').className = 'status-online';
+            
+            if (info.is_genesis) {
+                document.getElementById('dns-section').style.display = 'block';
+            }
+        }
+
+        // Update metrics
+        function updateMetrics(metrics) {
+            // Update counters
+            document.getElementById('peer-count').textContent = metrics.peers || 0;
+            document.getElementById('messages-sent').textContent = metrics.messages_sent || 0;
+            document.getElementById('messages-recv').textContent = metrics.messages_received || 0;
+            document.getElementById('message-count').textContent = 
+                (metrics.messages_sent || 0) + (metrics.messages_received || 0);
+            
+            // Update uptime
+            if (metrics.uptime) {
+                const hours = Math.floor(metrics.uptime / 3600);
+                const minutes = Math.floor((metrics.uptime % 3600) / 60);
+                document.getElementById('uptime').textContent = `${hours}h ${minutes}m`;
+            }
+            
+            // Update metrics chart
+            if (metricsChart && metrics.bandwidth_in !== undefined) {
+                const now = new Date();
+                metricsChart.data.labels.push(now.toLocaleTimeString());
+                metricsChart.data.datasets[0].data.push(metrics.bandwidth_in / 1024); // KB
+                metricsChart.data.datasets[1].data.push(metrics.bandwidth_out / 1024); // KB
+                
+                // Keep only last 20 points
+                if (metricsChart.data.labels.length > 20) {
+                    metricsChart.data.labels.shift();
+                    metricsChart.data.datasets[0].data.shift();
+                    metricsChart.data.datasets[1].data.shift();
+                }
+                
+                metricsChart.update();
+            }
+        }
+
+        // Update peers list
+        function updatePeers(peers) {
+            const peersList = document.getElementById('peers-list');
+            
+            if (!peers || peers.length === 0) {
+                peersList.innerHTML = '<p class="text-gray-500 col-span-full">No peers connected</p>';
+                return;
+            }
+            
+            peersList.innerHTML = peers.map(peer => `
+                <div class="peer-node border rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold">${peer.id.substring(0, 16)}...</p>
+                            <p class="text-sm text-gray-600">${peer.address}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm">Latency: ${peer.latency || '-'}ms</p>
+                            <p class="text-sm">Rep: ${peer.reputation || 1.0}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update DNS records
+        function updateDNS(records) {
+            const tbody = document.getElementById('dns-records');
+            
+            if (!records || Object.keys(records).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-gray-500 py-4">No DNS records</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = Object.entries(records).map(([domain, address]) => `
+                <tr class="border-b">
+                    <td class="py-2 font-mono">${domain}</td>
+                    <td class="py-2 text-sm">${address}</td>
+                    <td class="py-2">3600s</td>
+                </tr>
+            `).join('');
+        }
+
+        // Setup metrics chart
+        function setupMetricsChart() {
+            const ctx = document.getElementById('metrics-chart').getContext('2d');
+            metricsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Bandwidth In (KB/s)',
+                        data: [],
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Bandwidth Out (KB/s)',
+                        data: [],
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Setup network topology visualization
+        function setupNetworkTopology() {
+            const canvas = document.getElementById('network-topology');
+            const ctx = canvas.getContext('2d');
+            
+            // Simple network visualization
+            // This would be enhanced with actual peer connections
+            ctx.fillStyle = '#667eea';
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, 20, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#333';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('This Node', canvas.width / 2, canvas.height / 2 + 40);
+        }
+
+        // Dialog functions
+        function showPeerDialog() {
+            document.getElementById('peer-dialog').classList.remove('hidden');
+            document.getElementById('peer-dialog').classList.add('flex');
+        }
+
+        function hidePeerDialog() {
+            document.getElementById('peer-dialog').classList.add('hidden');
+            document.getElementById('peer-dialog').classList.remove('flex');
+            document.getElementById('peer-address').value = '';
+        }
+
+        async function connectPeer() {
+            const address = document.getElementById('peer-address').value;
+            if (!address) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/connect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address })
+                });
+                
+                if (response.ok) {
+                    hidePeerDialog();
+                    setTimeout(refreshData, 1000);
+                } else {
+                    alert('Failed to connect to peer');
+                }
+            } catch (error) {
+                alert('Connection error: ' + error.message);
+            }
+        }
+
+        function exportMetrics() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                node: nodeData,
+                metrics: {
+                    peers: document.getElementById('peer-count').textContent,
+                    messages_sent: document.getElementById('messages-sent').textContent,
+                    messages_received: document.getElementById('messages-recv').textContent,
+                    uptime: document.getElementById('uptime').textContent
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `csp-metrics-${Date.now()}.json`;
+            a.click();
+        }
+
+        // Start the dashboard
+        window.addEventListener('load', init);
+        
+        // Cleanup on unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

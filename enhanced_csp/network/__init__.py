@@ -18,7 +18,7 @@ import logging
 from typing import Optional, Dict, Any
 from pathlib import Path
 
-from enhanced_csp.network.core.types import NetworkConfig, NodeID
+from enhanced_csp.network.core import NetworkConfig, NodeID
 from enhanced_csp.network.core.node import NetworkNode
 from enhanced_csp.config import settings
 

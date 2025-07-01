@@ -1,13 +1,16 @@
+
 """Core network components."""
-from .node import NetworkConfig, EnhancedCSPNetwork
+from .config import NetworkConfig, SecurityConfig
+from .node import NetworkNode, EnhancedCSPNetwork
 from .types import NodeID, NodeCapabilities, MessageType, PeerInfo
 
 __all__ = [
     'NetworkConfig',
+    'SecurityConfig',
+    'NetworkNode',
     'EnhancedCSPNetwork',
     'NodeID',
     'NodeCapabilities',
     'MessageType',
-    'EnhancedCSPNetwork',
     'PeerInfo'
 ]
