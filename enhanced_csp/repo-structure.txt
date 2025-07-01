@@ -45,7 +45,8 @@
 │   │   │   ├── licenses.py
 │   │   │   ├── protected_example.py
 │   │   │   └── settings.py
-│   │   └── __init__.py
+│   │   ├── __init__.py
+│   │   └── network_api.md
 │   ├── auth
 │   │   ├── auth_system.py
 │   │   ├── azure_auth.py
@@ -67,15 +68,19 @@
 │   │           └── 01-init-vector-db.sql
 │   ├── .env
 │   ├── .env.example
+│   ├── examples
+│   │   └── distributed_execution.py
 │   ├── execution
 │   │   └── execution_engine.py
 │   ├── .gitignore
 │   ├── __init__.py
+│   ├── main_network_integration.py
 │   ├── main.py
 │   ├── main.py.backup.20250624_210013
 │   ├── main.py.backup.20250625_200200
 │   ├── main.py.backup.cors.20250625_195018
 │   ├── main.py.backup.dedup.20250625_201535
+│   ├── main.py.backup.network.20250701_104219
 │   ├── main.py.backup.structure.20250625_200531
 │   ├── middleware
 │   │   └── auth_middleware.py
@@ -84,14 +89,18 @@
 │   │   └── license.py
 │   ├── monitoring
 │   │   └── performance.py
+│   ├── network_integration.py
 │   ├── realtime
-│   │   └── websocket_manager.py
+│   │   ├── websocket_manager.py
+│   │   └── websocket_network_integration.py
 │   ├── schemas
 │   │   └── api_schemas.py
-│   └── services
-│       ├── auth
-│       │   └── jwt_service.py
-│       └── vector_database.py
+│   ├── services
+│   │   ├── auth
+│   │   │   └── jwt_service.py
+│   │   └── vector_database.py
+│   └── tests
+│       └── test_network_integration.py
 ├── backend_implementation_roadmap.md
 ├── backups
 │   ├── =1.11.0
@@ -213,6 +222,7 @@
 │   ├── csp_implementation_guide.py
 │   └── manage.py
 ├── complete_documentation.md
+├── complete-network-integration.sh
 ├── config
 │   ├── bootstrap.yaml
 │   ├── certificates
@@ -311,6 +321,7 @@
 ├── .env.docker
 ├── .env.docker.backup.20250626_203713
 ├── fix-imports-script.sh
+├── fix-main-indentation.sh
 ├── frontend
 │   ├── assets
 │   ├── components
@@ -477,6 +488,7 @@
 ├── implementation_guide.txt
 ├── import_test.py
 ├── __init__.py
+├── integrate-network-backend.sh
 ├── integration_tests_complete.py
 ├── jwt_secret.txt
 ├── legacy
@@ -569,6 +581,7 @@
 │   ├── advanced_algorithms.py
 │   └── __init__.py
 ├── quantum_csp_engine.py
+├── quick-fix-indent.sh
 ├── readme.md
 ├── realtime_csp_visualizer.py
 ├── repo-structure.txt
@@ -643,4 +656,4 @@
     ├── postgres
     └── redis
 
-221 directories, 422 files
+223 directories, 433 files
