@@ -268,6 +268,8 @@ class Settings(BaseSettings):
     enable_websockets: bool = Field(default=True)
     enable_authentication: bool = Field(default=True)
     enable_file_upload: bool = Field(default=True)
+    # Monitoring feature flag
+    MONITORING_ENABLED: bool = Field(default=False)
     
     # Configuration sections
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
