@@ -1,0 +1,68 @@
+# .github/workflows/network-tests.yml
+name: Network Optimization Tests
+
+on:
+  push:
+    paths:
+      - 'enhanced_csp/network/**'
+      - 'tests/network/**'
+  pull_request:
+    paths:
+      - 'enhanced_csp/network/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10, 3.11]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install hypothesis pytest-benchmark
+    
+    - name: Run standard tests
+      run: |
+        pytest tests/network/ -v --cov=enhanced_csp.network
+    
+    - name: Run linting
+      run: |
+        ruff check enhanced_csp/network/
+        mypy enhanced_csp/network/ --strict
+    
+    - name: Run benchmarks
+      run: |
+        pytest tests/network/benchmarks/ -v --benchmark-only
+
+  test-large:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[test-large]')
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run large tests
+      run: |
+        pytest tests/network/ -v -m large --maxfail=1
+    
+    - name: Generate performance report
+      run: |
+        py-spy record -o flame.svg -- python tests/network/perf_test.py
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-reports
+        path: |
+          flame.svg
+          *.profile

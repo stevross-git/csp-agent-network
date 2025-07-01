@@ -1,0 +1,205 @@
+{
+  "dashboard": {
+    "title": "CSP Network Optimization Dashboard",
+    "uid": "csp-network-opt",
+    "version": 1,
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Network Throughput",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(csp_messages_sent_total[5m]) * 60",
+            "legendFormat": "{{channel}} - Success",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(csp_messages_failed_total[5m]) * 60",
+            "legendFormat": "{{channel}} - Failed",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [{"format": "short", "label": "Messages/min"}]
+      },
+      {
+        "title": "Compression Efficiency",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "csp_compression_ratio",
+            "legendFormat": "{{channel}} - Ratio",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(csp_compression_bytes_saved_total[5m])",
+            "legendFormat": "{{channel}} - Bytes/sec saved",
+            "refId": "B",
+            "yaxis": 2
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Compression Ratio"},
+          {"format": "Bps", "label": "Bandwidth Saved"}
+        ]
+      },
+      {
+        "title": "Queue Health",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "csp_queue_size{queue=\"batch\"}",
+            "legendFormat": "{{channel}} - Batch Queue",
+            "refId": "A"
+          },
+          {
+            "expr": "csp_queue_size{queue=\"retry\"}",
+            "legendFormat": "{{channel}} - Retry Queue",
+            "refId": "B"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [8000], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "name": "Batch Queue Saturation",
+          "message": "Batch queue >80% full for {{channel}}"
+        }
+      },
+      {
+        "title": "Latency Distribution",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(csp_message_latency_bucket[5m]))",
+            "format": "heatmap",
+            "legendFormat": "{{le}}",
+            "refId": "A"
+          }
+        ],
+        "dataFormat": "tsbuckets"
+      },
+      {
+        "title": "Connection Pool Status",
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 16},
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "csp_connections_active",
+            "legendFormat": "{{channel}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "fieldOptions": {
+            "thresholds": [
+              {"value": 0, "color": "green"},
+              {"value": 50, "color": "yellow"},
+              {"value": 80, "color": "red"}
+            ]
+          }
+        }
+      },
+      {
+        "title": "Batch Size Efficiency",
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 16},
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "csp_batch_size_average",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 20, "color": "yellow"},
+                {"value": 50, "color": "green"}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "title": "Adaptive Optimizer Status",
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 16},
+        "type": "table",
+        "targets": [
+          {
+            "expr": "csp_optimizer_params",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showHeader": true
+        }
+      },
+      {
+        "title": "Ring Buffer Health",
+        "gridPos": {"h": 4, "w": 24, "x": 0, "y": 22},
+        "type": "alert-list",
+        "options": {
+          "alertName": "Ring Buffer Near Full",
+          "dashboardAlerts": true,
+          "stateFilter": {
+            "ok": false,
+            "paused": false,
+            "no_data": false,
+            "execution_error": false,
+            "alerting": true,
+            "pending": true
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "channel",
+          "type": "query",
+          "query": "label_values(csp_messages_sent_total, channel)",
+          "regex": "/^(?!test_).*/",
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "changes(csp_optimizer_params[5m]) > 0",
+          "name": "Optimizer Changes",
+          "tagKeys": "channel,param",
+          "textFormat": "Optimizer adjusted {{param}} for {{channel}}"
+        }
+      ]
+    },
+    "refresh": "30s",
+    "time": {"from": "now-1h", "to": "now"}
+  }
+}

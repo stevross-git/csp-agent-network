@@ -292,3 +292,14 @@ pulumi
 autopep8
 rope
 jedi
+
+
+aiohttp>=3.8.0
+aiodns>=3.0.0
+msgpack>=1.0.0
+lz4>=4.0.0
+python-snappy>=0.6.0
+zstandard>=0.18.0
+brotli>=1.0.0
+psutil>=5.9.0
+prometheus-client>=0.15.0

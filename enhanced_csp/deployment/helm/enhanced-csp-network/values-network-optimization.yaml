@@ -1,0 +1,119 @@
+# helm/enhanced-csp-network/values-network-optimization.yaml
+networkOptimization:
+  enabled: true
+  
+  config:
+    compression:
+      default_algorithm: "lz4"
+      min_size_bytes: 256
+      max_decompress_mb: 100
+      dictionary_training: true
+    
+    batching:
+      max_size: 100
+      max_bytes: 1048576
+      max_wait_ms: 50
+      queue_size: 10000
+      adaptive: true
+    
+    connection_pool:
+      min: 10
+      max: 100
+      keepalive_timeout: 300
+      http2: true
+      dns_ttl: 30  # Short for K8s
+    
+    adaptive:
+      enabled: true
+      observe_only: false  # Set true for initial rollout
+      interval_seconds: 10
+
+# Additional service monitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  path: /metrics
+  labels:
+    prometheus: kube-prometheus
+  
+  # Add relabeling to control cardinality
+  relabelings:
+    - sourceLabels: [channel]
+      regex: "test_.*|temp_.*"
+      action: drop
+    - sourceLabels: [__name__]
+      regex: "csp_.*_bucket"
+      targetLabel: __tmp_histogram
+      replacement: true
+
+# Network policies for security
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - port: metrics
+          protocol: TCP
+  
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 80
+          protocol: TCP
+    - to:  # DNS
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+
+# Resource adjustments for optimization components
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "2000m"
+
+# HPA with custom metrics
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Pods
+      pods:
+        metric:
+          name: csp_queue_size
+        target:
+          type: AverageValue
+          averageValue: "1000"
+
+# PodDisruptionBudget for graceful rollouts
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# ConfigMap for runtime tuning
+configMap:
+  data:
+    network-optimization.yaml: |
+      {{ .Values.networkOptimization.config | toYaml | nindent 6 }}

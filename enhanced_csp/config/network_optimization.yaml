@@ -1,0 +1,44 @@
+# config/network_optimization.yaml
+network:
+  optimization:
+    enabled: true
+    
+    compression:
+      default_algorithm: "lz4"  # snappy for latency, zstd for ratio
+      min_size_bytes: 256
+      max_decompress_mb: 100
+      dictionary_training: true
+      skip_mimes:
+        - "image/*"
+        - "video/*"
+        - "application/zip"
+    
+    batching:
+      max_size: 100
+      max_bytes: 1048576
+      max_wait_ms: 50
+      queue_size: 10000
+      adaptive: true
+    
+    connection_pool:
+      min: 10
+      max: 100
+      keepalive_timeout: 300
+      http2: true
+      health_check_interval: 30
+    
+    protocol:
+      version: 1
+      max_message_mb: 16
+    
+    adaptive:
+      enabled: true
+      interval_seconds: 10
+      cpu_threshold: 70
+      latency_target_ms: 50
+      error_threshold: 0.05
+    
+    retry:
+      max_attempts: 5
+      backoff: "exponential"
+      max_backoff_seconds: 60
