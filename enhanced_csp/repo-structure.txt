@@ -1,5 +1,4 @@
 .
-├── advanced_security_engine.py
 ├── agents
 │   ├── base.py
 │   ├── cleaner.py
@@ -20,13 +19,11 @@
 ├── applications
 │   ├── csp_real_world_showcase.py
 │   └── real_world.py
-├── autonomous_system_controller.py
 ├── backend
 │   ├── ai
 │   │   ├── ai_coordination_engine.py
 │   │   ├── ai_integration.py
 │   │   ├── consciousness_sync.py
-│   │   ├── emergence-detection.py
 │   │   ├── emergence_detection.py
 │   │   ├── __init__.py
 │   │   ├── quantum_knowledge.py
@@ -35,15 +32,10 @@
 │   ├── api
 │   │   ├── ai_models.py
 │   │   ├── endpoints
-│   │   │   ├── ai_coordination_monitoring.py
 │   │   │   ├── ai_coordination.py
-│   │   │   ├── ai_coordination.py.backup.20250625_194642
-│   │   │   ├── ai_coordination.py.backup.20250625_194654
-│   │   │   ├── ai_coordination.py.backup.fix.20250625_195018
 │   │   │   ├── designs.py
 │   │   │   ├── infrastructure.py
 │   │   │   ├── licenses.py
-│   │   │   ├── protected_example.py
 │   │   │   └── settings.py
 │   │   ├── __init__.py
 │   │   └── network_api.md
@@ -74,14 +66,7 @@
 │   │   └── execution_engine.py
 │   ├── .gitignore
 │   ├── __init__.py
-│   ├── main_network_integration.py
 │   ├── main.py
-│   ├── main.py.backup.20250624_210013
-│   ├── main.py.backup.20250625_200200
-│   ├── main.py.backup.cors.20250625_195018
-│   ├── main.py.backup.dedup.20250625_201535
-│   ├── main.py.backup.network.20250701_104219
-│   ├── main.py.backup.structure.20250625_200531
 │   ├── middleware
 │   │   └── auth_middleware.py
 │   ├── models
@@ -89,7 +74,6 @@
 │   │   └── license.py
 │   ├── monitoring
 │   │   └── performance.py
-│   ├── network_integration.py
 │   ├── realtime
 │   │   ├── websocket_manager.py
 │   │   └── websocket_network_integration.py
@@ -114,9 +98,6 @@
 │   ├── 20250626_202009
 │   ├── 20250626_202338
 │   ├── =3.1
-│   ├── add_monitoring_script.sh
-│   ├── admin.html.backup.20250624_112800
-│   ├── ai-agents.html.backup.20250624_112800
 │   ├── azure-quickstart
 │   │   ├── package.json
 │   │   ├── package-lock.json
@@ -170,59 +151,130 @@
 │   │   ├── security_dashboard.html.backup.20250624_203426
 │   │   ├── security.html.backup.20250624_203426
 │   │   └── web_dashboard_ui.html.backup.20250624_203427
-│   ├── csp_admin_portal.html.backup.20250624_112801
 │   ├── css
 │   │   └── developer_tools.css
-│   ├── debug-auth-loop.sh
-│   ├── debug-login-loop.sh
-│   ├── deploy-auth-protection.sh
-│   ├── deploy_auth.sh
-│   ├── deployment_configurations (1).txt
-│   ├── deployment_configurations.txt
-│   ├── designer.html.backup.20250624_112801
-│   ├── developer_tools.html.backup.20250624_112801
-│   ├── enhanced_deploy_auth.sh
-│   ├── fix_ai_modules.sh
-│   ├── fix-api-base-url.sh
-│   ├── fix-backend-conflicts.sh
-│   ├── fix_cors_and_endpoints.sh
-│   ├── fix_frontend_api_config.sh
-│   ├── fix_main_py_structure.sh
-│   ├── fix_metrics.py
-│   ├── fix_sqlite.py
-│   ├── fix_syntax_error.sh
-│   ├── login.html.backup
-│   ├── login.html.backup1
-│   ├── memory.html.backup.20250624_112801
-│   ├── monitoring.html.backup.20250624_112801
-│   ├── performance.html.backup.20250624_112801
-│   ├── precise_uvloop_fix.py
-│   ├── production_deployment_script.sh
-│   ├── quick_cors_fix.sh
-│   ├── remove_duplicate_cors.py
-│   ├── security_dashboard.html.backup.20250624_112801
-│   ├── security.html.backup.20250624_112801
-│   ├── setup-azure-ad.sh
-│   ├── setup_local_msal.sh
 │   ├── templates
 │   │   └── web_ui
 │   │       ├── developer_tools1.html
 │   │       └── developer_tools-mini.html
-│   ├── update_redirects.sh
-│   ├── verify-auth-deployment.sh
-│   ├── web_dashboard_ui.html.backup.20250624_112801
-│   ├── web_server.py
+│   ├── unused_20250701_112246
+│   │   ├── advanced_security_engine.py
+│   │   ├── autonomous_system_controller.py
+│   │   ├── backend
+│   │   │   ├── ai
+│   │   │   │   └── emergence-detection.py
+│   │   │   ├── api
+│   │   │   │   └── endpoints
+│   │   │   │       ├── ai_coordination_monitoring.py
+│   │   │   │       ├── ai_coordination.py.backup.20250625_194642
+│   │   │   │       ├── ai_coordination.py.backup.20250625_194654
+│   │   │   │       ├── ai_coordination.py.backup.fix.20250625_195018
+│   │   │   │       └── protected_example.py
+│   │   │   ├── main_network_integration.py
+│   │   │   ├── main.py.backup.20250624_210013
+│   │   │   ├── main.py.backup.20250625_200200
+│   │   │   ├── main.py.backup.cors.20250625_195018
+│   │   │   ├── main.py.backup.dedup.20250625_201535
+│   │   │   ├── main.py.backup.network.20250701_104219
+│   │   │   ├── main.py.backup.structure.20250625_200531
+│   │   │   └── network_integration.py
+│   │   ├── backups
+│   │   │   ├── add_monitoring_script.sh
+│   │   │   ├── admin.html.backup.20250624_112800
+│   │   │   ├── ai-agents.html.backup.20250624_112800
+│   │   │   ├── csp_admin_portal.html.backup.20250624_112801
+│   │   │   ├── debug-auth-loop.sh
+│   │   │   ├── debug-login-loop.sh
+│   │   │   ├── deploy-auth-protection.sh
+│   │   │   ├── deploy_auth.sh
+│   │   │   ├── deployment_configurations (1).txt
+│   │   │   ├── deployment_configurations.txt
+│   │   │   ├── designer.html.backup.20250624_112801
+│   │   │   ├── developer_tools.html.backup.20250624_112801
+│   │   │   ├── enhanced_deploy_auth.sh
+│   │   │   ├── fix_ai_modules.sh
+│   │   │   ├── fix-api-base-url.sh
+│   │   │   ├── fix-backend-conflicts.sh
+│   │   │   ├── fix_cors_and_endpoints.sh
+│   │   │   ├── fix_frontend_api_config.sh
+│   │   │   ├── fix_main_py_structure.sh
+│   │   │   ├── fix_metrics.py
+│   │   │   ├── fix_sqlite.py
+│   │   │   ├── fix_syntax_error.sh
+│   │   │   ├── login.html.backup
+│   │   │   ├── login.html.backup1
+│   │   │   ├── memory.html.backup.20250624_112801
+│   │   │   ├── monitoring.html.backup.20250624_112801
+│   │   │   ├── performance.html.backup.20250624_112801
+│   │   │   ├── precise_uvloop_fix.py
+│   │   │   ├── production_deployment_script.sh
+│   │   │   ├── quick_cors_fix.sh
+│   │   │   ├── remove_duplicate_cors.py
+│   │   │   ├── security_dashboard.html.backup.20250624_112801
+│   │   │   ├── security.html.backup.20250624_112801
+│   │   │   ├── setup-azure-ad.sh
+│   │   │   ├── setup_local_msal.sh
+│   │   │   ├── update_redirects.sh
+│   │   │   ├── verify-auth-deployment.sh
+│   │   │   ├── web_dashboard_ui.html.backup.20250624_112801
+│   │   │   └── web_server.py
+│   │   ├── cleanup_report.txt
+│   │   ├── complete-network-integration.sh
+│   │   ├── core_csp_implementation.py
+│   │   ├── csp-benchmark-suite.py
+│   │   ├── csp-integration-tests-complete.py
+│   │   ├── deployment
+│   │   │   └── docker
+│   │   │       └── database
+│   │   │           └── docker-compose.yml.backup.20250626_201307
+│   │   ├── docker-compose.yml.broken.20250626_201623
+│   │   ├── docker-compose.yml.broken.20250626_202026
+│   │   ├── docker-compose.yml.broken.20250626_202128
+│   │   ├── docker-compose.yml.broken.20250626_202136
+│   │   ├── .env.docker.backup.20250626_203713
+│   │   ├── fix-imports-script.sh
+│   │   ├── fix-main-indentation.sh
+│   │   ├── frontend
+│   │   │   ├── .envbackup
+│   │   │   ├── js
+│   │   │   │   └── auth-protection.js-backup
+│   │   │   ├── pages
+│   │   │   │   ├── admin-portal.test.js
+│   │   │   │   ├── designer.html.backup
+│   │   │   │   ├── login.html.backup
+│   │   │   │   └── monitoring.html.backup
+│   │   │   ├── page_scanner.py
+│   │   │   ├── test-server.py
+│   │   │   └── test-server.py.backup
+│   │   ├── import_test.py
+│   │   ├── integrate-network-backend.sh
+│   │   ├── integration_tests_complete.py
+│   │   ├── legacy
+│   │   │   └── complete_csp_stub.py
+│   │   ├── migration_script.sh
+│   │   ├── multimodal_ai_hub.py
+│   │   ├── neural_csp_optimizer.py
+│   │   ├── performance_optimization.py
+│   │   ├── quick-fix-indent.sh
+│   │   ├── realtime_csp_visualizer.py
+│   │   ├── restore.sh
+│   │   ├── scripts
+│   │   │   └── docker-compose.yml.broken.20250626_195450
+│   │   ├── setup-network-modules.sh
+│   │   ├── setup-secure-databases.sh
+│   │   ├── test-secure-connections.py
+│   │   └── test_server_start.py
 │   └── web_ui
 │       ├── dashboard
 │       │   ├── app.py
 │       │   └── __init__.py
 │       └── __init__.py
 ├── blockchain_csp_network.py
+├── cleanup_unused_files.sh
 ├── cli
 │   ├── csp_implementation_guide.py
 │   └── manage.py
 ├── complete_documentation.md
-├── complete-network-integration.sh
 ├── config
 │   ├── bootstrap.yaml
 │   ├── certificates
@@ -237,10 +289,7 @@
 │   └── system.yaml
 ├── core
 │   └── advanced_csp_core.py
-├── core_csp_implementation.py
 ├── csp_audit_json.json
-├── csp-benchmark-suite.py
-├── csp-integration-tests-complete.py
 ├── csp_system.egg-info
 │   ├── dependency_links.txt
 │   ├── entry_points.txt
@@ -297,8 +346,7 @@
 │   ├── docker
 │   │   ├── comprehensive_docker_setup.txt
 │   │   ├── database
-│   │   │   ├── docker-compose.yml
-│   │   │   └── docker-compose.yml.backup.20250626_201307
+│   │   │   └── docker-compose.yml
 │   │   ├── docker-compose.secure.yml
 │   │   ├── docker_compose.txt
 │   │   ├── docker_deployment_configs.txt
@@ -311,17 +359,10 @@
 │   └── csp_dev_tools.py
 ├── docker-compose.override.yml
 ├── .docker-compose-path
-├── docker-compose.yml.broken.20250626_201623
-├── docker-compose.yml.broken.20250626_202026
-├── docker-compose.yml.broken.20250626_202128
-├── docker-compose.yml.broken.20250626_202136
 ├── docs
 │   ├── csp_revolutionary_summary.md
 │   └── documentation_and_webui.md
 ├── .env.docker
-├── .env.docker.backup.20250626_203713
-├── fix-imports-script.sh
-├── fix-main-indentation.sh
 ├── frontend
 │   ├── assets
 │   ├── components
@@ -363,7 +404,6 @@
 │   │           └── userManagement.cy.js
 │   ├── data
 │   ├── .env
-│   ├── .envbackup
 │   ├── .env.example
 │   ├── .gitignore
 │   ├── hooks
@@ -371,7 +411,6 @@
 │   ├── js
 │   │   ├── auth_middleware.js
 │   │   ├── auth-protection.js
-│   │   ├── auth-protection.js-backup
 │   │   ├── auth-wrapper.js
 │   │   ├── available-pages.js
 │   │   ├── pages
@@ -446,23 +485,19 @@
 │   ├── package-lock.json
 │   ├── pages
 │   │   ├── admin.html
-│   │   ├── admin-portal.test.js
 │   │   ├── ai-agents-dashboard.html
 │   │   ├── ai-agents.html
 │   │   ├── csp_admin_portal.html
 │   │   ├── Dashboard.js
 │   │   ├── designer.html
-│   │   ├── designer.html.backup
 │   │   ├── developer_tools.html
 │   │   ├── frontend-performance-dashboard.html
 │   │   ├── index.html
 │   │   ├── LoadingSpinner.js
 │   │   ├── login.html
-│   │   ├── login.html.backup
 │   │   ├── LoginPage.js
 │   │   ├── memory.html
 │   │   ├── monitoring.html
-│   │   ├── monitoring.html.backup
 │   │   ├── og-admin.html
 │   │   ├── performance.html
 │   │   ├── security_dashboard.html
@@ -470,7 +505,6 @@
 │   │   ├── UnauthorizedPage.js
 │   │   ├── web_dashboard_ui.html
 │   │   └── website-refactor-strategy.md
-│   ├── page_scanner.py
 │   ├── README.md
 │   ├── repo-structure.txt
 │   ├── services
@@ -481,18 +515,12 @@
 │   │   └── sessionService.js
 │   ├── stores
 │   │   └── appStore.js
-│   ├── test-server.py
-│   ├── test-server.py.backup
 │   └── utils
 │       └── roleUtils.js
 ├── implementation_guide.txt
-├── import_test.py
 ├── __init__.py
-├── integrate-network-backend.sh
-├── integration_tests_complete.py
 ├── jwt_secret.txt
 ├── legacy
-│   ├── complete_csp_stub.py
 │   └── __init__.py
 ├── logs
 │   ├── application
@@ -505,7 +533,6 @@
 ├── memory
 │   ├── chroma_store.py
 │   └── __init__.py
-├── migration_script.sh
 ├── monitoring
 │   ├── alertmanager
 │   │   ├── alertmanager.yml
@@ -538,7 +565,6 @@
 │   │   ├── config
 │   │   └── promtail.yml
 │   └── webhook_server.py
-├── multimodal_ai_hub.py
 ├── network
 │   ├── core
 │   │   ├── config.py
@@ -572,8 +598,6 @@
 │   │   └── multipath.py
 │   └── tests
 │       └── test_network_stack.py
-├── neural_csp_optimizer.py
-├── performance_optimization.py
 ├── protocols
 │   ├── csp.py
 │   └── __init__.py
@@ -581,9 +605,7 @@
 │   ├── advanced_algorithms.py
 │   └── __init__.py
 ├── quantum_csp_engine.py
-├── quick-fix-indent.sh
 ├── readme.md
-├── realtime_csp_visualizer.py
 ├── repo-structure.txt
 ├── requirements-dev.txt
 ├── requirements.txt
@@ -614,7 +636,6 @@
 │   ├── deploy_monitoring.sh
 │   ├── .docker-compose-path
 │   ├── docker-compose.yml
-│   ├── docker-compose.yml.broken.20250626_195450
 │   ├── enhanced-setup.sh
 │   ├── .env.docker
 │   ├── fix-docker-setup.sh
@@ -637,8 +658,6 @@
 │   └── testing
 ├── security_hardening.py
 ├── services
-├── setup-network-modules.sh
-├── setup-secure-databases.sh
 ├── static
 ├── testing
 │   ├── __init__.py
@@ -647,8 +666,6 @@
 ├── tests
 │   ├── conftest.py
 │   └── test_ai_coordination_performance.py
-├── test-secure-connections.py
-├── test_server_start.py
 └── volumes
     ├── elasticsearch
     ├── influxdb
@@ -656,4 +673,4 @@
     ├── postgres
     └── redis
 
-223 directories, 433 files
+237 directories, 436 files
