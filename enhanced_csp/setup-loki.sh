@@ -46,8 +46,8 @@ echo "Updating docker-compose file..."
 if ! grep -q "loki:" monitoring/docker-compose.monitoring.yml 2>/dev/null; then
     echo "Adding Loki services to docker-compose.monitoring.yml..."
     
-    # Add Loki services before the volumes section
-    sed -i '/^volumes:/i \
+    # Add Loki services before the networks section
+    sed -i '/^networks:/i \
   loki:\
     image: grafana/loki:latest\
     container_name: csp_loki\

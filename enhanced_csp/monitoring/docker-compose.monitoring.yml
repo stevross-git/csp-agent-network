@@ -95,10 +95,6 @@ services:
       - scripts_csp-network
     restart: unless-stopped
 
-networks:
-  scripts_csp-network:
-    external: true
-
   loki:
     image: grafana/loki:latest
     container_name: csp_loki
@@ -133,6 +129,10 @@ networks:
     restart: unless-stopped
     depends_on:
       - loki
+
+networks:
+  scripts_csp-network:
+    external: true
 
 volumes:
   loki_data:
