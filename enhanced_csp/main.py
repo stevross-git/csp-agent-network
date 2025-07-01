@@ -712,10 +712,15 @@ async def initialize_csp_system():
             logger.info("✅ Development tools initialized (fallback mode)")
         
         # 6. Initialize monitoring
-        if MONITORING_AVAILABLE:
-            system_state.monitor = CSPMonitor()
-            await system_state.monitor.start()
+        from backend.config.settings import settings
+        if settings.MONITORING_ENABLED:
+            from monitoring.csp_monitoring import get_default
+            monitoring_system = get_default()
+            await monitoring_system.initialize()
+            system_state.monitor = monitoring_system
             logger.info("✅ Monitoring system initialized")
+        else:
+            logger.info("ℹ️  Monitoring disabled by config")
         
         logger.info("✅ Enhanced CSP System initialization completed")
         
