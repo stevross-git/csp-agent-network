@@ -7,10 +7,114 @@ import os
 import yaml
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
+from dataclasses import dataclass, field
 import logging
 
 logger = logging.getLogger(__name__)
+
+@dataclass
+class NetworkOptimizationConfig:
+    """Network optimization configuration"""
+    enabled: bool = True
+    compression: Dict[str, Any] = field(default_factory=lambda: {
+        'default_algorithm': 'lz4',
+        'min_size_bytes': 256,
+        'max_decompress_mb': 100
+    })
+    batching: Dict[str, Any] = field(default_factory=lambda: {
+        'max_size': 100,
+        'max_bytes': 1048576,
+        'max_wait_ms': 50,
+        'queue_size': 10000
+    })
+    connection_pool: Dict[str, Any] = field(default_factory=lambda: {
+        'min': 10,
+        'max': 100,
+        'keepalive_timeout': 300,
+        'http2': True
+    })
+    adaptive: Dict[str, Any] = field(default_factory=lambda: {
+        'enabled': True,
+        'interval_seconds': 10
+    })
+
+@dataclass
+class CSPSettings:
+    """Main CSP configuration settings"""
+    # Core settings
+    project_name: str = "Enhanced CSP"
+    version: str = "1.0.0"
+    debug: bool = False
+    
+    # Network settings
+    host: str = "0.0.0.0"
+    port: int = 8080
+    
+    # Agent settings
+    agent_default_timeout: int = 300
+    agent_max_retries: int = 3
+    
+    # Channel settings
+    channel_default_pattern: str = "neural_mesh"
+    channel_max_message_size: int = 16 * 1024 * 1024  # 16MB
+    
+    # Network optimization
+    network_optimization: NetworkOptimizationConfig = field(default_factory=NetworkOptimizationConfig)
+    
+    # Storage settings
+    data_dir: Path = Path("./data")
+    log_dir: Path = Path("./logs")
+    
+    # Security settings
+    jwt_secret_key: str = ""
+    jwt_algorithm: str = "HS256"
+    jwt_expiration_delta: int = 3600
+    
+    # External services
+    redis_url: Optional[str] = None
+    database_url: Optional[str] = None
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CSPSettings':
+        """Create settings from dictionary"""
+        # Handle nested network optimization config
+        if 'network_optimization' in data and isinstance(data['network_optimization'], dict):
+            data['network_optimization'] = NetworkOptimizationConfig(**data['network_optimization'])
+        return cls(**data)
+    
+    @classmethod
+    def from_env(cls) -> 'CSPSettings':
+        """Create settings from environment variables"""
+        settings = cls()
+        
+        # Override with environment variables
+        env_mappings = {
+            'CSP_DEBUG': ('debug', lambda x: x.lower() == 'true'),
+            'CSP_HOST': ('host', str),
+            'CSP_PORT': ('port', int),
+            'CSP_JWT_SECRET_KEY': ('jwt_secret_key', str),
+            'CSP_REDIS_URL': ('redis_url', str),
+            'CSP_DATABASE_URL': ('database_url', str),
+            'CSP_NETWORK_OPT_ENABLED': ('network_optimization.enabled', lambda x: x.lower() == 'true'),
+            'CSP_COMPRESSION_ALGORITHM': ('network_optimization.compression.default_algorithm', str),
+        }
+        
+        for env_key, (attr_path, converter) in env_mappings.items():
+            if env_key in os.environ:
+                value = converter(os.environ[env_key])
+                
+                # Handle nested attributes
+                if '.' in attr_path:
+                    parts = attr_path.split('.')
+                    obj = settings
+                    for part in parts[:-1]:
+                        obj = getattr(obj, part)
+                    setattr(obj, parts[-1], value)
+                else:
+                    setattr(settings, attr_path, value)
+        
+        return settings
 
 class ConfigLoader:
     """Load and merge configuration from multiple sources"""
@@ -77,10 +181,6 @@ class ConfigLoader:
     
     def _apply_env_overrides(self, config: Dict, prefix: str) -> Dict:
         """Apply environment variable overrides"""
-        # Example env vars:
-        # CSP_NETWORK_OPTIMIZATION_ENABLED=true
-        # CSP_COMPRESSION_ALGORITHM=zstd
-        
         for key, value in os.environ.items():
             if key.startswith(prefix):
                 # Convert CSP_NETWORK_OPTIMIZATION_ENABLED to network.optimization.enabled
@@ -104,7 +204,20 @@ class ConfigLoader:
                     
         return config
 
-# Global config loader instance
+# Create global instances
 config_loader = ConfigLoader()
 load_config = config_loader.load_config
 load_defaults = config_loader.load_defaults
+
+# Create settings instance
+settings = CSPSettings.from_env()
+
+# Export key items
+__all__ = [
+    'CSPSettings',
+    'NetworkOptimizationConfig', 
+    'settings',
+    'config_loader',
+    'load_config',
+    'load_defaults'
+]

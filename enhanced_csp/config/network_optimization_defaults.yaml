@@ -1,0 +1,62 @@
+# enhanced_csp/config/network_optimization_defaults.yaml
+network_optimization:
+  enabled: true
+  
+  compression:
+    default_algorithm: "lz4"
+    algorithms:
+      - name: "none"
+        min_size: 0
+        max_size: 256
+      - name: "snappy"
+        min_size: 256
+        max_size: 10240
+      - name: "lz4"
+        min_size: 10240
+        max_size: 102400
+      - name: "zstd"
+        min_size: 102400
+        max_size: null
+    min_size_bytes: 256
+    max_decompress_mb: 100
+    dictionary_training:
+      enabled: false
+      sample_count: 1000
+      
+  batching:
+    max_size: 100
+    max_bytes: 1048576  # 1MB
+    max_wait_ms: 50
+    queue_size: 10000
+    adaptive: true
+    
+  connection_pool:
+    min: 10
+    max: 100
+    keepalive_timeout: 300
+    dns_ttl: 30
+    http2: true
+    health_check_interval: 30
+    
+  protocol:
+    version: 1
+    max_message_mb: 16
+    
+  adaptive:
+    enabled: true
+    observe_only: false
+    interval_seconds: 10
+    metrics_window: 1000
+    
+  patterns:
+    neural_mesh:
+      compression:
+        default_algorithm: "zstd"
+      batching:
+        max_wait_ms: 100
+    broadcast:
+      batching:
+        max_size: 200
+    pipeline:
+      batching:
+        max_wait_ms: 20

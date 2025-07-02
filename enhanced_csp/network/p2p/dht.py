@@ -1,421 +1,646 @@
-# enhanced_csp/network/p2p/dht.py
+# network/p2p/dht.py
 """
-Kademlia DHT wrapper for py-libp2p
-Provides distributed hash table functionality for peer discovery and data storage
+Kademlia Distributed Hash Table implementation for Enhanced CSP.
+Provides decentralized key-value storage and peer discovery.
 """
 
 import asyncio
-import logging
 import hashlib
+import time
+import logging
+from typing import Dict, List, Tuple, Optional, Any, Set
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 import json
-from typing import Optional, List, Dict, Any, Tuple
+
+from ..core.types import NodeID, PeerInfo, MessageType
+from ..p2p.transport import P2PTransport
 
 logger = logging.getLogger(__name__)
-from datetime import datetime, timedelta
 
-try:
-    from libp2p import new_node
-    from libp2p.crypto.ed25519 import create_new_key_pair
-    from libp2p.kademlia import KademliaServer
-    from libp2p.peer.id import ID as PeerID
-    from libp2p.peer.peerinfo import PeerInfo as LibP2PPeerInfo
-    from libp2p.network.stream.net_stream_interface import INetStream
-    LIBP2P_AVAILABLE = True
-except ImportError:
-    LIBP2P_AVAILABLE = False
-    logger.warning("py-libp2p not available, using mock DHT")
-
-from enhanced_csp.network.core.types import NodeID, PeerInfo, DHT as DHTProtocol
-from enhanced_csp.network.core.node import NetworkNode
+# Kademlia constants
+K_BUCKET_SIZE = 20  # Maximum nodes per k-bucket
+ALPHA = 3  # Concurrent RPCs for lookups
+KEY_SIZE = 256  # bits
+REPUBLISH_INTERVAL = 3600  # 1 hour
+EXPIRATION_TIME = 86400  # 24 hours
+RPC_TIMEOUT = 5  # seconds
 
 
-class KademliaDHT(DHTProtocol):
-    """Kademlia DHT implementation with py-libp2p wrapper"""
+@dataclass
+class KBucketEntry:
+    """Entry in a Kademlia k-bucket."""
+    node_id: NodeID
+    peer_info: PeerInfo
+    last_seen: datetime = field(default_factory=datetime.utcnow)
+    rtt: float = 0.0  # Round-trip time in ms
     
-    def __init__(self, node: NetworkNode):
-        self.node = node
-        self.kademlia: Optional[KademliaServer] = None
-        self.libp2p_node = None
-        self.bootstrap_nodes: List[Tuple[str, int]] = []
-        
-        # Cache for DHT operations
-        self.cache: Dict[bytes, Tuple[bytes, datetime]] = {}
-        self.cache_ttl = timedelta(minutes=10)
-        
-        # Replication settings
-        self.replication_factor = 3
-        self.republish_interval = 3600  # 1 hour
-        
-        self._tasks: List[asyncio.Task] = []
+    def touch(self):
+        """Update last seen time."""
+        self.last_seen = datetime.utcnow()
+
+
+class KBucket:
+    """A single k-bucket in the routing table."""
     
-    async def start(self, listen_addr: str = "0.0.0.0", port: int = 0):
-        """Start the Kademlia DHT"""
-        if LIBP2P_AVAILABLE:
-            await self._start_libp2p(listen_addr, port)
-        else:
-            await self._start_mock()
+    def __init__(self, range_min: int, range_max: int, k: int = K_BUCKET_SIZE):
+        self.range_min = range_min
+        self.range_max = range_max
+        self.k = k
+        self.entries: List[KBucketEntry] = []
+        self.replacement_cache: List[KBucketEntry] = []
         
-        # Start maintenance tasks
-        self._tasks.extend([
-            asyncio.create_task(self._republish_loop()),
-            asyncio.create_task(self._cache_cleanup_loop())
-        ])
-        
-        logger.info("Kademlia DHT started")
-    
-    async def stop(self):
-        """Stop the DHT"""
-        # Cancel tasks
-        for task in self._tasks:
-            task.cancel()
-        
-        if self._tasks:
-            await asyncio.gather(*self._tasks, return_exceptions=True)
-        
-        if self.kademlia:
-            self.kademlia.stop()
-        
-        if self.libp2p_node:
-            await self.libp2p_node.close()
-        
-        logger.info("Kademlia DHT stopped")
-    
-    async def _start_libp2p(self, listen_addr: str, port: int):
-        """Start with actual libp2p implementation"""
-        try:
-            key_pair = create_new_key_pair()
-            self.libp2p_node = await new_node(
-                key_pair=key_pair,
-                swarm_opt=[f"/ip4/{listen_addr}/tcp/{port}"]
-            )
-            
-            # Create Kademlia server
-            self.kademlia = KademliaServer(
-                node_id=self.node.node_id.raw_id,
-                storage=self._create_storage()
-            )
-            
-            # Attach Kademlia protocol to libp2p node
-            self.libp2p_node.get_mux().add_handler(
-                "/kademlia/1.0.0", 
-                self._handle_kademlia_stream
-            )
-            
-            # Bootstrap if nodes are configured
-            if self.bootstrap_nodes:
-                await self.bootstrap(self.bootstrap_nodes)
-            
-        except Exception as e:
-            logger.error(f"Failed to start libp2p DHT: {e}")
-            raise
-    
-    async def _start_mock(self):
-        """Start with mock implementation for testing"""
-        logger.warning("Starting mock DHT (py-libp2p not available)")
-        self.kademlia = MockKademliaServer(self.node.node_id.raw_id)
-    
-    def _create_storage(self):
-        """Create storage backend for Kademlia"""
-        # Could use LevelDB or other persistent storage
-        return {}
-    
-    async def _handle_kademlia_stream(self, stream: INetStream):
-        """Handle incoming Kademlia protocol stream"""
-        if self.kademlia:
-            await self.kademlia.handle_new_peer(stream)
-    
-    async def bootstrap(self, nodes: List[Tuple[str, int]]):
-        """Bootstrap the DHT with known nodes"""
-        logger.info(f"Bootstrapping DHT with {len(nodes)} nodes")
-        
-        successful = 0
-        for host, port in nodes:
-            try:
-                if self.kademlia:
-                    await self.kademlia.bootstrap_node((host, port))
-                    successful += 1
-            except Exception as e:
-                logger.error(f"Failed to bootstrap from {host}:{port}: {e}")
-        
-        logger.info(f"Successfully bootstrapped from {successful}/{len(nodes)} nodes")
-        return successful > 0
-    
-    async def get(self, key: bytes) -> Optional[bytes]:
-        """Get value from DHT"""
-        # Check cache first
-        if key in self.cache:
-            value, timestamp = self.cache[key]
-            if datetime.now() - timestamp < self.cache_ttl:
-                return value
-        
-        try:
-            if self.kademlia:
-                value = await self.kademlia.get(key)
-                
-                if value:
-                    # Update cache
-                    self.cache[key] = (value, datetime.now())
-                    return value
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"DHT get failed for key {key.hex()[:16]}: {e}")
-            return None
-    
-    async def put(self, key: bytes, value: bytes) -> bool:
-        """Store value in DHT with replication"""
-        try:
-            if self.kademlia:
-                # Store in DHT
-                await self.kademlia.set(key, value)
-                
-                # Update local cache
-                self.cache[key] = (value, datetime.now())
-                
-                # Track for republishing
-                await self._track_for_republish(key, value)
-                
+    def add_node(self, entry: KBucketEntry) -> bool:
+        """Add a node to the bucket."""
+        # Check if node already exists
+        for i, existing in enumerate(self.entries):
+            if existing.node_id == entry.node_id:
+                # Move to end (most recently seen)
+                self.entries.pop(i)
+                self.entries.append(entry)
+                entry.touch()
                 return True
+        
+        # Add new node if space available
+        if len(self.entries) < self.k:
+            self.entries.append(entry)
+            return True
             
+        # Bucket full - add to replacement cache
+        self.replacement_cache.append(entry)
+        if len(self.replacement_cache) > self.k:
+            self.replacement_cache.pop(0)
+            
+        return False
+    
+    def remove_node(self, node_id: NodeID):
+        """Remove a node from the bucket."""
+        self.entries = [e for e in self.entries if e.node_id != node_id]
+        
+        # Promote from replacement cache if available
+        if self.replacement_cache and len(self.entries) < self.k:
+            self.entries.append(self.replacement_cache.pop(0))
+    
+    def get_nodes(self, count: int = None) -> List[KBucketEntry]:
+        """Get nodes from bucket, most recently seen first."""
+        if count is None:
+            return self.entries[:]
+        return self.entries[-count:]
+
+
+class RoutingTable:
+    """Kademlia routing table."""
+    
+    def __init__(self, node_id: NodeID, k: int = K_BUCKET_SIZE):
+        self.node_id = node_id
+        self.k = k
+        self.buckets: List[KBucket] = []
+        
+        # Initialize buckets
+        for i in range(KEY_SIZE):
+            range_min = 2**i if i > 0 else 0
+            range_max = 2**(i+1) - 1
+            self.buckets.append(KBucket(range_min, range_max, k))
+    
+    def distance(self, id1: NodeID, id2: NodeID) -> int:
+        """Calculate XOR distance between two node IDs."""
+        # Convert to integers for XOR
+        int1 = int.from_bytes(id1.value.encode()[:32], 'big')
+        int2 = int.from_bytes(id2.value.encode()[:32], 'big')
+        return int1 ^ int2
+    
+    def bucket_index(self, node_id: NodeID) -> int:
+        """Get bucket index for a node ID."""
+        distance = self.distance(self.node_id, node_id)
+        if distance == 0:
+            return -1
+        return distance.bit_length() - 1
+    
+    def add_node(self, peer_info: PeerInfo) -> bool:
+        """Add a node to the routing table."""
+        if peer_info.id == self.node_id:
             return False
             
-        except Exception as e:
-            logger.error(f"DHT put failed for key {key.hex()[:16]}: {e}")
+        bucket_idx = self.bucket_index(peer_info.id)
+        if bucket_idx < 0:
             return False
+            
+        entry = KBucketEntry(peer_info.id, peer_info)
+        return self.buckets[bucket_idx].add_node(entry)
     
-    async def delete(self, key: bytes) -> bool:
-        """Delete value from DHT (best effort)"""
-        try:
-            # Remove from local cache
-            self.cache.pop(key, None)
-            
-            # DHT doesn't support direct deletion, but we can overwrite with empty
-            return await self.put(key, b'')
-            
-        except Exception as e:
-            logger.error(f"DHT delete failed for key {key.hex()[:16]}: {e}")
-            return False
+    def remove_node(self, node_id: NodeID):
+        """Remove a node from the routing table."""
+        bucket_idx = self.bucket_index(node_id)
+        if bucket_idx >= 0:
+            self.buckets[bucket_idx].remove_node(node_id)
     
-    async def find_peer(self, node_id: NodeID) -> Optional[PeerInfo]:
-        """Find peer information by node ID"""
-        try:
-            # Use node ID as key
-            key = node_id.raw_id
-            
-            # Try to find peer info in DHT
-            data = await self.get(key)
-            if data:
-                peer_data = json.loads(data.decode())
-                return self._deserialize_peer_info(peer_data)
-            
-            # If not found in DHT, try Kademlia's internal routing table
-            if self.kademlia:
-                closest = await self.kademlia.find_neighbors(node_id.raw_id, k=1)
-                if closest and closest[0]['node_id'] == node_id.raw_id:
-                    return self._kademlia_node_to_peer_info(closest[0])
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Failed to find peer {node_id.to_base58()[:16]}: {e}")
-            return None
+    def find_closest_nodes(self, target: NodeID, count: int = K_BUCKET_SIZE) -> List[PeerInfo]:
+        """Find the k closest nodes to a target ID."""
+        # Get all nodes with their distances
+        nodes_with_distance = []
+        
+        for bucket in self.buckets:
+            for entry in bucket.entries:
+                distance = self.distance(entry.node_id, target)
+                nodes_with_distance.append((distance, entry.peer_info))
+        
+        # Sort by distance and return closest
+        nodes_with_distance.sort(key=lambda x: x[0])
+        return [peer_info for _, peer_info in nodes_with_distance[:count]]
+
+
+@dataclass
+class StoredValue:
+    """Value stored in the DHT."""
+    key: str
+    value: Any
+    publisher: NodeID
+    timestamp: datetime
+    ttl: int  # seconds
     
-    async def announce(self, key: bytes, port: int) -> bool:
-        """Announce that we provide a resource"""
-        try:
-            # Create announcement data
-            announcement = {
-                'node_id': self.node.node_id.to_base58(),
-                'addresses': self._get_announce_addresses(port),
-                'timestamp': datetime.now().isoformat(),
-                'ttl': 3600  # 1 hour
+    def is_expired(self) -> bool:
+        """Check if the value has expired."""
+        age = (datetime.utcnow() - self.timestamp).total_seconds()
+        return age > self.ttl
+
+
+class KademliaDHT:
+    """
+    Kademlia Distributed Hash Table implementation.
+    Provides distributed storage and peer discovery.
+    """
+    
+    def __init__(self, node_id: NodeID, transport: P2PTransport):
+        """Initialize Kademlia DHT."""
+        self.node_id = node_id
+        self.transport = transport
+        self.routing_table = RoutingTable(node_id)
+        
+        # Local storage
+        self.storage: Dict[str, StoredValue] = {}
+        
+        # Pending RPCs
+        self.pending_rpcs: Dict[str, asyncio.Future] = {}
+        
+        # Background tasks
+        self._maintenance_task: Optional[asyncio.Task] = None
+        self._republish_task: Optional[asyncio.Task] = None
+        
+        self.is_running = False
+        
+    async def start(self):
+        """Start the DHT."""
+        if self.is_running:
+            return
+            
+        logger.info(f"Starting Kademlia DHT for node {self.node_id}")
+        self.is_running = True
+        
+        # Register message handlers
+        self.transport.register_handler(MessageType.DHT_QUERY, self._handle_dht_query)
+        self.transport.register_handler(MessageType.DHT_RESPONSE, self._handle_dht_response)
+        
+        # Start background tasks
+        self._maintenance_task = asyncio.create_task(self._maintenance_loop())
+        self._republish_task = asyncio.create_task(self._republish_loop())
+        
+    async def stop(self):
+        """Stop the DHT."""
+        if not self.is_running:
+            return
+            
+        logger.info("Stopping Kademlia DHT")
+        self.is_running = False
+        
+        # Cancel background tasks
+        for task in [self._maintenance_task, self._republish_task]:
+            if task:
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
+        
+        # Clear pending RPCs
+        for future in self.pending_rpcs.values():
+            future.cancel()
+        self.pending_rpcs.clear()
+    
+    # Public API
+    
+    async def store(self, key: str, value: Any, ttl: int = EXPIRATION_TIME) -> bool:
+        """
+        Store a key-value pair in the DHT.
+        
+        Args:
+            key: The key to store
+            value: The value to store (must be JSON serializable)
+            ttl: Time-to-live in seconds
+            
+        Returns:
+            True if stored successfully
+        """
+        # Store locally
+        stored_value = StoredValue(
+            key=key,
+            value=value,
+            publisher=self.node_id,
+            timestamp=datetime.utcnow(),
+            ttl=ttl
+        )
+        self.storage[key] = stored_value
+        
+        # Find k closest nodes to the key
+        key_hash = self._hash_key(key)
+        closest_nodes = self.routing_table.find_closest_nodes(
+            NodeID(key_hash), 
+            self.routing_table.k
+        )
+        
+        # Store on closest nodes
+        store_tasks = []
+        for peer in closest_nodes:
+            if peer.id != self.node_id:
+                store_tasks.append(self._store_on_node(peer, key, value, ttl))
+        
+        if store_tasks:
+            results = await asyncio.gather(*store_tasks, return_exceptions=True)
+            success_count = sum(1 for r in results if r is True)
+            logger.debug(f"Stored {key} on {success_count}/{len(store_tasks)} nodes")
+            
+        return True
+    
+    async def get(self, key: str) -> Optional[Any]:
+        """
+        Retrieve a value from the DHT.
+        
+        Args:
+            key: The key to retrieve
+            
+        Returns:
+            The value if found, None otherwise
+        """
+        # Check local storage first
+        if key in self.storage:
+            stored = self.storage[key]
+            if not stored.is_expired():
+                return stored.value
+            else:
+                del self.storage[key]
+        
+        # Find value on network
+        key_hash = self._hash_key(key)
+        result = await self._iterative_find_value(key, NodeID(key_hash))
+        
+        if result:
+            # Cache the value locally
+            self.storage[key] = StoredValue(
+                key=key,
+                value=result['value'],
+                publisher=NodeID(result['publisher']),
+                timestamp=datetime.utcnow(),
+                ttl=result.get('ttl', EXPIRATION_TIME)
+            )
+            return result['value']
+            
+        return None
+    
+    async def find_node(self, node_id: NodeID) -> Optional[PeerInfo]:
+        """
+        Find a specific node in the network.
+        
+        Args:
+            node_id: The node ID to find
+            
+        Returns:
+            PeerInfo if found, None otherwise
+        """
+        # Check routing table first
+        bucket_idx = self.routing_table.bucket_index(node_id)
+        if bucket_idx >= 0:
+            bucket = self.routing_table.buckets[bucket_idx]
+            for entry in bucket.entries:
+                if entry.node_id == node_id:
+                    return entry.peer_info
+        
+        # Perform iterative node lookup
+        closest_nodes = await self._iterative_find_node(node_id)
+        
+        for peer in closest_nodes:
+            if peer.id == node_id:
+                return peer
+                
+        return None
+    
+    def add_peer(self, peer_info: PeerInfo):
+        """Add a peer to the routing table."""
+        self.routing_table.add_node(peer_info)
+    
+    # RPC handlers
+    
+    async def _handle_dht_query(self, message: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle incoming DHT query."""
+        query_type = message.get('type')
+        
+        if query_type == 'ping':
+            return {'type': 'pong', 'node_id': self.node_id.value}
+            
+        elif query_type == 'find_node':
+            target_id = NodeID(message['target'])
+            closest = self.routing_table.find_closest_nodes(target_id, K_BUCKET_SIZE)
+            return {
+                'type': 'nodes',
+                'nodes': [self._peer_to_dict(p) for p in closest]
             }
             
-            # Store announcement in DHT
-            return await self.put(
-                self._get_provider_key(key),
-                json.dumps(announcement).encode()
+        elif query_type == 'find_value':
+            key = message['key']
+            
+            # Check if we have the value
+            if key in self.storage:
+                stored = self.storage[key]
+                if not stored.is_expired():
+                    return {
+                        'type': 'value',
+                        'value': stored.value,
+                        'publisher': stored.publisher.value,
+                        'ttl': stored.ttl
+                    }
+            
+            # Return closest nodes instead
+            key_hash = self._hash_key(key)
+            closest = self.routing_table.find_closest_nodes(NodeID(key_hash), K_BUCKET_SIZE)
+            return {
+                'type': 'nodes',
+                'nodes': [self._peer_to_dict(p) for p in closest]
+            }
+            
+        elif query_type == 'store':
+            key = message['key']
+            value = message['value']
+            ttl = message.get('ttl', EXPIRATION_TIME)
+            publisher = NodeID(message['publisher'])
+            
+            self.storage[key] = StoredValue(
+                key=key,
+                value=value,
+                publisher=publisher,
+                timestamp=datetime.utcnow(),
+                ttl=ttl
             )
             
-        except Exception as e:
-            logger.error(f"Failed to announce for key {key.hex()[:16]}: {e}")
-            return False
+            return {'type': 'store_ack', 'stored': True}
+            
+        else:
+            return {'type': 'error', 'message': f'Unknown query type: {query_type}'}
     
-    async def find_providers(self, key: bytes, count: int = 10) -> List[Dict[str, Any]]:
-        """Find nodes that provide a resource"""
-        providers = []
+    async def _handle_dht_response(self, message: Dict[str, Any]):
+        """Handle DHT response."""
+        request_id = message.get('request_id')
+        if request_id in self.pending_rpcs:
+            future = self.pending_rpcs.pop(request_id)
+            if not future.done():
+                future.set_result(message)
+    
+    # Internal methods
+    
+    async def _iterative_find_node(self, target: NodeID) -> List[PeerInfo]:
+        """Perform iterative node lookup."""
+        # Get initial closest nodes from routing table
+        closest_nodes = self.routing_table.find_closest_nodes(target, ALPHA)
+        queried_nodes: Set[NodeID] = {self.node_id}
         
-        try:
-            # Look for provider announcements
-            provider_key = self._get_provider_key(key)
+        while True:
+            # Query unqueried nodes
+            unqueried = [n for n in closest_nodes if n.id not in queried_nodes]
+            if not unqueried:
+                break
+                
+            # Query up to ALPHA nodes in parallel
+            query_tasks = []
+            for peer in unqueried[:ALPHA]:
+                queried_nodes.add(peer.id)
+                query_tasks.append(self._query_find_node(peer, target))
             
-            # In a real implementation, this would query multiple nodes
-            data = await self.get(provider_key)
-            if data:
-                announcement = json.loads(data.decode())
-                if self._is_announcement_valid(announcement):
-                    providers.append(announcement)
+            results = await asyncio.gather(*query_tasks, return_exceptions=True)
             
-            # Could also check multiple provider keys for redundancy
-            for i in range(min(count, 5)):
-                alt_key = self._get_provider_key(key, suffix=i)
-                data = await self.get(alt_key)
-                if data:
-                    announcement = json.loads(data.decode())
-                    if self._is_announcement_valid(announcement):
-                        providers.append(announcement)
+            # Process results
+            new_nodes_found = False
+            for result in results:
+                if isinstance(result, list):
+                    for peer in result:
+                        if peer.id not in [n.id for n in closest_nodes]:
+                            closest_nodes.append(peer)
+                            new_nodes_found = True
             
-            return providers[:count]
+            if not new_nodes_found:
+                break
             
-        except Exception as e:
-            logger.error(f"Failed to find providers for {key.hex()[:16]}: {e}")
-            return []
-    
-    async def find_closest_peers(self, target: NodeID, k: int = 20) -> List[Dict[str, Any]]:
-        """Find k closest peers to target ID"""
-        try:
-            if self.kademlia:
-                nodes = await self.kademlia.find_neighbors(target.raw_id, k=k)
-                return [self._kademlia_node_to_dict(node) for node in nodes]
-            
-            return []
-            
-        except Exception as e:
-            logger.error(f"Failed to find closest peers: {e}")
-            return []
-    
-    def _get_provider_key(self, key: bytes, suffix: int = 0) -> bytes:
-        """Generate provider key for announcements"""
-        base = b'provider:' + key
-        if suffix > 0:
-            base += f':{suffix}'.encode()
-        return hashlib.sha256(base).digest()
-    
-    def _get_announce_addresses(self, port: int) -> List[str]:
-        """Get addresses to announce"""
-        addresses = []
-        node_id = self.node.node_id.to_base58()
+            # Keep only k closest
+            closest_nodes.sort(key=lambda p: self.routing_table.distance(p.id, target))
+            closest_nodes = closest_nodes[:K_BUCKET_SIZE]
         
-        # Get local IPs
-        import socket
-        hostname = socket.gethostname()
-        try:
-            # Try to get external IP
-            import urllib.request
-            external_ip = urllib.request.urlopen('https://api.ipify.org').read().decode('utf8')
-            addresses.append(f"/ip4/{external_ip}/tcp/{port}/p2p/{node_id}")
-            addresses.append(f"/ip4/{external_ip}/udp/{port}/quic/p2p/{node_id}")
-        except:
-            pass
-        
-        # Add local addresses
-        for addr_info in socket.getaddrinfo(hostname, port):
-            ip = addr_info[4][0]
-            if ':' in ip:  # IPv6
-                addresses.append(f"/ip6/{ip}/tcp/{port}/p2p/{node_id}")
-            else:
-                addresses.append(f"/ip4/{ip}/tcp/{port}/p2p/{node_id}")
-        
-        return addresses
+        return closest_nodes
     
-    def _is_announcement_valid(self, announcement: Dict[str, Any]) -> bool:
-        """Check if provider announcement is still valid"""
-        try:
-            timestamp = datetime.fromisoformat(announcement['timestamp'])
-            ttl = announcement.get('ttl', 3600)
-            age = (datetime.now() - timestamp).total_seconds()
-            return age < ttl
-        except:
-            return False
-    
-    def _deserialize_peer_info(self, data: Dict[str, Any]) -> PeerInfo:
-        """Convert stored data to PeerInfo"""
-        # This would properly deserialize the peer info
-        # For now, return a mock
+    async def _iterative_find_value(self, key: str, key_hash: NodeID) -> Optional[Dict[str, Any]]:
+        """Perform iterative value lookup."""
+        closest_nodes = self.routing_table.find_closest_nodes(key_hash, ALPHA)
+        queried_nodes: Set[NodeID] = {self.node_id}
+        
+        while closest_nodes:
+            # Query unqueried nodes
+            unqueried = [n for n in closest_nodes if n.id not in queried_nodes]
+            if not unqueried:
+                break
+            
+            # Query up to ALPHA nodes
+            query_tasks = []
+            for peer in unqueried[:ALPHA]:
+                queried_nodes.add(peer.id)
+                query_tasks.append(self._query_find_value(peer, key))
+            
+            results = await asyncio.gather(*query_tasks, return_exceptions=True)
+            
+            # Check for value
+            for result in results:
+                if isinstance(result, dict) and result.get('type') == 'value':
+                    return result
+                elif isinstance(result, dict) and result.get('nodes'):
+                    # Add new nodes to search
+                    for node_dict in result['nodes']:
+                        peer = self._dict_to_peer(node_dict)
+                        if peer and peer.id not in [n.id for n in closest_nodes]:
+                            closest_nodes.append(peer)
+            
+            # Keep searching with closest nodes
+            closest_nodes.sort(key=lambda p: self.routing_table.distance(p.id, key_hash))
+            closest_nodes = closest_nodes[:K_BUCKET_SIZE]
+        
         return None
     
-    def _kademlia_node_to_peer_info(self, node: Dict[str, Any]) -> PeerInfo:
-        """Convert Kademlia node data to PeerInfo"""
-        # This would convert Kademlia's internal format
-        return None
+    async def _query_find_node(self, peer: PeerInfo, target: NodeID) -> List[PeerInfo]:
+        """Query a peer for nodes close to target."""
+        try:
+            response = await self._send_rpc(peer, {
+                'type': 'find_node',
+                'target': target.value
+            })
+            
+            if response and response.get('nodes'):
+                return [self._dict_to_peer(n) for n in response['nodes'] if n]
+                
+        except Exception as e:
+            logger.debug(f"find_node query to {peer.id} failed: {e}")
+            
+        return []
     
-    def _kademlia_node_to_dict(self, node: Any) -> Dict[str, Any]:
-        """Convert Kademlia node to dictionary"""
+    async def _query_find_value(self, peer: PeerInfo, key: str) -> Optional[Dict[str, Any]]:
+        """Query a peer for a value."""
+        try:
+            response = await self._send_rpc(peer, {
+                'type': 'find_value',
+                'key': key
+            })
+            return response
+            
+        except Exception as e:
+            logger.debug(f"find_value query to {peer.id} failed: {e}")
+            return None
+    
+    async def _store_on_node(self, peer: PeerInfo, key: str, value: Any, ttl: int) -> bool:
+        """Store a value on a specific node."""
+        try:
+            response = await self._send_rpc(peer, {
+                'type': 'store',
+                'key': key,
+                'value': value,
+                'ttl': ttl,
+                'publisher': self.node_id.value
+            })
+            
+            return response and response.get('stored', False)
+            
+        except Exception as e:
+            logger.debug(f"Store on {peer.id} failed: {e}")
+            return False
+    
+    async def _send_rpc(self, peer: PeerInfo, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Send an RPC query to a peer."""
+        import uuid
+        request_id = str(uuid.uuid4())
+        
+        # Create future for response
+        future = asyncio.Future()
+        self.pending_rpcs[request_id] = future
+        
+        # Send query
+        message = {
+            'request_id': request_id,
+            **query
+        }
+        
+        success = await self.transport.send(peer.address, {
+            'type': MessageType.DHT_QUERY,
+            'data': message
+        })
+        
+        if not success:
+            self.pending_rpcs.pop(request_id, None)
+            return None
+        
+        try:
+            # Wait for response
+            response = await asyncio.wait_for(future, timeout=RPC_TIMEOUT)
+            return response
+        except asyncio.TimeoutError:
+            logger.debug(f"RPC timeout to {peer.id}")
+            return None
+        finally:
+            self.pending_rpcs.pop(request_id, None)
+    
+    def _hash_key(self, key: str) -> str:
+        """Hash a key to node ID format."""
+        hash_bytes = hashlib.sha256(key.encode()).digest()
+        return f"Qm{hash_bytes.hex()[:44]}"
+    
+    def _peer_to_dict(self, peer: PeerInfo) -> Dict[str, Any]:
+        """Convert PeerInfo to dictionary."""
         return {
-            'node_id': node.id.hex() if hasattr(node, 'id') else '',
-            'address': str(node.address) if hasattr(node, 'address') else '',
-            'distance': node.distance if hasattr(node, 'distance') else 0
+            'node_id': peer.id.value,
+            'address': peer.address,
+            'port': peer.port,
+            'capabilities': peer.capabilities.__dict__
         }
     
-    async def _track_for_republish(self, key: bytes, value: bytes):
-        """Track data for periodic republishing"""
-        # In production, this would use persistent storage
-        pass
+    def _dict_to_peer(self, data: Dict[str, Any]) -> Optional[PeerInfo]:
+        """Convert dictionary to PeerInfo."""
+        try:
+            from ..core.types import NodeCapabilities
+            return PeerInfo(
+                id=NodeID(data['node_id']),
+                address=data['address'],
+                port=data['port'],
+                capabilities=NodeCapabilities(**data.get('capabilities', {})),
+                last_seen=datetime.utcnow()
+            )
+        except Exception as e:
+            logger.error(f"Failed to parse peer info: {e}")
+            return None
+    
+    # Background tasks
+    
+    async def _maintenance_loop(self):
+        """Periodic maintenance tasks."""
+        while self.is_running:
+            try:
+                await asyncio.sleep(60)  # Run every minute
+                
+                # Clean expired values
+                expired_keys = []
+                for key, stored in self.storage.items():
+                    if stored.is_expired():
+                        expired_keys.append(key)
+                
+                for key in expired_keys:
+                    del self.storage[key]
+                
+                if expired_keys:
+                    logger.debug(f"Cleaned {len(expired_keys)} expired values")
+                
+                # Refresh buckets
+                await self._refresh_buckets()
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error in DHT maintenance: {e}")
     
     async def _republish_loop(self):
-        """Periodically republish stored data"""
-        while True:
+        """Periodically republish stored values."""
+        while self.is_running:
             try:
-                await asyncio.sleep(self.republish_interval)
+                await asyncio.sleep(REPUBLISH_INTERVAL)
                 
-                # Republish announcements and important data
-                # This ensures data remains available despite node churn
+                # Republish values we're responsible for
+                for key, stored in list(self.storage.items()):
+                    if stored.publisher == self.node_id:
+                        await self.store(key, stored.value, stored.ttl)
                 
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error(f"Error in republish loop: {e}")
     
-    async def _cache_cleanup_loop(self):
-        """Clean up expired cache entries"""
-        while True:
-            try:
-                await asyncio.sleep(300)  # Every 5 minutes
+    async def _refresh_buckets(self):
+        """Refresh k-buckets that haven't been accessed recently."""
+        for i, bucket in enumerate(self.routing_table.buckets):
+            if not bucket.entries:
+                continue
                 
-                now = datetime.now()
-                expired = [
-                    key for key, (_, timestamp) in self.cache.items()
-                    if now - timestamp > self.cache_ttl
-                ]
+            # Check if bucket needs refresh (no activity in last hour)
+            most_recent = max(e.last_seen for e in bucket.entries)
+            if (datetime.utcnow() - most_recent).total_seconds() > 3600:
+                # Generate random ID in bucket range
+                import random
+                random_id = random.randint(bucket.range_min, bucket.range_max)
+                target = NodeID(f"Qm{random_id:064x}"[:48])
                 
-                for key in expired:
-                    del self.cache[key]
-                
-                if expired:
-                    logger.debug(f"Cleaned up {len(expired)} expired cache entries")
-                
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logger.error(f"Error in cache cleanup: {e}")
-
-
-class MockKademliaServer:
-    """Mock Kademlia server for testing without py-libp2p"""
-    
-    def __init__(self, node_id: bytes):
-        self.node_id = node_id
-        self.storage = {}
-        self.routing_table = {}
-    
-    async def bootstrap_node(self, node: Tuple[str, int]):
-        """Mock bootstrap"""
-        logger.info(f"Mock bootstrap to {node}")
-        return True
-    
-    async def get(self, key: bytes) -> Optional[bytes]:
-        """Mock get"""
-        return self.storage.get(key)
-    
-    async def set(self, key: bytes, value: bytes):
-        """Mock set"""
-        self.storage[key] = value
-    
-    async def find_neighbors(self, target: bytes, k: int = 20) -> List[Dict]:
-        """Mock find neighbors"""
-        return []
-    
-    def stop(self):
-        """Mock stop"""
-        pass
+                # Perform lookup to refresh bucket
+                await self._iterative_find_node(target)

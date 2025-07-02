@@ -1,258 +1,466 @@
+# network/core/node.py
+"""
+Enhanced CSP Network Node Implementation
+Complete implementation with all required functionality
+"""
+
 import asyncio
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
-from pathlib import Path
-import sys
+import time
+from typing import Dict, List, Optional, Any, Callable
+from dataclasses import dataclass, field
+from datetime import datetime
 
-from .config import NetworkConfig, SecurityConfig
-from .types import NodeID, PeerInfo
+from .types import (
+    NodeID, NodeCapabilities, PeerInfo, NetworkMessage, 
+    MessageType, NetworkConfig
+)
+from ..p2p.transport import P2PTransport
+from ..p2p.discovery import HybridDiscovery
+from ..p2p.dht import KademliaDHT
+from ..p2p.nat import NATTraversal
+from ..mesh.topology import MeshTopologyManager
+from ..mesh.routing import BatmanRouting
+from ..dns.overlay import DNSOverlay
+from ..routing.adaptive import AdaptiveRoutingEngine
 
-# Add parent to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-# Import network components with fallbacks
-try:
-    from enhanced_csp.network.dns.overlay import DNSOverlay
-    from enhanced_csp.network.p2p.transport import P2PTransport
-    from enhanced_csp.network.mesh.topology import MeshTopology
-    DNS_AVAILABLE = True
-except ImportError as e:
-    print(f"Warning: Failed to import network components: {e}")
-    DNS_AVAILABLE = False
-    
-    # Create minimal stubs
-    class DNSOverlay:
-        def __init__(self, node):
-            self.node = node
-            self.records = {}
-            
-        async def start(self): pass
-        async def stop(self): pass
-        
-        async def register(self, name: str, value: str, ttl: int = 3600):
-            print(f"Stub DNS register: {name} -> {value}")
-            self.records[name] = value
-            
-        async def resolve(self, name: str):
-            return self.records.get(name)
-            
-        async def list_records(self):
-            return self.records
-        
-    class P2PTransport:
-        def __init__(self, config): pass
-        async def start(self): pass
-        async def stop(self): pass
-        async def connect(self, addr): pass
-        async def send(self, peer_id, msg): pass
-        
-    class MeshTopology:
-        def __init__(self, node): pass
-        async def start(self): pass
-        async def stop(self): pass
-
-# Optional subsystems - imported when available
-try:
-    from enhanced_csp.security_hardening import SecurityOrchestrator
-except ImportError:
-    class SecurityOrchestrator:
-        def __init__(self, *args, **kwargs): pass
-        async def initialize(self): pass
-        async def shutdown(self): pass
-        async def monitor_threats(self): pass
-        async def rotate_tls_certificates(self): pass
-
-try:
-    from enhanced_csp.quantum_csp_engine import QuantumCSPEngine
-except ImportError:
-    class QuantumCSPEngine:
-        def __init__(self, *args, **kwargs): pass
-        async def initialize(self): pass
-        async def shutdown(self): pass
-
-try:
-    from enhanced_csp.blockchain_csp_network import BlockchainCSPNetwork
-except ImportError:
-    class BlockchainCSPNetwork:
-        def __init__(self, *args, **kwargs): pass
-        async def initialize(self): pass
-        async def shutdown(self): pass
-
-
-@dataclass
-class NodeStats:
-    start_time: datetime
-    peers: int = 0
-    messages_sent: int = 0
-    messages_recv: int = 0
-    bandwidth_in: int = 0
-    bandwidth_out: int = 0
-    bootstrap_reqs: int = 0
+logger = logging.getLogger(__name__)
 
 
 class NetworkNode:
-    """Enhanced CSP Network node implementation."""
+    """
+    Core network node implementation for Enhanced CSP.
+    Manages P2P communication, discovery, and routing.
+    """
     
-    def __init__(self, config: NetworkConfig, 
-                 enable_quantum: bool = False,
-                 enable_blockchain: bool = False,
-                 logger: Optional[logging.Logger] = None):
-        self.config = config
+    def __init__(self, config: Optional[NetworkConfig] = None):
+        """Initialize network node with configuration."""
+        self.config = config or NetworkConfig()
         self.node_id = NodeID.generate()
+        self.capabilities = NodeCapabilities(
+            relay=True,
+            storage=self.config.enable_storage,
+            compute=self.config.enable_compute,
+            quantum=self.config.enable_quantum,
+            blockchain=self.config.enable_blockchain,
+            dns=self.config.enable_dns,
+            bootstrap=False
+        )
+        
+        # Core components
+        self.transport: Optional[P2PTransport] = None
+        self.discovery: Optional[HybridDiscovery] = None
+        self.dht: Optional[KademliaDHT] = None
+        self.nat: Optional[NATTraversal] = None
+        self.topology: Optional[MeshTopologyManager] = None
+        self.routing: Optional[BatmanRouting] = None
+        self.dns: Optional[DNSOverlay] = None
+        self.adaptive_routing: Optional[AdaptiveRoutingEngine] = None
+        
+        # State management
+        self.peers: Dict[NodeID, PeerInfo] = {}
         self.is_running = False
-        self.logger = logger or logging.getLogger(f"enhanced_csp.NetworkNode.{self.node_id}")
+        self._message_handlers: Dict[MessageType, List[Callable]] = {}
+        self._background_tasks: List[asyncio.Task] = []
         
-        # Stats tracking
-        self.stats = NodeStats(start_time=datetime.utcnow())
+        # Statistics
+        self.stats = {
+            "messages_sent": 0,
+            "messages_received": 0,
+            "bytes_sent": 0,
+            "bytes_received": 0,
+            "peers_connected": 0,
+            "start_time": None
+        }
         
-        # Peer management
-        self.peers: List[PeerInfo] = []
-        
-        # Initialize network components
-        self.transport = P2PTransport(config)
-        self.topology = MeshTopology(self)
-        self.dns_overlay = DNSOverlay(self)
-        
-        # Log initialization status
-        if DNS_AVAILABLE:
-            self.logger.info("DNS overlay initialized successfully")
-        else:
-            self.logger.warning("Using stub DNS overlay implementation")
-        
-        # Security orchestrator
-        self.security = SecurityOrchestrator(config.security)
-        
-        # Optional subsystems
-        self.quantum_engine = QuantumCSPEngine(self) if enable_quantum else None
-        self.blockchain = BlockchainCSPNetwork(self) if enable_blockchain else None
-        
-        # Background tasks
-        self._tasks: List[asyncio.Task] = []
-        
-    async def start(self):
-        """Start the network node."""
-        self.logger.info(f"Starting Enhanced CSP Node {self.node_id}")
-        
-        # Initialize security
-        await self.security.initialize()
-        
-        # Initialize optional subsystems
-        if self.quantum_engine:
-            await self.quantum_engine.initialize()
-        if self.blockchain:
-            await self.blockchain.initialize()
-        
-        # Start network components
-        await self.transport.start()
-        await self.dns_overlay.start()
-        await self.topology.start()
-        
-        self.is_running = True
-        self.stats.start_time = datetime.utcnow()
-        
-        # Start background tasks
-        self._tasks.append(asyncio.create_task(self._background_security()))
-        self._tasks.append(asyncio.create_task(self._background_metrics()))
-        
-        # Bootstrap if not genesis
-        if self.config.bootstrap_nodes:
-            await self._bootstrap()
+    async def start(self) -> bool:
+        """
+        Start the network node and all components.
+        Returns True if successful, False otherwise.
+        """
+        if self.is_running:
+            logger.warning(f"Node {self.node_id} already running")
+            return True
             
-    async def stop(self):
-        """Stop the network node."""
-        self.logger.info("Stopping Enhanced CSP Node")
+        try:
+            logger.info(f"Starting network node {self.node_id}")
+            self.stats["start_time"] = datetime.utcnow()
+            
+            # Initialize transport layer
+            self.transport = P2PTransport(self.config.p2p)
+            await self.transport.start()
+            
+            # Initialize discovery mechanism
+            self.discovery = HybridDiscovery(self.config.p2p, self.node_id)
+            self.discovery.on_peer_discovered = self._handle_peer_discovered
+            await self.discovery.start()
+            
+            # Initialize DHT
+            self.dht = KademliaDHT(self.node_id, self.transport)
+            await self.dht.start()
+            
+            # Initialize NAT traversal
+            self.nat = NATTraversal(self.config.p2p)
+            await self.nat.start()
+            
+            # Initialize mesh topology
+            self.topology = MeshTopologyManager(
+                self.node_id,
+                self.config.mesh,
+                self.send_message
+            )
+            await self.topology.start()
+            
+            # Initialize routing
+            self.routing = BatmanRouting(
+                self.node_id,
+                self.topology,
+                self.send_message
+            )
+            await self.routing.start()
+            
+            # Initialize DNS overlay if enabled
+            if self.config.enable_dns:
+                self.dns = DNSOverlay(
+                    self.node_id,
+                    self.config.dns,
+                    self.dht
+                )
+                await self.dns.start()
+            
+            # Initialize adaptive routing
+            self.adaptive_routing = AdaptiveRoutingEngine(
+                self.node_id,
+                self.routing,
+                self.config.routing
+            )
+            await self.adaptive_routing.start()
+            
+            # Start background tasks
+            self._start_background_tasks()
+            
+            self.is_running = True
+            logger.info(f"Network node {self.node_id} started successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to start network node: {e}")
+            await self.stop()
+            return False
+    
+    async def stop(self) -> bool:
+        """
+        Stop the network node and cleanup resources.
+        Returns True if successful, False otherwise.
+        """
+        if not self.is_running:
+            return True
+            
+        logger.info(f"Stopping network node {self.node_id}")
         
-        # Cancel background tasks
-        for task in self._tasks:
-            task.cancel()
-        await asyncio.gather(*self._tasks, return_exceptions=True)
-        
-        # Stop network components
-        await self.topology.stop()
-        await self.dns_overlay.stop()
-        await self.transport.stop()
-        
-        # Shutdown subsystems
-        if self.blockchain:
-            await self.blockchain.shutdown()
-        if self.quantum_engine:
-            await self.quantum_engine.shutdown()
-        await self.security.shutdown()
-        
-        self.is_running = False
-        
-    async def _bootstrap(self):
-        """Bootstrap the node by connecting to bootstrap nodes."""
-        for bootstrap in self.config.bootstrap_nodes:
-            try:
-                self.logger.info(f"Bootstrapping from {bootstrap}")
-                # Resolve DNS if needed
-                if bootstrap.endswith('.web4ai'):
-                    resolved = await self.dns_overlay.resolve(bootstrap)
-                    if resolved:
-                        bootstrap = resolved
-                        
-                # Connect to bootstrap node
-                await self.transport.connect(bootstrap)
-                self.stats.bootstrap_reqs += 1
-            except Exception as e:
-                self.logger.warning(f"Failed to connect to bootstrap {bootstrap}: {e}")
+        try:
+            # Cancel background tasks
+            for task in self._background_tasks:
+                task.cancel()
+            await asyncio.gather(*self._background_tasks, return_exceptions=True)
+            self._background_tasks.clear()
+            
+            # Stop components in reverse order
+            if self.adaptive_routing:
+                await self.adaptive_routing.stop()
                 
-    async def _background_security(self):
-        """Background security monitoring."""
-        while self.is_running:
-            try:
-                await self.security.monitor_threats()
-                await asyncio.sleep(60)  # Check every minute
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                self.logger.error(f"Security monitoring error: {e}")
+            if self.dns:
+                await self.dns.stop()
                 
-    async def _background_metrics(self):
-        """Background metrics collection."""
-        while self.is_running:
-            try:
-                self.stats.peers = len(self.peers)
-                self.logger.debug(f"Metrics: {self.stats}")
-                await asyncio.sleep(self.config.metrics_interval)
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                self.logger.error(f"Metrics error: {e}")
+            if self.routing:
+                await self.routing.stop()
+                
+            if self.topology:
+                await self.topology.stop()
+                
+            if self.nat:
+                await self.nat.stop()
+                
+            if self.dht:
+                await self.dht.stop()
+                
+            if self.discovery:
+                await self.discovery.stop()
+                
+            if self.transport:
+                await self.transport.stop()
+            
+            self.is_running = False
+            logger.info(f"Network node {self.node_id} stopped successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error stopping network node: {e}")
+            return False
+    
+    async def send_message(
+        self, 
+        recipient: NodeID, 
+        message: Any,
+        message_type: MessageType = MessageType.DATA,
+        ttl: int = 64
+    ) -> bool:
+        """
+        Send a message to another node.
+        
+        Args:
+            recipient: Target node ID
+            message: Message payload
+            message_type: Type of message
+            ttl: Time-to-live for routing
+            
+        Returns:
+            True if message was sent successfully
+        """
+        if not self.is_running:
+            logger.error("Cannot send message: node not running")
+            return False
+            
+        try:
+            # Create network message
+            net_msg = NetworkMessage.create(
+                msg_type=message_type,
+                sender=self.node_id,
+                payload=message,
+                recipient=recipient,
+                ttl=ttl
+            )
+            
+            # Get peer info
+            peer_info = self.peers.get(recipient)
+            if not peer_info:
+                # Try to discover peer
+                logger.debug(f"Peer {recipient} not found, attempting discovery")
+                peer_info = await self._discover_peer(recipient)
+                if not peer_info:
+                    logger.error(f"Failed to find peer {recipient}")
+                    return False
+            
+            # Send via transport
+            success = await self.transport.send(peer_info.address, net_msg)
+            
+            if success:
+                self.stats["messages_sent"] += 1
+                self.stats["bytes_sent"] += len(str(message))
+                
+            return success
+            
+        except Exception as e:
+            logger.error(f"Failed to send message: {e}")
+            return False
+    
+    async def broadcast_message(
+        self,
+        message: Any,
+        message_type: MessageType = MessageType.DATA,
+        ttl: int = 64
+    ) -> int:
+        """
+        Broadcast a message to all known peers.
+        
+        Returns:
+            Number of peers message was sent to
+        """
+        sent_count = 0
+        
+        for peer_id in list(self.peers.keys()):
+            if await self.send_message(peer_id, message, message_type, ttl):
+                sent_count += 1
+                
+        return sent_count
+    
+    def register_handler(
+        self,
+        message_type: MessageType,
+        handler: Callable[[NetworkMessage], Any]
+    ):
+        """Register a handler for a specific message type."""
+        if message_type not in self._message_handlers:
+            self._message_handlers[message_type] = []
+        self._message_handlers[message_type].append(handler)
+    
+    def unregister_handler(
+        self,
+        message_type: MessageType,
+        handler: Callable[[NetworkMessage], Any]
+    ):
+        """Unregister a message handler."""
+        if message_type in self._message_handlers:
+            self._message_handlers[message_type].remove(handler)
+    
+    async def connect_to_peer(self, address: str) -> bool:
+        """
+        Manually connect to a peer at the given address.
+        
+        Args:
+            address: Multiaddr or host:port format
+            
+        Returns:
+            True if connection successful
+        """
+        try:
+            success = await self.transport.connect(address)
+            if success:
+                self.stats["peers_connected"] += 1
+            return success
+        except Exception as e:
+            logger.error(f"Failed to connect to peer {address}: {e}")
+            return False
     
     def get_peers(self) -> List[PeerInfo]:
         """Get list of connected peers."""
-        return self.peers
-        
-    async def send_message(self, peer_id: str, message: Any):
-        """Send a message to a peer."""
-        await self.transport.send(peer_id, message)
-        self.stats.messages_sent += 1
-        
-    async def connect(self, multiaddr: str):
-        """Connect to a peer."""
-        await self.transport.connect(multiaddr)
-        
-    async def broadcast(self, payload: Any):
-        """Broadcast to all peers."""
-        for peer in self.peers:
-            await self.send_message(str(peer.id), payload)
+        return list(self.peers.values())
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get node statistics."""
+        stats = self.stats.copy()
+        stats["uptime"] = (
+            (datetime.utcnow() - self.stats["start_time"]).total_seconds()
+            if self.stats["start_time"] else 0
+        )
+        stats["peer_count"] = len(self.peers)
+        return stats
+    
+    # Private methods
+    
+    async def _handle_peer_discovered(self, peer_info: Dict[str, Any]):
+        """Handle newly discovered peer."""
+        try:
+            node_id = NodeID.from_string(peer_info["node_id"])
             
-    async def metrics(self) -> Dict[str, Any]:
-        """Get node metrics."""
-        return {
-            "node_id": str(self.node_id),
-            "uptime": (datetime.utcnow() - self.stats.start_time).total_seconds(),
-            "peers": self.stats.peers,
-            "messages_sent": self.stats.messages_sent,
-            "messages_received": self.stats.messages_recv,
-            "bandwidth_in": self.stats.bandwidth_in,
-            "bandwidth_out": self.stats.bandwidth_out,
-        }
+            # Create PeerInfo object
+            peer = PeerInfo(
+                id=node_id,
+                address=peer_info["addresses"][0] if peer_info["addresses"] else "",
+                port=0,  # Extract from address
+                capabilities=NodeCapabilities(),
+                last_seen=datetime.utcnow(),
+                metadata=peer_info
+            )
+            
+            # Add to peers
+            self.peers[node_id] = peer
+            logger.info(f"Added peer {node_id}")
+            
+            # Notify topology manager
+            if self.topology:
+                await self.topology.add_peer(peer)
+                
+        except Exception as e:
+            logger.error(f"Error handling discovered peer: {e}")
+    
+    async def _discover_peer(self, peer_id: NodeID) -> Optional[PeerInfo]:
+        """Attempt to discover a specific peer."""
+        # Try DHT lookup
+        if self.dht:
+            result = await self.dht.find_node(peer_id)
+            if result:
+                return result
+                
+        # Try DNS lookup
+        if self.dns:
+            result = await self.dns.resolve(str(peer_id))
+            if result:
+                return result
+                
+        return None
+    
+    def _start_background_tasks(self):
+        """Start background maintenance tasks."""
+        self._background_tasks.append(
+            asyncio.create_task(self._peer_maintenance_loop())
+        )
+        self._background_tasks.append(
+            asyncio.create_task(self._stats_reporting_loop())
+        )
+    
+    async def _peer_maintenance_loop(self):
+        """Maintain peer connections."""
+        while self.is_running:
+            try:
+                # Remove stale peers
+                now = datetime.utcnow()
+                stale_peers = []
+                
+                for peer_id, peer_info in self.peers.items():
+                    if (now - peer_info.last_seen).total_seconds() > 300:  # 5 minutes
+                        stale_peers.append(peer_id)
+                
+                for peer_id in stale_peers:
+                    del self.peers[peer_id]
+                    logger.debug(f"Removed stale peer {peer_id}")
+                
+                # Maintain minimum peers
+                if len(self.peers) < self.config.p2p.min_peers:
+                    await self.discovery.find_peers()
+                
+                await asyncio.sleep(30)  # Run every 30 seconds
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error in peer maintenance: {e}")
+    
+    async def _stats_reporting_loop(self):
+        """Periodically log statistics."""
+        while self.is_running:
+            try:
+                await asyncio.sleep(60)  # Log every minute
+                
+                stats = self.get_stats()
+                logger.info(
+                    f"Node stats - Peers: {stats['peer_count']}, "
+                    f"Messages sent: {stats['messages_sent']}, "
+                    f"Messages received: {stats['messages_received']}, "
+                    f"Uptime: {stats['uptime']:.0f}s"
+                )
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error in stats reporting: {e}")
 
 
-# Alias for backward compatibility
-EnhancedCSPNetwork = NetworkNode
+class EnhancedCSPNetwork:
+    """
+    High-level network interface for Enhanced CSP.
+    Manages multiple nodes and provides simplified API.
+    """
+    
+    def __init__(self, config: Optional[NetworkConfig] = None):
+        """Initialize Enhanced CSP Network."""
+        self.config = config or NetworkConfig()
+        self.nodes: Dict[str, NetworkNode] = {}
+        
+    async def create_node(self, name: str = "default") -> NetworkNode:
+        """Create and start a new network node."""
+        node = NetworkNode(self.config)
+        
+        if await node.start():
+            self.nodes[name] = node
+            return node
+        else:
+            raise RuntimeError("Failed to start network node")
+    
+    async def stop_node(self, name: str = "default") -> bool:
+        """Stop and remove a network node."""
+        if name in self.nodes:
+            success = await self.nodes[name].stop()
+            if success:
+                del self.nodes[name]
+            return success
+        return False
+    
+    async def stop_all(self):
+        """Stop all network nodes."""
+        for name in list(self.nodes.keys()):
+            await self.stop_node(name)
+    
+    def get_node(self, name: str = "default") -> Optional[NetworkNode]:
+        """Get a network node by name."""
+        return self.nodes.get(name)
