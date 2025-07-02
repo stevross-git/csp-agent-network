@@ -148,3 +148,5 @@ enhanced_csp/agents/__pycache__/__init__.cpython-310.pyc
 enhanced_csp/agents/__pycache__/base.cpython-310.pyc
 enhanced_csp/agents/__pycache__/cleaner.cpython-310.pyc
 enhanced_csp/agents/__pycache__/planner.cpython-310.pyc
+enhanced_csp/crystallized_memory/test/*.pkl
+enhanced_csp/crystallized_memory/test_namespace/*.pkl

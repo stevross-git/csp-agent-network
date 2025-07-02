@@ -1,0 +1,122 @@
+{
+  "crystal_test_namespace_1751437327968": {
+    "type": "knowledge",
+    "participants": [
+      "agent_1",
+      "agent_2"
+    ],
+    "strength": 0.8,
+    "formation_time": "2025-07-02T16:22:07.968951",
+    "connections": [
+      "crystal_test_namespace_1751437327968"
+    ]
+  },
+  "crystal_test_namespace_1751437327972": {
+    "type": "knowledge",
+    "participants": [
+      "agent_1",
+      "agent_2"
+    ],
+    "strength": 0.9,
+    "formation_time": "2025-07-02T16:22:07.972892",
+    "connections": [
+      "crystal_test_namespace_1751437327968"
+    ]
+  },
+  "crystal_test_namespace_1751437327973": {
+    "type": "knowledge",
+    "participants": [
+      "agent_1",
+      "agent_2"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:22:07.973045",
+    "connections": [
+      "crystal_test_namespace_1751437327972",
+      "crystal_test_namespace_1751437327968"
+    ]
+  },
+  "crystal_test_namespace_1751437651273": {
+    "type": "knowledge",
+    "participants": [
+      "agent_1",
+      "agent_2"
+    ],
+    "strength": 0.8,
+    "formation_time": "2025-07-02T16:27:31.273916",
+    "connections": [
+      "crystal_test_namespace_1751437651273",
+      "crystal_test_namespace_1751437327973",
+      "crystal_test_namespace_1751437327972",
+      "crystal_test_namespace_1751437327968"
+    ]
+  },
+  "crystal_test_namespace_1751437651274": {
+    "type": "knowledge",
+    "participants": [
+      "agent_1",
+      "agent_2"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:27:31.274253",
+    "connections": [
+      "crystal_test_namespace_1751437651274",
+      "crystal_test_namespace_1751437327973",
+      "crystal_test_namespace_1751437651273",
+      "crystal_test_namespace_1751437327972",
+      "crystal_test_namespace_1751437327968"
+    ]
+  },
+  "crystal_test_namespace_1751438853360": {
+    "type": "pattern",
+    "participants": [
+      "agent_1",
+      "agent_2"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:47:33.360119",
+    "connections": [
+      "crystal_test_namespace_1751437651274",
+      "crystal_test_namespace_1751437327973",
+      "crystal_test_namespace_1751437651273",
+      "crystal_test_namespace_1751437327972",
+      "crystal_test_namespace_1751437327968"
+    ]
+  },
+  "crystal_test_namespace_1751438853368": {
+    "type": "knowledge",
+    "participants": [
+      "agent_1",
+      "agent_2"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:47:33.369011",
+    "connections": [
+      "crystal_test_namespace_1751438853360",
+      "crystal_test_namespace_1751437651274",
+      "crystal_test_namespace_1751437327973",
+      "crystal_test_namespace_1751437651273",
+      "crystal_test_namespace_1751437327972",
+      "crystal_test_namespace_1751437327968"
+    ]
+  },
+  "crystal_test_namespace_1751438853377": {
+    "type": "pattern",
+    "participants": [
+      "agent_2",
+      "agent_3"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:47:33.377824",
+    "connections": [
+      "crystal_test_namespace_1751438853360",
+      "crystal_test_namespace_1751438853368",
+      "crystal_test_namespace_1751437651274",
+      "crystal_test_namespace_1751438853377",
+      "crystal_test_namespace_1751437327973",
+      "crystal_test_namespace_1751437651273",
+      "crystal_test_namespace_1751437327972",
+      "crystal_test_namespace_1751437327968"
+    ]
+  }
+}

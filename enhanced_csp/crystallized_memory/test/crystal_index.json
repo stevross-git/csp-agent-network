@@ -1,0 +1,155 @@
+{
+  "crystal_test_1751437328005": {
+    "type": "pattern",
+    "participants": [
+      "agent_1"
+    ],
+    "strength": 0.7,
+    "formation_time": "2025-07-02T16:22:08.005889",
+    "connections": [
+      "crystal_test_1751437328005"
+    ]
+  },
+  "crystal_test_1751437328006": {
+    "type": "pattern",
+    "participants": [
+      "agent_1"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:22:08.007000",
+    "connections": [
+      "crystal_test_1751437328005",
+      "crystal_test_1751437328006"
+    ]
+  },
+  "crystal_test_1751437328007": {
+    "type": "pattern",
+    "participants": [
+      "agent_1"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:22:08.007726",
+    "connections": [
+      "crystal_test_1751437328005",
+      "crystal_test_1751437328007",
+      "crystal_test_1751437328006"
+    ]
+  },
+  "crystal_test_1751437328008": {
+    "type": "pattern",
+    "participants": [
+      "agent_1"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:22:08.008511",
+    "connections": [
+      "crystal_test_1751437328005",
+      "crystal_test_1751437328007",
+      "crystal_test_1751437328008",
+      "crystal_test_1751437328006"
+    ]
+  },
+  "crystal_test_1751437651309": {
+    "type": "pattern",
+    "participants": [
+      "agent_1"
+    ],
+    "strength": 0.6,
+    "formation_time": "2025-07-02T16:27:31.309894",
+    "connections": [
+      "crystal_test_1751437328005",
+      "crystal_test_1751437328007",
+      "crystal_test_1751437328008",
+      "crystal_test_1751437328006"
+    ]
+  },
+  "crystal_test_1751437651310": {
+    "type": "pattern",
+    "participants": [
+      "agent_1"
+    ],
+    "strength": 0.8,
+    "formation_time": "2025-07-02T16:27:31.310548",
+    "connections": [
+      "crystal_test_1751437328005",
+      "crystal_test_1751437651309",
+      "crystal_test_1751437328007",
+      "crystal_test_1751437328008",
+      "crystal_test_1751437651310",
+      "crystal_test_1751437328006"
+    ]
+  },
+  "crystal_test_1751437651311": {
+    "type": "pattern",
+    "participants": [
+      "agent_1"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:27:31.311842",
+    "connections": [
+      "crystal_test_1751437328005",
+      "crystal_test_1751437651309",
+      "crystal_test_1751437328007",
+      "crystal_test_1751437328008",
+      "crystal_test_1751437651311",
+      "crystal_test_1751437651310",
+      "crystal_test_1751437328006"
+    ]
+  },
+  "crystal_test_1751437651312": {
+    "type": "pattern",
+    "participants": [
+      "agent_1"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:27:31.312803",
+    "connections": [
+      "crystal_test_1751437328005",
+      "crystal_test_1751437651312",
+      "crystal_test_1751437651309",
+      "crystal_test_1751437328007",
+      "crystal_test_1751437328008",
+      "crystal_test_1751437651311",
+      "crystal_test_1751437651310",
+      "crystal_test_1751437328006"
+    ]
+  },
+  "crystal_test_1751437651313": {
+    "type": "pattern",
+    "participants": [
+      "agent_1"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:27:31.313833",
+    "connections": [
+      "crystal_test_1751437328005",
+      "crystal_test_1751437651312",
+      "crystal_test_1751437651309",
+      "crystal_test_1751437651313",
+      "crystal_test_1751437328007",
+      "crystal_test_1751437328008",
+      "crystal_test_1751437651311",
+      "crystal_test_1751437651310",
+      "crystal_test_1751437328006"
+    ]
+  },
+  "crystal_test_1751438853494": {
+    "type": "pattern",
+    "participants": [
+      "agent_1"
+    ],
+    "strength": 1.0,
+    "formation_time": "2025-07-02T16:47:33.494935",
+    "connections": [
+      "crystal_test_1751437328005",
+      "crystal_test_1751437651312",
+      "crystal_test_1751437651309",
+      "crystal_test_1751437651313",
+      "crystal_test_1751437328007",
+      "crystal_test_1751437328008",
+      "crystal_test_1751437651311",
+      "crystal_test_1751437651310",
+      "crystal_test_1751437328006"
+    ]
+  }
+}
