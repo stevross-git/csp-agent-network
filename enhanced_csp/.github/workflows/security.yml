@@ -1,0 +1,84 @@
+# File: .github/workflows/security.yml
+"""
+name: Security Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly scan
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install bandit safety pip-audit
+        pip install -r requirements.txt
+    
+    - name: Run Bandit security scan
+      run: |
+        bandit -r backend -f json -o bandit-report.json -ll
+        bandit -r backend -ll
+    
+    - name: Check dependencies with Safety
+      run: |
+        safety check --json --output safety-report.json
+        safety check
+    
+    - name: Audit dependencies with pip-audit
+      run: |
+        pip-audit --desc --format json --output pip-audit-report.json
+        pip-audit --desc
+    
+    - name: Run security tests
+      run: |
+        pytest tests/security/ -v --cov=backend --cov-report=xml
+    
+    - name: Check test coverage
+      run: |
+        coverage report --fail-under=80
+    
+    - name: Upload security reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+          pip-audit-report.json
+          coverage.xml
+    
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const bandit = JSON.parse(fs.readFileSync('bandit-report.json', 'utf8'));
+          const safety = JSON.parse(fs.readFileSync('safety-report.json', 'utf8'));
+          
+          let comment = '## 🔒 Security Scan Results\\n\\n';
+          comment += `### Bandit: ${bandit.results.length} issues found\\n`;
+          comment += `### Safety: ${safety.vulnerabilities.length} vulnerabilities\\n`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+"""
