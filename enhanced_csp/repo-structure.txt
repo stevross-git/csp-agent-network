@@ -40,6 +40,7 @@
 │   │   │   ├── file_monitoring.py
 │   │   │   ├── infrastructure.py
 │   │   │   ├── licenses.py
+│   │   │   ├── memory.py
 │   │   │   └── settings.py
 │   │   ├── __init__.py
 │   │   └── network_api.md
@@ -47,6 +48,7 @@
 │   │   ├── auth_monitoring.py
 │   │   ├── auth_system.py
 │   │   ├── azure_auth.py
+│   │   ├── jwt_rotation.py
 │   │   ├── local_auth.py
 │   │   ├── rbac.py
 │   │   └── token_blacklist.py
@@ -81,12 +83,14 @@
 │   │   ├── shared_memory.py
 │   │   └── working_memory.py
 │   ├── middleware
+│   │   ├── advanced_rate_limiter.py
 │   │   ├── auth_middleware.py
 │   │   └── rate_limit_monitoring.py
 │   ├── models
 │   │   ├── database_models.py
 │   │   └── license.py
 │   ├── monitoring
+│   │   ├── enhanced_metrics.py
 │   │   └── performance.py
 │   ├── realtime
 │   │   ├── websocket_manager.py
@@ -303,6 +307,7 @@
 │   ├── network_optimization_defaults.yaml
 │   ├── network_optimization.yaml
 │   ├── secrets
+│   ├── security.py
 │   ├── settings.py
 │   └── system.yaml
 ├── core
@@ -423,7 +428,8 @@
 ├── .docker-compose-path
 ├── docs
 │   ├── csp_revolutionary_summary.md
-│   └── documentation_and_webui.md
+│   ├── documentation_and_webui.md
+│   └── SECURITY-CERT-ROTATION.md
 ├── .env.databases
 ├── .env.docker
 ├── examples
@@ -585,7 +591,8 @@
 ├── .github
 │   ├── release-drafter.yml
 │   └── workflows
-│       └── network-tests.yml
+│       ├── network-tests.yml
+│       └── security.yml
 ├── helm
 │   └── enhanced-csp-network
 │       └── templates
@@ -709,6 +716,8 @@
 │   └── __init__.py
 ├── quantum_csp_engine.py
 ├── readme.md
+├── redis
+│   └── redis.secure.conf
 ├── repo-structure.txt
 ├── requirements-dev.txt
 ├── requirements.txt
@@ -756,8 +765,11 @@
 │   │   │       └── prometheus.yml
 │   │   └── prometheus
 │   │       └── prometheus.yml
+│   ├── rotate-postgres-certs.sh
 │   ├── setup-docker-compose.sh
 │   ├── setup-docker.sh
+│   ├── setup-git-secrets.sh
+│   ├── setup-redis-auth.sh
 │   ├── start-databases.sh
 │   ├── test_alerts.sh
 │   └── testing
@@ -773,6 +785,9 @@
 │   └── validation_framework.py
 ├── tests
 │   ├── conftest.py
+│   ├── security
+│   │   ├── test_rate_limit.py
+│   │   └── test_websocket_security.py
 │   ├── test_ai_coordination_performance.py
 │   └── test_monitoring_coverage.py
 └── volumes
@@ -782,4 +797,4 @@
     ├── postgres
     └── redis
 
-249 directories, 533 files
+251 directories, 546 files

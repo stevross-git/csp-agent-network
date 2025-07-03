@@ -1,0 +1,1623 @@
+openapi: 3.0.3
+info:
+  title: Enhanced CSP API
+  description: |
+    Revolutionary AI-to-AI Communication Platform using Communicating Sequential Processes (CSP).
+    
+    This API provides comprehensive endpoints for:
+    - Advanced AI coordination with quantum-inspired algorithms
+    - Multi-layer memory management (Working, Shared, Collective, Crystallized)
+    - JWT dual-key rotation for zero-downtime authentication
+    - Infrastructure and system management
+    - Real-time monitoring and observability
+    
+  version: 2.0.0
+  contact:
+    name: Enhanced CSP Team
+    email: support@enhanced-csp.io
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.enhanced-csp.io
+    description: Production server
+
+tags:
+  - name: authentication
+    description: Dual authentication system (Azure AD + Local)
+  - name: ai-coordination
+    description: Advanced AI coordination algorithms
+  - name: memory-management
+    description: Four-layer memory system operations
+  - name: infrastructure
+    description: System infrastructure management
+  - name: monitoring
+    description: Real-time monitoring and metrics
+  - name: admin
+    description: Administrative operations
+  - name: settings
+    description: System configuration
+  - name: licenses
+    description: License management
+  - name: network
+    description: P2P network operations
+
+security:
+  - bearerAuth: []
+  - azureAuth: []
+
+paths:
+  # Authentication Endpoints
+  /api/auth/info:
+    get:
+      tags: [authentication]
+      summary: Get authentication configuration
+      description: Returns available authentication methods and configuration
+      operationId: getAuthInfo
+      security: []
+      responses:
+        '200':
+          description: Authentication configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthInfo'
+
+  /api/auth/me:
+    get:
+      tags: [authentication]
+      summary: Get current user information
+      description: Returns unified user information regardless of auth method
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/permissions:
+    get:
+      tags: [authentication]
+      summary: Get user permissions
+      description: Returns permissions for the authenticated user
+      operationId: getUserPermissions
+      responses:
+        '200':
+          description: User permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPermissions'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/logout:
+    post:
+      tags: [authentication]
+      summary: Logout user
+      description: Invalidates the current session/token
+      operationId: logoutUser
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Local Authentication
+  /api/auth/local/register:
+    post:
+      tags: [authentication]
+      summary: Register new local user
+      operationId: registerLocalUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: User already exists
+
+  /api/auth/local/login:
+    post:
+      tags: [authentication]
+      summary: Login with email and password
+      operationId: loginLocalUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginCredentials'
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/local/refresh:
+    post:
+      tags: [authentication]
+      summary: Refresh access token
+      operationId: refreshLocalToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: New access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # AI Coordination Endpoints
+  /api/ai-coordination/synchronize:
+    post:
+      tags: [ai-coordination]
+      summary: Synchronize AI agents
+      description: |
+        Performs complete AI agent synchronization using all 5 coordination algorithms:
+        - Multi-Dimensional Consciousness Synchronization
+        - Quantum Knowledge Osmosis
+        - Meta-Wisdom Convergence
+        - Temporal Entanglement
+        - Emergent Behavior Detection
+      operationId: synchronizeAgents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentSynchronizationRequest'
+      responses:
+        '200':
+          description: Synchronization completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynchronizationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          description: Coordination system unavailable
+
+  /api/ai-coordination/performance/metrics:
+    get:
+      tags: [ai-coordination]
+      summary: Get AI coordination performance metrics
+      operationId: getCoordinationMetrics
+      parameters:
+        - name: coordination_id
+          in: query
+          schema:
+            type: string
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            enum: [1h, 6h, 24h, 7d]
+      responses:
+        '200':
+          description: Performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceMetrics'
+
+  /api/ai-coordination/consciousness/sync:
+    post:
+      tags: [ai-coordination]
+      summary: Multi-dimensional consciousness synchronization
+      description: Synchronizes AI agent consciousness across multiple dimensions
+      operationId: syncConsciousness
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsciousnessSyncRequest'
+      responses:
+        '200':
+          description: Consciousness synchronized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsciousnessSyncResponse'
+
+  /api/ai-coordination/quantum/entangle:
+    post:
+      tags: [ai-coordination]
+      summary: Create quantum entanglement
+      description: Creates quantum-inspired entanglement between AI agents
+      operationId: createQuantumEntanglement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuantumEntanglementRequest'
+      responses:
+        '200':
+          description: Entanglement created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuantumEntanglementResponse'
+
+  /api/ai-coordination/wisdom/synthesize:
+    post:
+      tags: [ai-coordination]
+      summary: Synthesize collective wisdom
+      description: Performs dialectical synthesis of agent knowledge
+      operationId: synthesizeWisdom
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WisdomSynthesisRequest'
+      responses:
+        '200':
+          description: Wisdom synthesized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WisdomSynthesisResponse'
+
+  /api/ai-coordination/temporal/synchronize:
+    post:
+      tags: [ai-coordination]
+      summary: Temporal synchronization
+      description: Manages temporal relationships and causal consistency
+      operationId: temporalSync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemporalSyncRequest'
+      responses:
+        '200':
+          description: Temporal synchronization complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemporalSyncResponse'
+
+  /api/ai-coordination/emergence/detect:
+    post:
+      tags: [ai-coordination]
+      summary: Detect emergent behaviors
+      description: Analyzes and detects emergent behaviors in agent collectives
+      operationId: detectEmergence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergenceDetectionRequest'
+      responses:
+        '200':
+          description: Emergence analysis complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergenceDetectionResponse'
+
+  # Memory Management Endpoints
+  /api/memory/{layer}/{key}:
+    get:
+      tags: [memory-management]
+      summary: Get memory value
+      description: Retrieves value from specified memory layer
+      operationId: getMemoryValue
+      parameters:
+        - name: layer
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [working, shared, collective, crystallized]
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Memory value retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryValue'
+        '404':
+          description: Key not found
+
+    put:
+      tags: [memory-management]
+      summary: Store memory value
+      description: Stores value in specified memory layer
+      operationId: putMemoryValue
+      parameters:
+        - name: layer
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [working, shared, collective, crystallized]
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemoryStoreRequest'
+      responses:
+        '200':
+          description: Value stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+    delete:
+      tags: [memory-management]
+      summary: Delete memory value
+      description: Removes value from specified memory layer
+      operationId: deleteMemoryValue
+      parameters:
+        - name: layer
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [working, shared, collective, crystallized]
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Value deleted successfully
+        '404':
+          description: Key not found
+
+  /api/memory/evict:
+    post:
+      tags: [memory-management]
+      summary: Evict memory entries
+      description: Triggers memory eviction based on policy
+      operationId: evictMemory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemoryEvictionRequest'
+      responses:
+        '200':
+          description: Eviction completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvictionResponse'
+
+  /api/memory/crystallize:
+    post:
+      tags: [memory-management]
+      summary: Crystallize memories
+      description: Converts collective memories into crystallized knowledge
+      operationId: crystallizeMemories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrystallizationRequest'
+      responses:
+        '200':
+          description: Crystallization completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrystallizationResponse'
+
+  /api/memory/stats:
+    get:
+      tags: [memory-management]
+      summary: Get memory statistics
+      description: Returns statistics for all memory layers
+      operationId: getMemoryStats
+      responses:
+        '200':
+          description: Memory statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryStatistics'
+
+  # Infrastructure Endpoints
+  /api/infrastructure/status:
+    get:
+      tags: [infrastructure]
+      summary: Get infrastructure status
+      description: Returns overall infrastructure health and status
+      operationId: getInfrastructureStatus
+      responses:
+        '200':
+          description: Infrastructure status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfrastructureStatus'
+
+  /api/infrastructure/metrics:
+    get:
+      tags: [infrastructure]
+      summary: Get infrastructure metrics
+      description: Returns detailed infrastructure metrics
+      operationId: getInfrastructureMetrics
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [cpu, memory, network, disk, all]
+      responses:
+        '200':
+          description: Infrastructure metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfrastructureMetrics'
+
+  /api/infrastructure/services:
+    get:
+      tags: [infrastructure]
+      summary: List all services
+      description: Returns status of all infrastructure services
+      operationId: listServices
+      responses:
+        '200':
+          description: Service list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceStatus'
+
+  /api/infrastructure/services/{service}/restart:
+    post:
+      tags: [infrastructure]
+      summary: Restart service
+      description: Restarts specified infrastructure service
+      operationId: restartService
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Service restarted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceActionResponse'
+        '404':
+          description: Service not found
+
+  /api/infrastructure/backup:
+    post:
+      tags: [infrastructure]
+      summary: Create system backup
+      description: Initiates a full system backup
+      operationId: createBackup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BackupRequest'
+      responses:
+        '202':
+          description: Backup initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupResponse'
+
+  /api/infrastructure/alerts:
+    get:
+      tags: [infrastructure]
+      summary: Get system alerts
+      description: Returns active infrastructure alerts
+      operationId: getAlerts
+      parameters:
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [critical, high, medium, low]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, acknowledged, resolved]
+      responses:
+        '200':
+          description: System alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SystemAlert'
+
+  # Monitoring Endpoints
+  /api/monitor/real-time:
+    get:
+      tags: [monitoring]
+      summary: Get real-time metrics
+      description: Returns real-time system metrics
+      operationId: getRealTimeMetrics
+      parameters:
+        - name: metrics
+          in: query
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Real-time metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealTimeMetrics'
+
+  /api/monitor/history:
+    get:
+      tags: [monitoring]
+      summary: Get historical metrics
+      description: Returns historical performance data
+      operationId: getHistoricalMetrics
+      parameters:
+        - name: metric
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: start_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: resolution
+          in: query
+          schema:
+            type: string
+            enum: [1m, 5m, 1h, 1d]
+      responses:
+        '200':
+          description: Historical metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoricalMetrics'
+
+  # Admin Endpoints
+  /api/admin/users:
+    get:
+      tags: [admin]
+      summary: List all users
+      description: Returns paginated list of system users
+      operationId: listUsers
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [admin]
+      summary: Create new user
+      description: Creates a new system user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/admin/audit-logs:
+    get:
+      tags: [admin]
+      summary: Get audit logs
+      description: Returns system audit logs
+      operationId: getAuditLogs
+      parameters:
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogEntry'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # WebSocket Endpoints
+  /ws/memory:
+    get:
+      tags: [memory-management]
+      summary: Memory updates WebSocket
+      description: |
+        WebSocket endpoint for real-time memory updates.
+        
+        Connection: ws://localhost:8000/ws/memory?agent_id={agent_id}
+        
+        Message format:
+        ```json
+        {
+          "type": "subscribe|unsubscribe|update",
+          "layer": "working|shared|collective|crystallized",
+          "key": "memory_key",
+          "value": {},
+          "agent_id": "agent-123"
+        }
+        ```
+      operationId: memoryWebSocket
+      parameters:
+        - name: agent_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '101':
+          description: Switching Protocols
+
+  /ws/coordination:
+    get:
+      tags: [ai-coordination]
+      summary: AI coordination WebSocket
+      description: |
+        WebSocket endpoint for real-time AI coordination updates.
+        
+        Connection: ws://localhost:8000/ws/coordination?session_id={session_id}
+        
+        Receives real-time updates on:
+        - Synchronization progress
+        - Performance metrics
+        - Emergent behavior alerts
+        - Coordination events
+      operationId: coordinationWebSocket
+      parameters:
+        - name: session_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '101':
+          description: Switching Protocols
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for local authentication
+    azureAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Azure AD JWT token
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # Base Schemas
+    BaseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            error_code:
+              type: string
+            details:
+              type: object
+
+    MessageResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+
+    # Authentication Schemas
+    AuthInfo:
+      type: object
+      properties:
+        auth_type:
+          type: string
+          enum: [dual, local, azure_ad]
+        methods:
+          type: array
+          items:
+            type: string
+        azure_ad:
+          type: object
+          properties:
+            tenant_id:
+              type: string
+            client_id:
+              type: string
+        local:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+
+    UserInfo:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        auth_method:
+          type: string
+          enum: [local, azure_ad]
+        created_at:
+          type: string
+          format: date-time
+        last_login:
+          type: string
+          format: date-time
+
+    UserPermissions:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            type: string
+        roles:
+          type: array
+          items:
+            type: string
+        resource_access:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    UserRegistration:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+        organization:
+          type: string
+
+    LoginCredentials:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          default: Bearer
+        expires_in:
+          type: integer
+        user:
+          $ref: '#/components/schemas/UserInfo'
+
+    RefreshTokenRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    # AI Coordination Schemas
+    AgentSynchronizationRequest:
+      type: object
+      required: [agents_data]
+      properties:
+        agents_data:
+          type: array
+          items:
+            type: object
+            properties:
+              agent_id:
+                type: string
+              state:
+                type: object
+              capabilities:
+                type: array
+                items:
+                  type: string
+        coordination_id:
+          type: string
+        optimize_performance:
+          type: boolean
+          default: true
+        algorithms:
+          type: array
+          items:
+            type: string
+            enum: [consciousness, quantum, wisdom, temporal, emergence]
+
+    SynchronizationResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            coordination_id:
+              type: string
+            synchronized_agents:
+              type: integer
+            performance_metrics:
+              $ref: '#/components/schemas/PerformanceMetrics'
+            emergent_behaviors:
+              type: array
+              items:
+                type: string
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        synchronization_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        latency_ms:
+          type: number
+        throughput_ops:
+          type: number
+        consciousness_coherence:
+          type: number
+          format: float
+        quantum_entanglement_strength:
+          type: number
+          format: float
+        wisdom_convergence_depth:
+          type: integer
+        temporal_consistency:
+          type: number
+          format: float
+        emergent_complexity:
+          type: number
+          format: float
+
+    ConsciousnessSyncRequest:
+      type: object
+      required: [agent_states]
+      properties:
+        agent_states:
+          type: array
+          items:
+            type: object
+            properties:
+              agent_id:
+                type: string
+              consciousness_vector:
+                type: array
+                items:
+                  type: number
+              awareness_level:
+                type: number
+        sync_depth:
+          type: integer
+          default: 3
+        dimensional_mapping:
+          type: object
+
+    ConsciousnessSyncResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            synchronized_consciousness:
+              type: object
+            coherence_matrix:
+              type: array
+              items:
+                type: array
+                items:
+                  type: number
+            collective_awareness:
+              type: number
+
+    QuantumEntanglementRequest:
+      type: object
+      required: [agents]
+      properties:
+        agents:
+          type: array
+          minItems: 2
+          items:
+            type: string
+        entanglement_type:
+          type: string
+          enum: [bell_state, ghz_state, w_state]
+        correlation_strength:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    QuantumEntanglementResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            entanglement_id:
+              type: string
+            entangled_agents:
+              type: array
+              items:
+                type: string
+            quantum_state:
+              type: object
+            correlation_matrix:
+              type: array
+              items:
+                type: array
+                items:
+                  type: number
+
+    WisdomSynthesisRequest:
+      type: object
+      required: [knowledge_sources]
+      properties:
+        knowledge_sources:
+          type: array
+          items:
+            type: object
+            properties:
+              agent_id:
+                type: string
+              wisdom_fragments:
+                type: array
+                items:
+                  type: object
+        synthesis_method:
+          type: string
+          enum: [dialectical, emergent, convergent]
+        abstraction_level:
+          type: integer
+          minimum: 1
+          maximum: 10
+
+    WisdomSynthesisResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            synthesized_wisdom:
+              type: object
+            transcendent_principles:
+              type: array
+              items:
+                type: string
+            wisdom_graph:
+              type: object
+            convergence_score:
+              type: number
+
+    TemporalSyncRequest:
+      type: object
+      required: [agent_clocks]
+      properties:
+        agent_clocks:
+          type: array
+          items:
+            type: object
+            properties:
+              agent_id:
+                type: string
+              vector_clock:
+                type: object
+              logical_time:
+                type: integer
+        sync_algorithm:
+          type: string
+          enum: [vector_clock, hybrid_clock, true_time]
+        causality_tracking:
+          type: boolean
+          default: true
+
+    TemporalSyncResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            synchronized_time:
+              type: object
+            causality_graph:
+              type: object
+            temporal_coherence:
+              type: number
+            event_ordering:
+              type: array
+              items:
+                type: string
+
+    EmergenceDetectionRequest:
+      type: object
+      required: [collective_data]
+      properties:
+        collective_data:
+          type: object
+          properties:
+            agent_interactions:
+              type: array
+              items:
+                type: object
+            behavior_patterns:
+              type: array
+              items:
+                type: object
+        detection_threshold:
+          type: number
+          format: float
+          default: 0.7
+        amplification_enabled:
+          type: boolean
+          default: false
+
+    EmergenceDetectionResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            emergent_behaviors:
+              type: array
+              items:
+                type: object
+                properties:
+                  behavior_type:
+                    type: string
+                  emergence_score:
+                    type: number
+                  participating_agents:
+                    type: array
+                    items:
+                      type: string
+            metacognitive_resonance:
+              type: number
+            collective_intelligence_index:
+              type: number
+
+    # Memory Management Schemas
+    MemoryValue:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: object
+        layer:
+          type: string
+          enum: [working, shared, collective, crystallized]
+        metadata:
+          type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            access_count:
+              type: integer
+            ttl:
+              type: integer
+            agent_id:
+              type: string
+
+    MemoryStoreRequest:
+      type: object
+      required: [value]
+      properties:
+        value:
+          type: object
+        ttl:
+          type: integer
+          description: Time to live in seconds
+        metadata:
+          type: object
+        consistency_level:
+          type: string
+          enum: [eventual, strong, linearizable]
+          default: eventual
+
+    MemoryEvictionRequest:
+      type: object
+      properties:
+        layer:
+          type: string
+          enum: [working, shared, collective, crystallized]
+        policy:
+          type: string
+          enum: [lru, lfu, ttl, size]
+        target_size_mb:
+          type: integer
+        age_threshold_seconds:
+          type: integer
+
+    EvictionResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            evicted_count:
+              type: integer
+            freed_bytes:
+              type: integer
+            remaining_entries:
+              type: integer
+
+    CrystallizationRequest:
+      type: object
+      required: [namespace]
+      properties:
+        namespace:
+          type: string
+        pattern_threshold:
+          type: number
+          format: float
+          default: 0.8
+        min_frequency:
+          type: integer
+          default: 5
+        compression_enabled:
+          type: boolean
+          default: true
+
+    CrystallizationResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            crystallized_patterns:
+              type: integer
+            crystal_ids:
+              type: array
+              items:
+                type: string
+            compression_ratio:
+              type: number
+            knowledge_density:
+              type: number
+
+    MemoryStatistics:
+      type: object
+      properties:
+        working:
+          $ref: '#/components/schemas/LayerStats'
+        shared:
+          $ref: '#/components/schemas/LayerStats'
+        collective:
+          $ref: '#/components/schemas/LayerStats'
+        crystallized:
+          $ref: '#/components/schemas/LayerStats'
+        total_memory_mb:
+          type: number
+        total_entries:
+          type: integer
+
+    LayerStats:
+      type: object
+      properties:
+        entry_count:
+          type: integer
+        size_bytes:
+          type: integer
+        hit_rate:
+          type: number
+        eviction_rate:
+          type: number
+        avg_access_time_ms:
+          type: number
+
+    # Infrastructure Schemas
+    InfrastructureStatus:
+      type: object
+      properties:
+        overall_health:
+          type: string
+          enum: [healthy, degraded, critical]
+        services:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [running, stopped, error]
+        uptime_seconds:
+          type: integer
+        last_check:
+          type: string
+          format: date-time
+
+    InfrastructureMetrics:
+      type: object
+      properties:
+        cpu:
+          type: object
+          properties:
+            usage_percent:
+              type: number
+            cores_available:
+              type: integer
+            load_average:
+              type: array
+              items:
+                type: number
+        memory:
+          type: object
+          properties:
+            used_gb:
+              type: number
+            total_gb:
+              type: number
+            usage_percent:
+              type: number
+        disk:
+          type: object
+          properties:
+            used_gb:
+              type: number
+            total_gb:
+              type: number
+            usage_percent:
+              type: number
+        network:
+          type: object
+          properties:
+            bytes_sent:
+              type: integer
+            bytes_received:
+              type: integer
+            connections_active:
+              type: integer
+
+    ServiceStatus:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [running, stopped, error]
+        uptime:
+          type: string
+        port:
+          type: integer
+        health_check_url:
+          type: string
+        last_check:
+          type: string
+          format: date-time
+
+    ServiceActionResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            service:
+              type: string
+            action:
+              type: string
+            new_status:
+              type: string
+
+    BackupRequest:
+      type: object
+      properties:
+        backup_type:
+          type: string
+          enum: [full, incremental, differential]
+          default: full
+        include_logs:
+          type: boolean
+          default: true
+        compression:
+          type: string
+          enum: [gzip, bzip2, lzma]
+          default: gzip
+
+    BackupResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            backup_id:
+              type: string
+            estimated_duration_seconds:
+              type: integer
+            size_estimate_mb:
+              type: number
+
+    SystemAlert:
+      type: object
+      properties:
+        alert_id:
+          type: string
+        severity:
+          type: string
+          enum: [critical, high, medium, low]
+        status:
+          type: string
+          enum: [active, acknowledged, resolved]
+        title:
+          type: string
+        description:
+          type: string
+        source:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        acknowledged_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+
+    # Monitoring Schemas
+    RealTimeMetrics:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        metrics:
+          type: object
+          additionalProperties:
+            type: number
+        rates:
+          type: object
+          additionalProperties:
+            type: number
+
+    HistoricalMetrics:
+      type: object
+      properties:
+        metric:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        resolution:
+          type: string
+        data_points:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              value:
+                type: number
+
+    # Admin Schemas
+    UserListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserInfo'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    CreateUserRequest:
+      type: object
+      required: [email, name, password]
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        roles:
+          type: array
+          items:
+            type: string
+        active:
+          type: boolean
+          default: true
+
+    AuditLogEntry:
+      type: object
+      properties:
+        log_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+        user_email:
+          type: string
+        action:
+          type: string
+        resource:
+          type: string
+        details:
+          type: object
+        ip_address:
+          type: string
+        user_agent:
+          type: string
