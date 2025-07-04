@@ -1,0 +1,147 @@
+# ============================================================================
+# DOCKER COMPOSE CONFIGURATION
+# ============================================================================
+
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # Distributed AI Core Service
+  distributed-ai-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "9090:9090"
+    environment:
+      - ENVIRONMENT=production
+      - NODE_ID=core_node_001
+      - CUDA_VISIBLE_DEVICES=0,1,2,3
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    volumes:
+      - ./configs:/app/configs
+      - ./models:/app/models
+      - ./logs:/app/logs
+    networks:
+      - distributed-ai-network
+    depends_on:
+      - ollama
+      - prometheus
+      - jaeger
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 4
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # Ollama Service for Local Models
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_ORIGINS=*
+      - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - distributed-ai-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # Prometheus for Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - distributed-ai-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  # Grafana for Metrics Visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - distributed-ai-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # Jaeger for Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - distributed-ai-network
+    restart: unless-stopped
+
+  # Redis for Caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - distributed-ai-network
+    restart: unless-stopped
+
+  # Load Balancer (HAProxy)
+  load-balancer:
+    image: haproxy:latest
+    ports:
+      - "80:80"
+      - "8404:8404"
+    volumes:
+      - ./load-balancer/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - distributed-ai-network
+    depends_on:
+      - distributed-ai-core
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+  prometheus_data:
+  grafana_data:
+  redis_data:
+
+networks:
+  distributed-ai-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16

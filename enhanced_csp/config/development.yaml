@@ -1,0 +1,85 @@
+# ============================================================================
+# DEVELOPMENT CONFIGURATION
+# ============================================================================
+
+# config/development.yaml
+environment: development
+cluster_name: distributed_ai_dev
+node_id: dev_node_001
+
+network:
+  host: 127.0.0.1
+  port: 8001
+  max_connections: 100
+  connection_timeout: 30.0
+  keepalive_timeout: 60.0
+  enable_tls: false
+
+shard:
+  strategy: tensor_parallel
+  num_shards: 2
+  shard_rank: 0
+  device_mapping:
+    llama2-7b: cuda:0
+    codellama: cuda:1
+  memory_limit_gb: 8.0
+  enable_zero_copy: true
+  enable_flash_attention: true
+  quantization_type: int8
+
+router:
+  load_balance_strategy: round_robin
+  cache_size: 1000
+  cache_similarity_threshold: 0.9
+  circuit_breaker_threshold: 3
+  circuit_breaker_timeout: 30.0
+  fallback_strategies:
+    - retry
+    - local
+  health_check_interval: 30.0
+
+local_agent:
+  ollama_url: http://localhost:11434
+  max_concurrent_requests: 5
+  model_unload_timeout: 300.0
+  auto_pull_models: true
+  model_cache_size: 3
+  enable_gpu: true
+
+csp:
+  namespace: distributed_ai_dev
+  enable_quantum_channels: false
+  enable_temporal_consistency: false
+  enable_formal_verification: false
+  max_processes: 100
+  process_timeout: 120.0
+  channel_buffer_size: 100
+
+monitoring:
+  enable_prometheus: true
+  prometheus_port: 9091
+  metrics_collection_interval: 10.0
+  enable_distributed_tracing: false
+  log_level: DEBUG
+
+security:
+  enable_authentication: false
+  rate_limit_requests: 1000
+  rate_limit_window: 3600
+  enable_encryption: false
+
+models:
+  llama2-7b:
+    memory_usage: 8.0
+    quantization: int8
+    max_batch_size: 8
+    context_length: 2048
+  codellama:
+    memory_usage: 8.0
+    quantization: int8
+    max_batch_size: 8
+    context_length: 4096
+
+debug: true
+auto_scaling: false
+backup_enabled: false

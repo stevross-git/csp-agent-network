@@ -1,0 +1,106 @@
+# ============================================================================
+# PRODUCTION CONFIGURATION
+# ============================================================================
+
+# config/production.yaml
+environment: production
+cluster_name: distributed_ai_production
+node_id: prod_node_001
+
+network:
+  host: 0.0.0.0
+  port: 8000
+  max_connections: 5000
+  connection_timeout: 30.0
+  keepalive_timeout: 60.0
+  enable_tls: true
+  tls_cert_file: /etc/ssl/certs/distributed_ai.crt
+  tls_key_file: /etc/ssl/private/distributed_ai.key
+
+shard:
+  strategy: hybrid_parallel
+  num_shards: 8
+  shard_rank: 0
+  device_mapping:
+    llama2-7b: cuda:0
+    llama2-13b: cuda:1
+    codellama: cuda:2
+    mistral-7b: cuda:3
+  memory_limit_gb: 32.0
+  enable_zero_copy: true
+  enable_flash_attention: true
+  quantization_type: int8
+
+router:
+  load_balance_strategy: latency_aware
+  cache_size: 50000
+  cache_similarity_threshold: 0.95
+  circuit_breaker_threshold: 10
+  circuit_breaker_timeout: 120.0
+  fallback_strategies:
+    - retry
+    - redirect
+    - local
+  health_check_interval: 15.0
+
+local_agent:
+  ollama_url: http://ollama:11434
+  max_concurrent_requests: 25
+  model_unload_timeout: 600.0
+  auto_pull_models: true
+  model_cache_size: 10
+  enable_gpu: true
+
+csp:
+  namespace: distributed_ai_prod
+  enable_quantum_channels: true
+  enable_temporal_consistency: true
+  enable_formal_verification: true
+  max_processes: 5000
+  process_timeout: 600.0
+  channel_buffer_size: 10000
+
+monitoring:
+  enable_prometheus: true
+  prometheus_port: 9090
+  metrics_collection_interval: 5.0
+  enable_distributed_tracing: true
+  jaeger_endpoint: http://jaeger:14268/api/traces
+  log_level: INFO
+
+security:
+  enable_authentication: true
+  api_key_header: X-API-Key
+  allowed_origins:
+    - https://distributed-ai.company.com
+    - https://api.company.com
+  rate_limit_requests: 10000
+  rate_limit_window: 3600
+  enable_encryption: true
+  encryption_key: ${ENCRYPTION_KEY}
+
+models:
+  llama2-7b:
+    memory_usage: 14.0
+    quantization: int8
+    max_batch_size: 32
+    context_length: 4096
+  llama2-13b:
+    memory_usage: 26.0
+    quantization: int8
+    max_batch_size: 16
+    context_length: 4096
+  codellama:
+    memory_usage: 14.0
+    quantization: fp8
+    max_batch_size: 24
+    context_length: 16384
+  mistral-7b:
+    memory_usage: 14.0
+    quantization: int8
+    max_batch_size: 32
+    context_length: 8192
+
+debug: false
+auto_scaling: true
+backup_enabled: true
