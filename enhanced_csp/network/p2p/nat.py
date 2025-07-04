@@ -24,7 +24,7 @@ except ImportError:
     WEBRTC_AVAILABLE = False
     logger.warning("aiortc not available, WebRTC-based NAT traversal disabled")
 
-from enhanced_csp.network.core.types import P2PConfig
+from enhanced_csp.network.core.config import P2PConfig
 
 
 class NATType(Enum):

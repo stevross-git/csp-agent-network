@@ -24,7 +24,8 @@ try:
 except ImportError:
     HAS_AIODNS = False
 
-from ..core.types import NodeID, P2PConfig
+from ..core.types import NodeID
+from enhanced_csp.network.core.config import P2PConfig
 
 logger = logging.getLogger(__name__)
 

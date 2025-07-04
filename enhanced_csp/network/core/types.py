@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Optional, Dict, Any, List
 import uuid
 import hashlib
-from .config import NetworkConfig
+from .config import P2PConfig
 
 
 
