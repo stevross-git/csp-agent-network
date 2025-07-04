@@ -6,17 +6,19 @@ Better Approach To Mobile Ad-hoc Networking - adapted for Enhanced CSP
 
 import asyncio
 import logging
+import datetime
 import time
 import random
 from typing import Dict, List, Optional, Set, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict
 import struct
+from typing import TYPE_CHECKING
 
 from ..core.types import NodeID, MessageType
-from enhanced_csp.network.core.node import NetworkNode
 if TYPE_CHECKING:
-    from .topology import MeshTopologyManager
+    from enhanced_csp.network.core.node import NetworkNode
+from .topology import MeshTopologyManager
 
 
 logger = logging.getLogger(__name__)
@@ -136,7 +138,7 @@ class BatmanRouting:
     TQ_MAX = 255
     TTL_DEFAULT = 50
     
-    def __init__(self, node: NetworkNode, topology_manager: MeshTopologyManager):
+    def __init__(self, node: 'NetworkNode', topology_manager: MeshTopologyManager):
         self.node = node
         self.topology = topology_manager
         
@@ -495,7 +497,7 @@ class BatmanRouting:
             # Clean up
             self.pending_routes.pop(destination, None)
     
-    def get_routing_metrics(self) -> Dict[str, Any]:
+    def get_routing_metrics(self) -> Dict[str, any]:
         """Get routing protocol metrics"""
         total_routes = len(self.routing_table)
         active_neighbors = len(self.neighbor_tq)

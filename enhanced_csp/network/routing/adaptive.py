@@ -2,7 +2,7 @@
 """
 Adaptive routing engine with real-time optimization and ML prediction
 """
-
+from typing import TYPE_CHECKING
 import asyncio
 import logging
 import time
@@ -20,8 +20,10 @@ except ImportError:
     ML_AVAILABLE = False
     logger.warning("scikit-learn not available, ML prediction disabled")
 
-from ..core.types import NodeID, RoutingConfig
-from ..core.node import NetworkNode
+from ..core.types import NodeID
+from ..core.config import RoutingConfig
+if TYPE_CHECKING:
+    from ..core.node import NetworkNode
 
 from .metrics import MetricsCollector
 from .multipath import MultipathManager
@@ -99,7 +101,7 @@ class FlowState:
 class AdaptiveRoutingEngine:
     """Adaptive routing with ML-based prediction"""
     
-    def __init__(self, node: NetworkNode, config: RoutingConfig,
+    def __init__(self, node: 'NetworkNode', config: RoutingConfig,
                  batman_routing: BatmanRouting):
         self.node = node
         self.config = config
