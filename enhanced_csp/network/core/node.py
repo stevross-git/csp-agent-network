@@ -163,7 +163,7 @@ class NetworkNode:
             
             # Initialize routing
             if self.config.enable_routing:
-                self.routing = BatmanRouting(self)
+                self.routing = BatmanRouting(self, self.topology)  
             
             # Initialize DNS overlay
             if self.config.enable_dns:
@@ -501,7 +501,33 @@ class EnhancedCSPNetwork:
         """Initialize Enhanced CSP Network."""
         self.config = config or NetworkConfig()
         self.nodes: Dict[str, NetworkNode] = {}
+        self.node_id = NodeID.generate()  # Add this line
+        self.is_running = False  # Add this line
         
+    async def start(self) -> bool:
+        """Start the Enhanced CSP Network."""
+        try:
+            # Create and start the default node
+            default_node = await self.create_node("default")
+            self.is_running = True
+            logger.info(f"Enhanced CSP Network started with node ID: {self.node_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to start Enhanced CSP Network: {e}")
+            self.is_running = False
+            return False
+    
+    async def stop(self) -> bool:
+        """Stop the Enhanced CSP Network."""
+        try:
+            await self.stop_all()
+            self.is_running = False
+            logger.info("Enhanced CSP Network stopped")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to stop Enhanced CSP Network: {e}")
+            return False
+    
     async def create_node(self, name: str = "default") -> NetworkNode:
         """Create and start a new network node."""
         node = NetworkNode(self.config)

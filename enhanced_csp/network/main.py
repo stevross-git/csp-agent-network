@@ -933,6 +933,7 @@ async def run_main(args: argparse.Namespace):
     """Main execution function."""
     manager = NodeManager(args)
     shell = InteractiveShell(manager) if not args.no_shell else None
+    status_server = None  # Initialize status_server at the top
     
     # Setup signal handlers
     loop = asyncio.get_event_loop()
@@ -947,7 +948,6 @@ async def run_main(args: argparse.Namespace):
         await manager.initialize()
         
         # Start status server if enabled
-        status_server = None
         if not args.no_status and AIOHTTP_AVAILABLE:
             server = StatusServer(manager, args.status_port)
             status_server = await server.start()
