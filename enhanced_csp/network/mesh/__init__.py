@@ -1,4 +1,5 @@
+# enhanced_csp/network/mesh/__init__.py
 """Mesh network topology management."""
-from .topology import MeshTopology
+from .topology import MeshTopologyManager, MeshTopology
 
-__all__ = ['MeshTopology']
+__all__ = ['MeshTopologyManager', 'MeshTopology']

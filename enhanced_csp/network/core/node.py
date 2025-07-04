@@ -13,8 +13,9 @@ from datetime import datetime
 
 from .types import (
     NodeID, NodeCapabilities, PeerInfo, NetworkMessage, 
-    MessageType, NetworkConfig
+    MessageType
 )
+from .config import NetworkConfig
 from ..p2p.transport import P2PTransport
 from ..p2p.discovery import HybridDiscovery
 from ..p2p.dht import KademliaDHT

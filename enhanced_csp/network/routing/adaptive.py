@@ -20,12 +20,13 @@ except ImportError:
     ML_AVAILABLE = False
     logger.warning("scikit-learn not available, ML prediction disabled")
 
-from ..core.types import NodeID, RoutingEntry, RoutingConfig
+from ..core.types import NodeID, RoutingConfig
 from ..core.node import NetworkNode
-from ..mesh.routing import BatmanRouting
+
 from .metrics import MetricsCollector
 from .multipath import MultipathManager
-
+if TYPE_CHECKING:
+    from ..mesh.routing import BatmanRouting, RoutingEntry
 
 logger = logging.getLogger(__name__)
 

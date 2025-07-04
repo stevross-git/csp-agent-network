@@ -13,14 +13,29 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 import struct
 
-from enhanced_csp.network.core.types import NodeID, RoutingEntry
+from ..core.types import NodeID, MessageType
 from enhanced_csp.network.core.node import NetworkNode
-from .topology import MeshTopologyManager
+if TYPE_CHECKING:
+    from .topology import MeshTopologyManager
 
 
 logger = logging.getLogger(__name__)
 
-
+@dataclass
+class RoutingEntry:
+    """Entry in the routing table."""
+    destination: NodeID
+    next_hop: NodeID
+    metric: float  # Lower is better
+    sequence_number: int
+    last_updated: datetime
+    path: List[NodeID] = field(default_factory=list)
+    
+    def is_stale(self) -> bool:
+        """Check if routing entry is stale."""
+        age = (datetime.utcnow() - self.last_updated).total_seconds()
+        return age > 300  # 5 minutes
+    
 @dataclass
 class OriginatorMessage:
     """B.A.T.M.A.N. originator message"""
