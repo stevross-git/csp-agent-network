@@ -40,18 +40,38 @@ except ImportError:
 # Enhanced CSP imports - use relative imports when running directly
 try:
     # Try absolute imports first (for installed package)
-    from enhanced_csp.network.core import NetworkConfig, SecurityConfig, EnhancedCSPNetwork
+    from enhanced_csp.network.core.config import (
+        NetworkConfig, SecurityConfig, P2PConfig, MeshConfig, 
+        DNSConfig, RoutingConfig
+    )
+    from enhanced_csp.network.core.node import EnhancedCSPNetwork
     from enhanced_csp.security_hardening import SecurityOrchestrator
     from enhanced_csp.quantum_csp_engine import QuantumCSPEngine
     from enhanced_csp.blockchain_csp_network import BlockchainCSPNetwork
 except ImportError:
     # Fall back to relative imports (for direct execution)
     sys.path.insert(0, str(Path(__file__).parent))
-    from core import NetworkConfig, SecurityConfig, EnhancedCSPNetwork
+    from core.config import (
+        NetworkConfig, SecurityConfig, P2PConfig, MeshConfig, 
+        DNSConfig, RoutingConfig
+    )
+    from core.node import EnhancedCSPNetwork
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from security_hardening import SecurityOrchestrator
-    from quantum_csp_engine import QuantumCSPEngine
-    from blockchain_csp_network import BlockchainCSPNetwork
+    try:
+        from security_hardening import SecurityOrchestrator
+        from quantum_csp_engine import QuantumCSPEngine
+        from blockchain_csp_network import BlockchainCSPNetwork
+    except ImportError:
+        # These modules may not exist, create placeholder classes
+        class SecurityOrchestrator:
+            def __init__(self, *args, **kwargs):
+                pass
+        class QuantumCSPEngine:
+            def __init__(self, *args, **kwargs):
+                pass
+        class BlockchainCSPNetwork:
+            def __init__(self, *args, **kwargs):
+                pass
 
 # Constants
 DEFAULT_BOOTSTRAP_NODES = []  # Empty for genesis node
@@ -308,7 +328,7 @@ class NodeManager:
         self.logger.info("Node shutdown complete")
     
     def _build_config(self) -> NetworkConfig:
-        """Build network configuration from CLI arguments."""
+        """Build network configuration from command line arguments."""
         # Build security config
         security = SecurityConfig(
             enable_tls=not self.args.no_tls,
@@ -326,41 +346,51 @@ class NodeManager:
             tls_rotation_interval=self.args.tls_rotation_days * 86400,
         )
         
-        # Build main config
-        config = NetworkConfig(
-            bootstrap_nodes=self.args.bootstrap if not self.args.genesis else [],
+        # Build P2P config
+        p2p = P2PConfig(
             listen_address=self.args.listen_address,
             listen_port=self.args.listen_port,
+            bootstrap_nodes=self.args.bootstrap if not self.args.genesis else [],
             stun_servers=self.args.stun_servers or DEFAULT_STUN_SERVERS,
-            turn_servers=self.args.turn_servers or DEFAULT_TURN_SERVERS,
-            is_super_peer=self.args.super_peer or self.args.genesis,
-            enable_relay=not self.args.no_relay,
-            enable_nat_traversal=not self.args.no_nat,
-            enable_upnp=not self.args.no_upnp,
+            turn_servers=self.args.turn_servers or [],
             max_peers=self.args.max_peers,
-            enable_compression=not self.args.no_compression,
-            enable_encryption=not self.args.no_encryption,
-            node_capabilities={
-                "relay": not self.args.no_relay,
-                "storage": self.args.enable_storage,
-                "compute": self.args.enable_compute,
-                "quantum": self.args.enable_quantum,
-                "blockchain": self.args.enable_blockchain,
-                "dns": self.args.enable_dns or self.args.genesis,
-                "bootstrap": self.args.genesis,
-            },
-            network_id=self.args.network_id,
-            enable_metrics=not self.args.no_metrics,
-            metrics_interval=self.args.metrics_interval,
-            enable_dht=not self.args.no_dht,
-            dht_bootstrap_nodes=self.args.dht_bootstrap or [],
-            routing_algorithm=self.args.routing,
-            enable_qos=self.args.qos,
-            bandwidth_limit=self.args.bandwidth_limit,
-            enable_ipv6=not self.args.no_ipv6,
-            dns_seeds=self.args.dns_seeds or [],
             enable_mdns=not self.args.no_mdns,
+        )
+        
+        # Build mesh config
+        mesh = MeshConfig(
+            max_peers=self.args.max_peers,
+        )
+        
+        # Build DNS config
+        dns = DNSConfig(
+            root_domain=".web4ai",
+        )
+        
+        # Build routing config
+        routing = RoutingConfig(
+            enable_qos=self.args.qos,
+        )
+        
+        # Build main network config
+        config = NetworkConfig(
             security=security,
+            p2p=p2p,
+            mesh=mesh,
+            dns=dns,
+            routing=routing,
+            enable_discovery=True,
+            enable_dht=not self.args.no_dht,
+            enable_nat_traversal=not self.args.no_nat,
+            enable_mesh=True,
+            enable_dns=self.args.enable_dns or self.args.genesis,
+            enable_adaptive_routing=True,
+            enable_metrics=not self.args.no_metrics,
+            enable_compression=not self.args.no_compression,
+            enable_storage=self.args.enable_storage,
+            enable_quantum=self.args.enable_quantum,
+            enable_blockchain=self.args.enable_blockchain,
+            enable_compute=self.args.enable_compute,
         )
         
         return config
@@ -833,7 +863,7 @@ class StatusServer:
     async def handle_metrics(self, request: web.Request) -> web.Response:
         """Prometheus-compatible metrics endpoint."""
         metrics = await self.manager.collect_metrics()
-        
+
         # Format as Prometheus metrics
         lines = [
             "# HELP enhanced_csp_peers Number of connected peers",

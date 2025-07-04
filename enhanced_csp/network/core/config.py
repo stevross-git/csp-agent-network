@@ -5,17 +5,42 @@ Network configuration classes for Enhanced CSP.
 
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
+from pathlib import Path
 
 
 @dataclass
 class SecurityConfig:
     """Security configuration for network communication."""
     enable_tls: bool = True
+    enable_mtls: bool = False
     tls_version: str = "1.3"
     enable_pqc: bool = True  # Post-quantum cryptography
+    enable_pq_crypto: bool = True  # Alias for enable_pqc
     pqc_algorithm: str = "kyber768"
     enable_encryption: bool = True
     enable_authentication: bool = True
+    enable_zero_trust: bool = False
+    
+    # Certificate paths
+    tls_cert_path: Optional[str] = None
+    tls_key_path: Optional[str] = None
+    ca_cert_path: Optional[str] = None
+    
+    # Audit and logging
+    audit_log_path: Optional[Path] = None
+    
+    # Threat detection
+    enable_threat_detection: bool = True
+    enable_intrusion_prevention: bool = False
+    
+    # Compliance
+    enable_compliance_mode: bool = False
+    compliance_standards: List[str] = field(default_factory=list)
+    
+    # Key rotation
+    tls_rotation_interval: int = 86400 * 30  # 30 days
+    
+    # Node lists
     trusted_nodes: List[str] = field(default_factory=list)
     blocked_nodes: List[str] = field(default_factory=list)
 
@@ -78,6 +103,8 @@ class RoutingConfig:
     max_paths_per_destination: int = 3
     failover_threshold_ms: int = 500
     path_quality_update_interval: int = 30  # seconds
+    metric_update_interval: int = 30  # seconds
+    route_optimization_interval: int = 60  # seconds
     enable_congestion_control: bool = True
     enable_qos: bool = True
     priority_levels: int = 4
@@ -102,6 +129,7 @@ class NetworkConfig:
     enable_adaptive_routing: bool = True
     enable_metrics: bool = True
     enable_compression: bool = True
+    enable_routing: bool = True
     
     # Performance settings
     message_buffer_size: int = 1000

@@ -3,7 +3,7 @@
 Network metrics collection for adaptive routing
 Measures RTT, bandwidth, packet loss, and jitter
 """
-
+from typing import TYPE_CHECKING
 import asyncio
 import logging
 import time
@@ -14,7 +14,8 @@ import struct
 import random
 
 from ..core.types import NodeID
-from ..core.node import NetworkNode
+if TYPE_CHECKING:
+    from ..core.node import NetworkNode
 
 
 logger = logging.getLogger(__name__)
@@ -110,7 +111,7 @@ class MetricsCollector:
     PROBE_INTERVAL = 0.1  # seconds
     PROBE_TIMEOUT = 5.0  # seconds
     
-    def __init__(self, node: NetworkNode):
+    def __init__(self, node: 'NetworkNode'):
         self.node = node
         self.session_counter = 0
         self.active_sessions: Dict[int, MeasurementSession] = {}
