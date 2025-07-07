@@ -7,14 +7,15 @@ services:
     environment:
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
       - COLLECTOR_OTLP_ENABLED=true
-      # Use in-memory storage to avoid permission issues
       - SPAN_STORAGE_TYPE=memory
+      - LOG_LEVEL=info
     ports:
       - "16686:16686"  # Jaeger UI
       - "14268:14268"  # Collector HTTP
-      - "14250:14250"  # Collector gRPC
+      - "14250:14250"  # Collector gRPC  
       - "4317:4317"    # OTLP gRPC receiver
       - "4318:4318"    # OTLP HTTP receiver
+      - "9411:9411"    # Zipkin
     networks:
       - scripts_csp-network
     restart: unless-stopped
@@ -23,22 +24,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 3
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    container_name: csp_otel_collector
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    volumes:
-      - ./config/otel-collector.yaml:/etc/otel-collector-config.yaml
-    ports:
-      - "4319:4317"    # OTLP gRPC
-      - "4320:4318"    # OTLP HTTP
-      - "8888:8888"    # Prometheus metrics
-    networks:
-      - scripts_csp-network
-    depends_on:
-      - jaeger
-    restart: unless-stopped
 
 networks:
   scripts_csp-network:

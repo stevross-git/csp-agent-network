@@ -14,7 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
 COPY detector.py .
-COPY models/ ./models/
+
+# Create directories for runtime
+RUN mkdir -p models config
 
 # Run the service
 CMD ["python", "-u", "detector.py"]

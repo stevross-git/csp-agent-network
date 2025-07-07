@@ -15,36 +15,41 @@ processors:
     check_interval: 1s
     limit_mib: 512
     spike_limit_mib: 128
-  
-  attributes:
-    actions:
-      - key: environment
-        value: production
-        action: upsert
-      - key: service.namespace
-        value: enhanced-csp
-        action: upsert
 
 exporters:
-  jaeger:
-    endpoint: jaeger:14250
+  # Use OTLP exporter to send to Jaeger
+  otlp:
+    endpoint: jaeger:4317
     tls:
       insecure: true
   
+  # Prometheus exporter for metrics
   prometheus:
     endpoint: "0.0.0.0:8888"
     namespace: traces
     const_labels:
       environment: production
+  
+  # Debug exporter (optional, for troubleshooting)
+  debug:
+    verbosity: detailed
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, batch, attributes]
-      exporters: [jaeger]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]  # Send traces to Jaeger via OTLP
     
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [prometheus]
+  
+  # Enable telemetry for the collector itself
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888
