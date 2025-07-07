@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 
 from ..core.types import NodeID, MessageType
 if TYPE_CHECKING:
-    from enhanced_csp.network.core.node import NetworkNode
+    from ..core.node import NetworkNode
 from .topology import MeshTopologyManager
 
 
@@ -30,12 +30,12 @@ class RoutingEntry:
     next_hop: NodeID
     metric: float  # Lower is better
     sequence_number: int
-    last_updated: datetime
+    last_updated: datetime.datetime
     path: List[NodeID] = field(default_factory=list)
     
     def is_stale(self) -> bool:
         """Check if routing entry is stale."""
-        age = (datetime.utcnow() - self.last_updated).total_seconds()
+        age = (datetime.datetime.utcnow() - self.last_updated).total_seconds()
         return age > 300  # 5 minutes
     
 @dataclass
