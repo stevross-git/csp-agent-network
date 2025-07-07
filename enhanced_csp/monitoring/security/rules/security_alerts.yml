@@ -1,0 +1,63 @@
+groups:
+  - name: security_alerts
+    interval: 30s
+    rules:
+      # Brute force detection
+      - alert: BruteForceAttempt
+        expr: |
+          sum(rate(csp_security_events_total{event_type="brute_force"}[5m])) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "Brute force attack detected"
+          description: "Multiple failed authentication attempts from {{ $labels.source }}"
+          
+      # SQL injection attempts
+      - alert: SQLInjectionAttempt
+        expr: |
+          sum(rate(csp_security_events_total{event_type="sql_injection"}[5m])) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "SQL injection attempts detected"
+          description: "SQL injection patterns detected from {{ $labels.source }}"
+      
+      # High threat score
+      - alert: HighThreatScore
+        expr: |
+          csp_threat_score{category="overall"} > 70
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "High security threat level"
+          description: "Overall threat score is {{ $value }}"
+      
+      # Suspicious scanning activity
+      - alert: SecurityScanning
+        expr: |
+          sum(rate(csp_security_events_total{event_type="scanner"}[10m])) > 0.05
+        for: 5m
+        labels:
+          severity: high
+          category: security
+        annotations:
+          summary: "Security scanning detected"
+          description: "Automated security scanning tools detected"
+      
+      # Rate limit violations
+      - alert: RateLimitViolations
+        expr: |
+          sum(rate(csp_blocked_requests_total{reason="high_threat_score"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: high
+          category: security
+        annotations:
+          summary: "High rate of blocked requests"
+          description: "{{ $value }} requests per second being blocked"

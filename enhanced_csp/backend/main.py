@@ -24,6 +24,7 @@ from fastapi.security import HTTPBearer
 import redis.asyncio as redis
 import httpx
 import jwt
+from backend.monitoring.monitoring_integration import integrate_enhanced_monitoring
 from pydantic import BaseModel, EmailStr
 
 # Configure logging first
@@ -874,6 +875,9 @@ app = FastAPI(
     ]
 )
 app.include_router(memory_router)
+app = integrate_enhanced_monitoring(app)
+
+
 
 # ============================================================================
 # CORS MIDDLEWARE CONFIGURATION - DEVELOPMENT MODE (ALLOW ALL)

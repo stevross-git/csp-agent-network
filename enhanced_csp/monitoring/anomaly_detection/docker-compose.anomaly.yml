@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  anomaly-detector:
+    build:
+      context: .
+      dockerfile: Dockerfile.anomaly
+    container_name: csp_anomaly_detector
+    environment:
+      - PROMETHEUS_URL=http://prometheus:9090
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./models:/app/models
+      - ./config:/app/config
+    networks:
+      - scripts_csp-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+networks:
+  scripts_csp-network:
+    external: true
