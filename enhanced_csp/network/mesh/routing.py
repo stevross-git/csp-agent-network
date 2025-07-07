@@ -16,8 +16,7 @@ import struct
 from typing import TYPE_CHECKING
 
 from ..core.types import NodeID, MessageType
-if TYPE_CHECKING:
-    from ..core.node import NetworkNode
+from ..core.node import NetworkNode
 from .topology import MeshTopologyManager
 
 
