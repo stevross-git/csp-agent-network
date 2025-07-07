@@ -646,3 +646,17 @@ class EnhancedCSPNetwork:
     def get_node(self, name: str = "default") -> Optional[NetworkNode]:
         """Get a network node by name."""
         return self.nodes.get(name)
+
+    async def metrics(self) -> Dict[str, Any]:
+        """Return network metrics including per-node details."""
+        # Base metrics for the overall network
+        metrics_snapshot = self.metrics.copy()
+
+        # Include metrics for each managed node
+        node_metrics = {}
+        for name, node in self.nodes.items():
+            # Each NetworkNode stores metrics as a dictionary
+            node_metrics[name] = getattr(node, "metrics", {}).copy()
+
+        metrics_snapshot["nodes"] = node_metrics
+        return metrics_snapshot
