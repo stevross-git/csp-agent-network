@@ -1,0 +1,43 @@
+{
+  "dashboard": {
+    "title": "Docker Container Logs",
+    "panels": [
+      {
+        "datasource": "Loki",
+        "fieldConfig": {
+          "defaults": {
+            "custom": {}
+          }
+        },
+        "gridPos": {
+          "h": 15,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "showLabels": false,
+          "showTime": true,
+          "sortOrder": "Descending",
+          "wrapLogMessage": true
+        },
+        "targets": [
+          {
+            "expr": "{job=\"docker\"}",
+            "refId": "A"
+          }
+        ],
+        "title": "All Container Logs",
+        "type": "logs"
+      }
+    ],
+    "schemaVersion": 27,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "title": "Docker Container Logs",
+    "uid": "docker-logs"
+  }
+}

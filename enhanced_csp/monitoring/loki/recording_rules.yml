@@ -1,27 +1,15 @@
 groups:
-  - name: log_aggregation_rules
+  - name: csp_logs
     interval: 1m
     rules:
-      - record: loki_error_logs_total
+      - record: csp:log_lines_total
         expr: |
-          sum(rate({job=~"csp.*"} |= "ERROR" [1m]))
-      
-      - record: loki_warning_logs_total
+          sum by (job, level) (
+            count_over_time({job=~".+"}[1m])
+          )
+          
+      - record: csp:error_logs_rate
         expr: |
-          sum(rate({job=~"csp.*"} |= "WARN" [1m]))
-      
-      - record: loki_auth_failed_total
-        expr: |
-          sum(rate({job="auth"} |= "authentication failed" [1m]))
-      
-      - record: loki_security_logs_total
-        expr: |
-          sum by (level) (rate({job="security"} [1m]))
-      
-      - record: loki_database_errors_total
-        expr: |
-          sum(rate({job=~"postgres.*|redis|mongodb"} |= "ERROR" [1m]))
-      
-      - record: loki_api_errors_total
-        expr: |
-          sum by (endpoint) (rate({job="csp-api"} |= "ERROR" [1m]))
+          sum by (job) (
+            rate({job=~".+", level="error"}[5m])
+          )

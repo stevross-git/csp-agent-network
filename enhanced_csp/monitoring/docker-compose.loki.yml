@@ -2,17 +2,16 @@ version: '3.8'
 
 services:
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:2.9.0
     container_name: csp_loki
     command: -config.file=/etc/loki/loki.yml
     ports:
       - "3100:3100"
     volumes:
-      - ./loki/loki.yml:/etc/loki/loki.yml
-      - ./loki/recording_rules.yml:/loki/rules/recording_rules.yml
+      - ./loki/loki.yml:/etc/loki/loki.yml:ro
       - loki_data:/loki
     networks:
-      - monitoring_network
+      - scripts_csp-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
@@ -21,25 +20,23 @@ services:
       retries: 3
 
   promtail:
-    image: grafana/promtail:latest
+    image: grafana/promtail:2.9.0
     container_name: csp_promtail
     command: -config.file=/etc/promtail/promtail.yml
     volumes:
-      - ./promtail/promtail.yml:/etc/promtail/promtail.yml
-      - /var/log:/var/log:ro
+      - ./promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      # Only mount Docker logs - skip the problematic application logs mount
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ../logs:/var/log/csp:ro
     networks:
-      - monitoring_network
+      - scripts_csp-network
     restart: unless-stopped
     depends_on:
       - loki
 
 networks:
-  monitoring_network:
+  scripts_csp-network:
     external: true
-    name: scripts_csp-network
 
 volumes:
   loki_data:

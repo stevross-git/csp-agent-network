@@ -28,18 +28,13 @@ schema_config:
 
 ruler:
   alertmanager_url: http://alertmanager:9093
-  storage:
-    type: local
-    local:
-      directory: /loki/rules
-  rule_path: /loki/rules
-  ring:
-    kvstore:
-      store: inmemory
   enable_api: true
 
+analytics:
+  reporting_enabled: false
+
 limits_config:
-  enforce_metric_name: false
+  # Remove the problematic enforce_metric_name field
   reject_old_samples: true
   reject_old_samples_max_age: 168h
   ingestion_rate_mb: 16
