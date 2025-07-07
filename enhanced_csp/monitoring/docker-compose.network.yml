@@ -1,0 +1,100 @@
+# monitoring/docker-compose.network.yml
+version: '3.8'
+
+services:
+  # Network Database (can be the same as main DB or separate)
+  # If using the same database, this service can be omitted
+  csp_network_db:
+    image: postgres:15-alpine
+    container_name: csp_network_db
+    environment:
+      POSTGRES_DB: csp_network
+      POSTGRES_USER: network_user
+      POSTGRES_PASSWORD: network_password
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.utf8"
+    volumes:
+      - ./database/network_init:/docker-entrypoint-initdb.d
+      - network_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Different port to avoid conflict with main postgres
+    networks:
+      - scripts_csp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U network_user -d csp_network"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Network Metrics Exporter
+  csp_network_exporter:
+    image: python:3.11-slim
+    container_name: csp_network_exporter
+    environment:
+      DATABASE_URL: "postgresql://network_user:network_password@csp_network_db:5432/csp_network"
+      PROMETHEUS_PUSHGATEWAY: "http://csp_pushgateway:9091"
+      NODE_NAME: "network-master"
+      LOG_LEVEL: "INFO"
+      PROMETHEUS_PORT: "9200"  # Different port to avoid conflicts
+    volumes:
+      - ./network:/app/network
+      - ./monitoring/network_exporter:/app/monitoring/network_exporter
+      - ./logs/network:/var/log/csp/network
+    working_dir: /app
+    command: |
+      bash -c "
+        pip install prometheus_client sqlalchemy asyncpg psutil aiohttp &&
+        python -m monitoring.network_exporter.network_metrics_exporter
+      "
+    ports:
+      - "9200:9200"  # Different port for metrics
+    networks:
+      - scripts_csp-network
+    depends_on:
+      csp_network_db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Network topology visualizer (optional)
+  csp_network_visualizer:
+    image: python:3.11-slim
+    container_name: csp_network_visualizer
+    environment:
+      DATABASE_URL: "postgresql://network_user:network_password@csp_network_db:5432/csp_network"
+      REDIS_URL: "redis://csp_redis:6379/2"
+    ports:
+      - "8085:8080"  # Different port to avoid conflicts
+    volumes:
+      - ./network/dashboard:/app/dashboard
+    working_dir: /app
+    command: |
+      bash -c "
+        pip install fastapi uvicorn sqlalchemy asyncpg redis networkx matplotlib &&
+        python -m dashboard.network_visualizer
+      "
+    networks:
+      - scripts_csp-network
+    depends_on:
+      - csp_network_db
+    restart: unless-stopped
+
+networks:
+  scripts_csp-network:
+    external: true
+
+volumes:
+  network_db_data:
+    driver: local
+
+
+# To extend your existing monitoring stack, add these to prometheus.yml:
+# 
+# scrape_configs:
+#   - job_name: 'network-metrics'
+#     static_configs:
+#       - targets: ['csp_pushgateway:9091']
+#     honor_labels: true
+#
+#   - job_name: 'network-exporter'
+#     static_configs:
+#       - targets: ['csp_network_exporter:9200']

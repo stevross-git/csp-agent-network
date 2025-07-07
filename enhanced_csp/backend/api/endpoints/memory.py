@@ -815,8 +815,8 @@ async def memory_stream(
 
 @router.post("/optimize", response_model=Dict[str, Any])
 async def optimize_memory(
-    layer: Optional[str] = Query(None, description="Specific layer to optimize"),
     background_tasks: BackgroundTasks,
+    layer: Optional[str] = Query(None, description="Specific layer to optimize"),
     current_user: UserInfo = Depends(get_current_user)
 ):
     """

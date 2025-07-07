@@ -1,0 +1,45 @@
+  {
+    "dashboard": {
+      "title": "CSP Network Mesh Monitor",
+      "panels": [
+        {
+          "title": "Network Topology Status",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "sum(csp_network_node_status)",
+              "legendFormat": "Active Nodes"
+            }
+          ]
+        },
+        {
+          "title": "Link Quality Heatmap",
+          "type": "heatmap",
+          "targets": [
+            {
+              "expr": "csp_network_link_quality"
+            }
+          ]
+        },
+        {
+          "title": "Network Latency Distribution",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, csp_network_link_latency_ms)"
+            }
+          ]
+        },
+        {
+          "title": "Compression Efficiency",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "rate(csp_network_compression_ratio[5m])"
+            }
+          ]
+        }
+      ]
+    }
+  }
+  EOF

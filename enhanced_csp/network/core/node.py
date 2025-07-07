@@ -57,8 +57,6 @@ class SimpleRoutingStub:
         return [route] if route else []
 
 
-
-
 class NetworkNode:
     """
     Core network node implementation for Enhanced CSP.
@@ -105,8 +103,6 @@ class NetworkNode:
             "start_time": None
         }
         
-    async def start(self) -> bool:
-        
         # Add metrics attribute to prevent AttributeError
         self.metrics = {
             'messages_sent': 0,
@@ -117,6 +113,8 @@ class NetworkNode:
             'routing_table_size': 0,
             'last_updated': time.time()
         }
+        
+    async def start(self) -> bool:
         """
         Start the network node and all components.
         Returns True if successful, False otherwise.
@@ -179,7 +177,6 @@ class NetworkNode:
             from ..p2p.dht import KademliaDHT
             from ..p2p.nat import NATTraversal
             from ..mesh.topology import MeshTopologyManager
-            # BatmanRouting imported conditionally below
             from ..dns.overlay import DNSOverlay
             from ..routing.adaptive import AdaptiveRoutingEngine
             
@@ -200,26 +197,23 @@ class NetworkNode:
             if self.config.enable_mesh:
                 self.topology = MeshTopologyManager(self.node_id, self.config.mesh)
             
-            # Initialize routing - handle BatmanRouting import error
+            # Initialize routing - FIXED: correct import path
             if getattr(self.config, 'enable_routing', True) and self.topology:
                 try:
-                    from .mesh.routing import BatmanRouting
+                    # CORRECTED: Use relative import from mesh module
+                    from ..mesh.routing import BatmanRouting
                     self.routing = BatmanRouting(self, self.topology)
                     logging.info("BatmanRouting initialized successfully")
-                except Exception as e:
+                except ImportError as e:
                     logging.warning(f"BatmanRouting not available: {e}")
-                    # Simple routing stub
-                    class SimpleStub:
-                        def __init__(self, node=None, topology=None): 
-                            self.is_running = False
-                        async def start(self): 
-                            self.is_running = True
-                            logging.info("Routing stub started")
-                        async def stop(self): 
-                            self.is_running = False
-                        def get_route(self, dest): return None
-                        def get_all_routes(self, dest): return []
-                    self.routing = SimpleStub(self, self.topology)
+                    # Fallback to simple routing stub
+                    self.routing = SimpleRoutingStub(self, self.topology)
+                    logging.info("Using SimpleRoutingStub as fallback")
+                except Exception as e:
+                    logging.error(f"Error initializing BatmanRouting: {e}")
+                    # Fallback to simple routing stub
+                    self.routing = SimpleRoutingStub(self, self.topology)
+                    logging.info("Using SimpleRoutingStub as fallback due to error")
             
             # Initialize DNS overlay
             if self.config.enable_dns:
@@ -398,6 +392,9 @@ class NetworkNode:
             if success:
                 self.stats["messages_sent"] += 1
                 self.stats["bytes_sent"] += len(str(message))
+                # Update metrics
+                self.metrics["messages_sent"] += 1
+                self.metrics["last_updated"] = time.time()
             return success
         except Exception as e:
             logger.error(f"Failed to send message: {e}")
@@ -412,6 +409,9 @@ class NetworkNode:
             count = await self.transport.broadcast_message(message)
             self.stats["messages_sent"] += count
             self.stats["bytes_sent"] += len(str(message)) * count
+            # Update metrics
+            self.metrics["messages_sent"] += count
+            self.metrics["last_updated"] = time.time()
             return count
         except Exception as e:
             logger.error(f"Failed to broadcast message: {e}")
@@ -435,6 +435,9 @@ class NetworkNode:
         """Handle an incoming message."""
         self.stats["messages_received"] += 1
         self.stats["bytes_received"] += len(str(message))
+        # Update metrics
+        self.metrics["messages_received"] += 1
+        self.metrics["last_updated"] = time.time()
         
         # Call registered handlers
         if message.type in self._message_handlers:
@@ -462,7 +465,13 @@ class NetworkNode:
                     logger.debug(f"Removed stale peer {peer_id}")
                 
                 # Update peer count
-                self.stats["peers_connected"] = len(self.peers)
+                peer_count = len(self.peers)
+                self.stats["peers_connected"] = peer_count
+                self.metrics["peers_connected"] = peer_count
+                
+                # Update routing table size if routing is available
+                if hasattr(self.routing, 'routing_table'):
+                    self.metrics["routing_table_size"] = len(getattr(self.routing, 'routing_table', {}))
                 
                 await asyncio.sleep(60)  # Run every minute
                 
@@ -560,12 +569,25 @@ class EnhancedCSPNetwork:
         self.node_id = NodeID.generate()  # Add this line
         self.is_running = False  # Add this line
         
+        # Add metrics attribute to prevent AttributeError
+        self.metrics = {
+            'nodes_active': 0,
+            'total_messages': 0,
+            'network_health': 100.0,
+            'last_updated': time.time()
+        }
+        
     async def start(self) -> bool:
         """Start the Enhanced CSP Network."""
         try:
             # Create and start the default node
             default_node = await self.create_node("default")
             self.is_running = True
+            
+            # Update metrics
+            self.metrics['nodes_active'] = len(self.nodes)
+            self.metrics['last_updated'] = time.time()
+            
             logger.info(f"Enhanced CSP Network started with node ID: {self.node_id}")
             return True
         except Exception as e:
@@ -578,6 +600,11 @@ class EnhancedCSPNetwork:
         try:
             await self.stop_all()
             self.is_running = False
+            
+            # Update metrics
+            self.metrics['nodes_active'] = 0
+            self.metrics['last_updated'] = time.time()
+            
             logger.info("Enhanced CSP Network stopped")
             return True
         except Exception as e:
@@ -590,6 +617,11 @@ class EnhancedCSPNetwork:
         
         if await node.start():
             self.nodes[name] = node
+            
+            # Update metrics
+            self.metrics['nodes_active'] = len(self.nodes)
+            self.metrics['last_updated'] = time.time()
+            
             return node
         else:
             raise RuntimeError("Failed to start network node")
@@ -600,6 +632,9 @@ class EnhancedCSPNetwork:
             success = await self.nodes[name].stop()
             if success:
                 del self.nodes[name]
+                # Update metrics
+                self.metrics['nodes_active'] = len(self.nodes)
+                self.metrics['last_updated'] = time.time()
             return success
         return False
     

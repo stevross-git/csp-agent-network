@@ -19,9 +19,7 @@
 
 ## Configuration
 
-Your Azure AD app details are already configured:
-- Client ID: 53537e30-ae6b-48f7-9c7c-4db20fc27850
-- Tenant ID: 622a5fe0-fac1-4213-9cf7-d5f6defdf4c4
+
 
 ## File Structure
 

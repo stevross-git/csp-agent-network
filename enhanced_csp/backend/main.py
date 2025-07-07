@@ -51,7 +51,6 @@ LOCAL_REFRESH_TOKEN_EXPIRE_DAYS = 30
 # AI COORDINATION SYSTEM INTEGRATION
 # ============================================================================
 from backend.api.endpoints.memory import router as memory_router
-app.include_router(memory_router)
 
 
 try:
@@ -874,6 +873,7 @@ app = FastAPI(
         {"name": "admin", "description": "Administrative functions"}
     ]
 )
+app.include_router(memory_router)
 
 # ============================================================================
 # CORS MIDDLEWARE CONFIGURATION - DEVELOPMENT MODE (ALLOW ALL)
