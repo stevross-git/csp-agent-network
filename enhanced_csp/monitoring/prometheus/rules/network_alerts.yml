@@ -1,0 +1,38 @@
+groups:
+  - name: enhanced_csp_network
+    rules:
+      - alert: NetworkNodeDown
+        expr: up{job="enhanced-csp-network"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Enhanced CSP Network node is down"
+          description: "Node {{ $labels.instance }} has been down for more than 5 minutes"
+      
+      - alert: LowPeerCount
+        expr: enhanced_csp_network_peers_total < 3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low peer count"
+          description: "Node has only {{ $value }} peers connected"
+      
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, enhanced_csp_network_peer_latency_ms_bucket) > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High network latency"
+          description: "95th percentile latency is {{ $value }}ms"
+      
+      - alert: HighBandwidthUsage
+        expr: rate(enhanced_csp_network_bandwidth_out_bytes_total[5m]) > 10485760  # 10MB/s
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High bandwidth usage"
+          description: "Outbound bandwidth is {{ $value | humanize }}B/s"

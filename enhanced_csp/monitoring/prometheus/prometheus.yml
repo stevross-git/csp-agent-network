@@ -1,3 +1,6 @@
+# Unified Prometheus Configuration for Enhanced CSP
+# This merges all three prometheus config files into one comprehensive configuration
+
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -5,27 +8,41 @@ global:
     monitor: 'csp-monitor'
     environment: 'production'
 
+# Rule files
 rule_files:
   - "/etc/prometheus/rules/*.yml"
+  - "/etc/prometheus/security/rules/*.yml"
 
+# Alertmanager configuration
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
           - alertmanager:9093
 
+# Scrape configurations
 scrape_configs:
-  # Core Services
+  # ============================================================================
+  # CORE SERVICES
+  # ============================================================================
+  
+  # Prometheus itself
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
 
+  # ============================================================================
+  # CSP SERVICES
+  # ============================================================================
+  
+  # Main CSP API
   - job_name: 'csp-api'
     static_configs:
       - targets: ['api:8000']
     metrics_path: '/metrics'
     scrape_interval: 10s
 
+  # CSP Network Nodes
   - job_name: 'csp-network-nodes'
     static_configs:
       - targets: 
@@ -34,44 +51,14 @@ scrape_configs:
         - 'network_node_3:8080'
     metrics_path: '/metrics'
 
-  # Database Exporters
-  - job_name: 'postgres-exporter'
+  # Enhanced CSP Network (from main.py)
+  - job_name: 'enhanced-csp-network'
     static_configs:
-      - targets: ['postgres_exporter:9187']
-
-  - job_name: 'redis-exporter'
-    static_configs:
-      - targets: ['redis_exporter:9121']
-
-  - job_name: 'mongodb-exporter'
-    static_configs:
-      - targets: ['mongodb_exporter:9216']
-
-  # Vector Databases
-  - job_name: 'chroma'
-    static_configs:
-      - targets: ['csp_chroma:8200']
-    metrics_path: '/api/v1/heartbeat'
-
-  - job_name: 'qdrant'
-    static_configs:
-      - targets: ['csp_qdrant:6333']
+      - targets: ['localhost:6969']
+        labels:
+          node_type: 'network'
     metrics_path: '/metrics'
-
-  - job_name: 'weaviate'
-    static_configs:
-      - targets: ['csp_weaviate:8080']
-    metrics_path: '/v1/meta'
-
-  # System Monitoring
-  - job_name: 'node-exporter'
-    static_configs:
-      - targets: ['node-exporter:9100']
-
-  - job_name: 'cadvisor'
-    static_configs:
-      - targets: ['cadvisor:8080']
-    metrics_path: '/metrics'
+    scrape_interval: 30s
 
   # Application Components
   - job_name: 'csp-auth-service'
@@ -88,3 +75,188 @@ scrape_configs:
     static_configs:
       - targets: ['api:8003']
     metrics_path: '/metrics'
+
+  # ============================================================================
+  # DATABASE EXPORTERS
+  # ============================================================================
+  
+  # PostgreSQL Exporters
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+
+  - job_name: 'postgres-ai-models'
+    static_configs:
+      - targets: ['postgres_ai_exporter:9188']
+
+  - job_name: 'postgres-vector'
+    static_configs:
+      - targets: ['postgres_vector_exporter:9189']
+
+  # Redis Exporter
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis_exporter:9121']
+
+  # MongoDB Exporter
+  - job_name: 'mongodb-exporter'
+    static_configs:
+      - targets: ['mongodb_exporter:9216']
+
+  # ============================================================================
+  # VECTOR DATABASES
+  # ============================================================================
+  
+  # Chroma
+  - job_name: 'chroma'
+    static_configs:
+      - targets: ['csp_chroma:8200']
+    metrics_path: '/api/v1/heartbeat'
+    scrape_interval: 30s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'up'
+        target_label: __name__
+        replacement: 'chroma_up'
+
+  # Qdrant
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['csp_qdrant:6333']
+    metrics_path: '/metrics'
+
+  # Weaviate
+  - job_name: 'weaviate'
+    static_configs:
+      - targets: ['csp_weaviate:8080']
+    metrics_path: '/v1/meta'
+    scrape_interval: 30s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'up'
+        target_label: __name__
+        replacement: 'weaviate_up'
+
+  # ============================================================================
+  # SYSTEM MONITORING
+  # ============================================================================
+  
+  # Node Exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # cAdvisor for container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Process Exporter
+  - job_name: 'process-exporter'
+    static_configs:
+      - targets: ['process_exporter:9256']
+
+  # ============================================================================
+  # BLACKBOX MONITORING
+  # ============================================================================
+  
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - http://api:8000/health
+        - http://api:8000/api/v1/status
+        - http://network_node_1:8080/health
+        - http://localhost:6969/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox_exporter:9115
+
+  # DNS Probes
+  - job_name: 'blackbox-dns'
+    metrics_path: /probe
+    params:
+      module: [dns]
+    static_configs:
+      - targets:
+        - genesis.web4ai
+        - seed1.web4ai
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox_exporter:9115
+
+  # ============================================================================
+  # OBSERVABILITY STACK
+  # ============================================================================
+  
+  # OpenTelemetry Collector metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']
+
+  # Jaeger metrics
+  - job_name: 'jaeger'
+    static_configs:
+      - targets: ['csp_jaeger:14269']
+    metrics_path: '/metrics'
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['csp_loki:3100']
+    metrics_path: '/metrics'
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['csp_grafana_monitoring:3001']
+    metrics_path: '/metrics'
+
+  # ============================================================================
+  # SERVICE DISCOVERY (Optional - uncomment if needed)
+  # ============================================================================
+  
+  # Docker service discovery for dynamic container monitoring
+  - job_name: 'docker-containers'
+    docker_sd_configs:
+       - host: unix:///var/run/docker.sock
+         refresh_interval: 15s
+    relabel_configs:
+       # Only monitor containers with prometheus labels
+       - source_labels: [__meta_docker_container_label_prometheus_scrape]
+         regex: 'true'
+         action: keep
+       # Use container name as instance
+       - source_labels: [__meta_docker_container_name]
+         target_label: instance
+       # Extract port from label
+       - source_labels: [__meta_docker_container_label_prometheus_port]
+         target_label: __address__
+         replacement: '${1}'
+       # Extract metrics path from label
+       - source_labels: [__meta_docker_container_label_prometheus_path]
+         target_label: __metrics_path__
+         replacement: '${1}'
+
+  # ============================================================================
+  # ADDITIONAL MONITORING TARGETS (Add custom targets here)
+  # ============================================================================
+  
+  # Example: External services
+  # - job_name: 'external-api'
+  #   static_configs:
+  #     - targets: ['external-api.example.com:443']
+  #   scheme: https
+  #   metrics_path: '/metrics'

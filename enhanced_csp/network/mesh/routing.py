@@ -126,181 +126,196 @@ class RoutingTableEntry:
         return 1.0 - (received / self.window_size)
 
 
-class BatmanRouting:
-    """B.A.T.M.A.N.-inspired routing protocol"""
-    
-    # Protocol constants
-    OGM_INTERVAL = 1.0  # Originator message interval (seconds)
-    PURGE_TIMEOUT = 200.0  # Route timeout (seconds)
-    TQ_LOCAL_WINDOW_SIZE = 64
-    TQ_GLOBAL_WINDOW_SIZE = 5
-    TQ_MAX = 255
-    TTL_DEFAULT = 50
-    
-    def __init__(self, node: 'NetworkNode', topology_manager: MeshTopologyManager):
-        self.node = node
-        self.topology = topology_manager
+    class BatmanRouting:
+        """B.A.T.M.A.N.-inspired routing protocol"""
         
-        # Routing table: destination -> best route
-        self.routing_table: Dict[NodeID, RoutingTableEntry] = {}
+        # Protocol constants
+        OGM_INTERVAL = 1.0  # Originator message interval (seconds)
+        PURGE_TIMEOUT = 200.0  # Route timeout (seconds)
+        TQ_LOCAL_WINDOW_SIZE = 64
+        TQ_GLOBAL_WINDOW_SIZE = 5
+        TQ_MAX = 255
+        TTL_DEFAULT = 50
         
-        # Alternative routes: destination -> list of routes
-        self.alternative_routes: Dict[NodeID, List[RoutingTableEntry]] = defaultdict(list)
+        def __init__(self, node: 'NetworkNode', topology_manager: MeshTopologyManager):
+            self.node = node
+            self.topology = topology_manager
+            
+            # Routing table: destination -> best route
+            self.routing_table: Dict[NodeID, RoutingTableEntry] = {}
+            
+            # Alternative routes: destination -> list of routes
+            self.alternative_routes: Dict[NodeID, List[RoutingTableEntry]] = defaultdict(list)
+            
+            # Sequence number for our OGMs
+            self.sequence_number = 0
+            
+            # Neighbor link quality tracking
+            self.neighbor_tq: Dict[NodeID, int] = {}
+            
+            # Last OGM received from each neighbor
+            self.last_ogm: Dict[NodeID, OriginatorMessage] = {}
+            
+            # Pending route requests
+            self.pending_routes: Dict[NodeID, asyncio.Event] = {}
+            
+            # Tasks
+            self._tasks: List[asyncio.Task] = []
         
-        # Sequence number for our OGMs
-        self.sequence_number = 0
+        async def start(self):
+            """Start routing protocol"""
+            logger.info("Starting B.A.T.M.A.N. routing protocol")
+            
+            # Start protocol tasks
+            self._tasks.extend([
+                asyncio.create_task(self._ogm_sender_loop()),
+                asyncio.create_task(self._route_maintenance_loop()),
+                asyncio.create_task(self._tq_calculation_loop())
+            ])
+            
+            # Register message handlers
+            self.node.on_event('originator_message', self.handle_ogm)
         
-        # Neighbor link quality tracking
-        self.neighbor_tq: Dict[NodeID, int] = {}
+        async def stop(self):
+            """Stop routing protocol"""
+            for task in self._tasks:
+                task.cancel()
+            
+            if self._tasks:
+                await asyncio.gather(*self._tasks, return_exceptions=True)
         
-        # Last OGM received from each neighbor
-        self.last_ogm: Dict[NodeID, OriginatorMessage] = {}
+        async def _ogm_sender_loop(self):
+            """Periodically send originator messages"""
+            while True:
+                try:
+                    await self.send_ogm()
+                    await asyncio.sleep(self.OGM_INTERVAL)
+                    
+                except asyncio.CancelledError:
+                    break
+                except Exception as e:
+                    logger.error(f"Error in OGM sender: {e}")
         
-        # Pending route requests
-        self.pending_routes: Dict[NodeID, asyncio.Event] = {}
-        
-        # Tasks
-        self._tasks: List[asyncio.Task] = []
-    
-    async def start(self):
-        """Start routing protocol"""
-        logger.info("Starting B.A.T.M.A.N. routing protocol")
-        
-        # Start protocol tasks
-        self._tasks.extend([
-            asyncio.create_task(self._ogm_sender_loop()),
-            asyncio.create_task(self._route_maintenance_loop()),
-            asyncio.create_task(self._tq_calculation_loop())
-        ])
-        
-        # Register message handlers
-        self.node.on_event('originator_message', self.handle_ogm)
-    
-    async def stop(self):
-        """Stop routing protocol"""
-        for task in self._tasks:
-            task.cancel()
-        
-        if self._tasks:
-            await asyncio.gather(*self._tasks, return_exceptions=True)
-    
-    async def _ogm_sender_loop(self):
-        """Periodically send originator messages"""
-        while True:
-            try:
-                await self.send_ogm()
-                await asyncio.sleep(self.OGM_INTERVAL)
-                
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logger.error(f"Error in OGM sender: {e}")
-    
-    async def send_ogm(self):
-        """Send originator message to all neighbors"""
-        # Increment sequence number
-        self.sequence_number += 1
-        
-        # Create OGM
-        ogm = OriginatorMessage(
-            originator_id=self.node.node_id,
-            sequence_number=self.sequence_number,
-            ttl=self.TTL_DEFAULT,
-            tq=self.TQ_MAX  # Perfect quality for our own messages
-        )
-        
-        # Determine if we're a gateway (super-peer)
-        if self.node.node_id in self.topology.super_peers:
-            ogm.gateway_flags = 1
-        
-        # Send to all mesh neighbors
-        neighbors = self.topology.peer_connections.get(self.node.node_id, set())
-        
-        for neighbor_id in neighbors:
-            # Adjust TQ based on link quality to neighbor
-            neighbor_tq = self.neighbor_tq.get(neighbor_id, self.TQ_MAX)
-            ogm_copy = OriginatorMessage(
-                originator_id=ogm.originator_id,
-                sequence_number=ogm.sequence_number,
-                ttl=ogm.ttl,
-                flags=ogm.flags,
-                gateway_flags=ogm.gateway_flags,
-                tq=ogm.tq
+        async def send_ogm(self):
+            """Send originator message to all neighbors"""
+            # Increment sequence number
+            self.sequence_number += 1
+            
+            # Create OGM
+            ogm = OriginatorMessage(
+                originator_id=self.node.node_id,
+                sequence_number=self.sequence_number,
+                ttl=self.TTL_DEFAULT,
+                tq=self.TQ_MAX  # Perfect quality for our own messages
             )
             
-            await self.send_ogm_to_neighbor(neighbor_id, ogm_copy)
-    
-    async def send_ogm_to_neighbor(self, neighbor_id: NodeID, ogm: OriginatorMessage):
-        """Send OGM to specific neighbor"""
-        message = {
-            'type': 'originator_message',
-            'data': ogm.to_bytes().hex()
-        }
-        
-        await self.node.send_message(neighbor_id, message)
-    
-    async def handle_ogm(self, data: Dict):
-        """Handle received originator message"""
-        try:
-            # Parse OGM
-            ogm_bytes = bytes.fromhex(data['data'])
-            ogm = OriginatorMessage.from_bytes(ogm_bytes)
-            sender_id = data.get('sender_id')  # Direct sender
+            # Determine if we're a gateway (super-peer)
+            if self.node.node_id in self.topology.super_peers:
+                ogm.gateway_flags = 1
             
-            if not sender_id:
-                return
+            # Send to all mesh neighbors
+            neighbors = self.topology.peer_connections.get(self.node.node_id, set())
             
-            # Ignore our own OGMs
-            if ogm.originator_id == self.node.node_id:
-                return
-            
-            # Update last seen
-            self.last_ogm[sender_id] = ogm
-            
-            # Check TTL
-            if ogm.ttl <= 0:
-                return
-            
-            # Process OGM
-            await self._process_ogm(ogm, sender_id)
-            
-            # Forward OGM if TTL > 1
-            if ogm.ttl > 1:
-                await self._forward_ogm(ogm, sender_id)
+            for neighbor_id in neighbors:
+                # Adjust TQ based on link quality to neighbor
+                neighbor_tq = self.neighbor_tq.get(neighbor_id, self.TQ_MAX)
+                ogm_copy = OriginatorMessage(
+                    originator_id=ogm.originator_id,
+                    sequence_number=ogm.sequence_number,
+                    ttl=ogm.ttl,
+                    flags=ogm.flags,
+                    gateway_flags=ogm.gateway_flags,
+                    tq=ogm.tq
+                )
                 
-        except Exception as e:
-            logger.error(f"Error handling OGM: {e}")
-    
-    async def _process_ogm(self, ogm: OriginatorMessage, sender_id: NodeID):
-        """Process received OGM and update routing table"""
-        originator = ogm.originator_id
+                await self.send_ogm_to_neighbor(neighbor_id, ogm_copy)
         
-        # Calculate effective TQ (transmission quality)
-        # TQ = OGM_TQ * link_quality_to_sender
-        link_tq = self.neighbor_tq.get(sender_id, self.TQ_MAX)
-        effective_tq = (ogm.tq * link_tq) // self.TQ_MAX
+        async def send_ogm_to_neighbor(self, neighbor_id: NodeID, ogm: OriginatorMessage):
+            """Send OGM to specific neighbor"""
+            message = {
+                'type': 'originator_message',
+                'data': ogm.to_bytes().hex()
+            }
+            
+            await self.node.send_message(neighbor_id, message)
         
-        # Get or create routing entry
-        if originator in self.routing_table:
-            entry = self.routing_table[originator]
+        async def handle_ogm(self, data: Dict):
+            """Handle received originator message"""
+            try:
+                # Parse OGM
+                ogm_bytes = bytes.fromhex(data['data'])
+                ogm = OriginatorMessage.from_bytes(ogm_bytes)
+                sender_id = data.get('sender_id')  # Direct sender
+                
+                if not sender_id:
+                    return
+                
+                # Ignore our own OGMs
+                if ogm.originator_id == self.node.node_id:
+                    return
+                
+                # Update last seen
+                self.last_ogm[sender_id] = ogm
+                
+                # Check TTL
+                if ogm.ttl <= 0:
+                    return
+                
+                # Process OGM
+                await self._process_ogm(ogm, sender_id)
+                
+                # Forward OGM if TTL > 1
+                if ogm.ttl > 1:
+                    await self._forward_ogm(ogm, sender_id)
+                    
+            except Exception as e:
+                logger.error(f"Error handling OGM: {e}")
+        
+        async def _process_ogm(self, ogm: OriginatorMessage, sender_id: NodeID):
+            """Process received OGM and update routing table"""
+            originator = ogm.originator_id
             
-            # Update sliding window
-            is_new = entry.update_packet_window(ogm.sequence_number)
+            # Calculate effective TQ (transmission quality)
+            # TQ = OGM_TQ * link_quality_to_sender
+            link_tq = self.neighbor_tq.get(sender_id, self.TQ_MAX)
+            effective_tq = (ogm.tq * link_tq) // self.TQ_MAX
             
-            if not is_new:
-                # Duplicate packet
-                return
+            # Get or create routing entry
+            if originator in self.routing_table:
+                entry = self.routing_table[originator]
+                
+                # Update sliding window
+                is_new = entry.update_packet_window(ogm.sequence_number)
+                
+                if not is_new:
+                    # Duplicate packet
+                    return
+                
+                # Check if this is a better route
+                if effective_tq > entry.tq or sender_id == entry.next_hop:
+                    # Update route
+                    entry.next_hop = sender_id
+                    entry.tq = effective_tq
+                    entry.hop_count = self.TTL_DEFAULT - ogm.ttl + 1
+                    entry.last_seen = time.time()
+            else:
+                # New route
+                entry = RoutingTableEntry(
+                    destination=originator,
+                    next_hop=sender_id,
+                    last_seqno=ogm.sequence_number,
+                    tq=effective_tq,
+                    hop_count=self.TTL_DEFAULT - ogm.ttl + 1,
+                    last_seen=time.time()
+                )
+                self.routing_table[originator] = entry
+                
+                # Signal any waiting route requests
+                if originator in self.pending_routes:
+                    self.pending_routes[originator].set()
             
-            # Check if this is a better route
-            if effective_tq > entry.tq or sender_id == entry.next_hop:
-                # Update route
-                entry.next_hop = sender_id
-                entry.tq = effective_tq
-                entry.hop_count = self.TTL_DEFAULT - ogm.ttl + 1
-                entry.last_seen = time.time()
-        else:
-            # New route
-            entry = RoutingTableEntry(
+            # Store as alternative route
+            alt_entry = RoutingTableEntry(
                 destination=originator,
                 next_hop=sender_id,
                 last_seqno=ogm.sequence_number,
@@ -308,25 +323,10 @@ class BatmanRouting:
                 hop_count=self.TTL_DEFAULT - ogm.ttl + 1,
                 last_seen=time.time()
             )
-            self.routing_table[originator] = entry
             
-            # Signal any waiting route requests
-            if originator in self.pending_routes:
-                self.pending_routes[originator].set()
-        
-        # Store as alternative route
-        alt_entry = RoutingTableEntry(
-            destination=originator,
-            next_hop=sender_id,
-            last_seqno=ogm.sequence_number,
-            tq=effective_tq,
-            hop_count=self.TTL_DEFAULT - ogm.ttl + 1,
-            last_seen=time.time()
-        )
-        
-        # Keep top 3 alternative routes
-        alt_routes = self.alternative_routes[originator]
-        alt_routes.append(alt_entry)
+            # Keep top 3 alternative routes
+            alt_routes = self.alternative_routes[originator]
+            alt_routes.append(alt_entry)
         alt_routes.sort(key=lambda r: r.tq, reverse=True)
         self.alternative_routes[originator] = alt_routes[:3]
     

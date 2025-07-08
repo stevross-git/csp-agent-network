@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Any, Callable, TYPE_CHECKING
 from dataclasses import dataclass, field
 from datetime import datetime
 
+
 from .types import (
     NodeID, NodeCapabilities, PeerInfo, NetworkMessage, 
     MessageType
@@ -27,6 +28,8 @@ if TYPE_CHECKING:
     from ..mesh.routing import BatmanRouting
     from ..dns.overlay import DNSOverlay
     from ..routing.adaptive import AdaptiveRoutingEngine
+    
+    from enhanced_csp.network.mesh.Routing import BatmanRouting
 
 logger = logging.getLogger(__name__)
 

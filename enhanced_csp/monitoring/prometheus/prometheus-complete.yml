@@ -36,9 +36,9 @@ scrape_configs:
   - job_name: 'csp-network-nodes'
     static_configs:
       - targets: 
-        - 'network_node_1:8080'
-        - 'network_node_2:8080'
-        - 'network_node_3:8080'
+        - 'network_node_1:6969'
+        - 'network_node_2:6969'
+        - 'network_node_3:6969'
     metrics_path: '/metrics'
     relabel_configs:
       - source_labels: [__address__]
