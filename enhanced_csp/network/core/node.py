@@ -18,16 +18,14 @@ from .types import (
 )
 from .config import NetworkConfig
 
-from ..p2p.transport import P2PTransport
+# Import concrete implementation instead of abstract class
+from ..p2p.transport import MultiProtocolTransport
 from ..p2p.discovery import HybridDiscovery
 from ..p2p.dht import KademliaDHT
 from ..p2p.nat import NATTraversal
 from ..mesh.topology import MeshTopologyManager
-from ..mesh.routing import BatmanRouting
 from ..dns.overlay import DNSOverlay
 from ..routing.adaptive import AdaptiveRoutingEngine
-
-from enhanced_csp.network.mesh.routing import BatmanRouting
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +41,7 @@ class SimpleRoutingStub:
     async def start(self):
         self.is_running = True
         logging.info("Simple routing stub started")
+        return True
     
     async def stop(self):
         self.is_running = False
@@ -79,12 +78,12 @@ class NetworkNode:
         )
         
         # Core components - initialized as None to avoid import issues
-        self.transport: Optional['P2PTransport'] = None
+        self.transport: Optional['MultiProtocolTransport'] = None
         self.discovery: Optional['HybridDiscovery'] = None
         self.dht: Optional['KademliaDHT'] = None
         self.nat: Optional['NATTraversal'] = None
         self.topology: Optional['MeshTopologyManager'] = None
-        self.routing: Optional['BatmanRouting'] = None
+        self.routing: Optional['SimpleRoutingStub'] = None
         self.dns: Optional['DNSOverlay'] = None
         self.adaptive_routing: Optional['AdaptiveRoutingEngine'] = None
         
@@ -173,7 +172,7 @@ class NetworkNode:
         """Initialize all components with late imports to avoid circular dependencies"""
         try:
             # Import components here to avoid circular imports
-            from ..p2p.transport import P2PTransport
+            from ..p2p.transport import MultiProtocolTransport
             from ..p2p.discovery import HybridDiscovery
             from ..p2p.dht import KademliaDHT
             from ..p2p.nat import NATTraversal
@@ -181,27 +180,34 @@ class NetworkNode:
             from ..dns.overlay import DNSOverlay
             from ..routing.adaptive import AdaptiveRoutingEngine
             
-            # Initialize transport
-            self.transport = P2PTransport(self.config.p2p)
+            # Initialize transport - FIXED: Use concrete MultiProtocolTransport
+            self.transport = MultiProtocolTransport(self.config.p2p)
             
-            # Initialize discovery
-            self.discovery = HybridDiscovery(self.node_id, self.config.p2p)
+            # Initialize discovery - FIXED: correct parameter order
+            self.discovery = HybridDiscovery(self.config.p2p, self.node_id)
             
             # Initialize DHT
             if self.config.enable_dht:
-                self.dht = KademliaDHT(self.node_id, self.config.p2p)
+                self.dht = KademliaDHT(self.node_id, self.transport)
             
             # Initialize NAT traversal
             self.nat = NATTraversal(self.config.p2p)
             
             # Initialize mesh topology
             if self.config.enable_mesh:
-                self.topology = MeshTopologyManager(self.node_id, self.config.mesh)
+                # Create a send message function for the topology manager
+                async def topology_send_message(recipient: str, message: Any) -> bool:
+                    """Send message function for topology manager"""
+                    if self.transport:
+                        return await self.transport.send(recipient, message)
+                    return False
+                
+                self.topology = MeshTopologyManager(self.node_id, self.config.mesh, topology_send_message)
             
             # Initialize routing - FIXED: correct import path
             if getattr(self.config, 'enable_routing', True) and self.topology:
                 try:
-                    # CORRECTED: Use relative import from mesh module
+                    # Try to import BatmanRouting
                     from ..mesh.routing import BatmanRouting
                     self.routing = BatmanRouting(self, self.topology)
                     logging.info("BatmanRouting initialized successfully")
@@ -239,8 +245,7 @@ class NetworkNode:
         """Start P2P transport"""
         try:
             if self.transport:
-                await self.transport.start()
-                return True
+                return await self.transport.start()
             return False
         except Exception as e:
             logger.error(f"Failed to start transport: {e}")
@@ -294,8 +299,7 @@ class NetworkNode:
         """Start routing protocol"""
         try:
             if self.routing:
-                await self.routing.start()
-                return True
+                return await self.routing.start()
             return True  # Routing is optional
         except Exception as e:
             logger.error(f"Failed to start routing: {e}")
@@ -389,10 +393,21 @@ class NetworkNode:
             return False
         
         try:
-            success = await self.transport.send_message(message)
+            # Convert NetworkMessage to dict for transport
+            message_dict = {
+                'type': message.type.value if hasattr(message.type, 'value') else str(message.type),
+                'payload': message.payload,
+                'sender': str(message.sender),
+                'recipient': str(message.recipient) if message.recipient else None,
+                'timestamp': message.timestamp.isoformat() if hasattr(message.timestamp, 'isoformat') else str(message.timestamp)
+            }
+            
+            # Send via transport
+            success = await self.transport.send(str(message.recipient), message_dict)
+            
             if success:
                 self.stats["messages_sent"] += 1
-                self.stats["bytes_sent"] += len(str(message))
+                self.stats["bytes_sent"] += len(str(message_dict))
                 # Update metrics
                 self.metrics["messages_sent"] += 1
                 self.metrics["last_updated"] = time.time()
@@ -407,12 +422,27 @@ class NetworkNode:
             return 0
         
         try:
-            count = await self.transport.broadcast_message(message)
-            self.stats["messages_sent"] += count
-            self.stats["bytes_sent"] += len(str(message)) * count
-            # Update metrics
-            self.metrics["messages_sent"] += count
-            self.metrics["last_updated"] = time.time()
+            count = 0
+            # Convert NetworkMessage to dict
+            message_dict = {
+                'type': message.type.value if hasattr(message.type, 'value') else str(message.type),
+                'payload': message.payload,
+                'sender': str(message.sender),
+                'timestamp': message.timestamp.isoformat() if hasattr(message.timestamp, 'isoformat') else str(message.timestamp)
+            }
+            
+            # Send to all connected peers
+            for peer_id in self.peers:
+                if await self.transport.send(str(peer_id), message_dict):
+                    count += 1
+            
+            if count > 0:
+                self.stats["messages_sent"] += count
+                self.stats["bytes_sent"] += len(str(message_dict)) * count
+                # Update metrics
+                self.metrics["messages_sent"] += count
+                self.metrics["last_updated"] = time.time()
+            
             return count
         except Exception as e:
             logger.error(f"Failed to broadcast message: {e}")
@@ -423,6 +453,10 @@ class NetworkNode:
         if message_type not in self._message_handlers:
             self._message_handlers[message_type] = []
         self._message_handlers[message_type].append(handler)
+        
+        # Register with transport if available
+        if self.transport:
+            self.transport.register_handler(str(message_type), handler)
     
     def remove_message_handler(self, message_type: MessageType, handler: Callable):
         """Remove a message handler."""
@@ -457,7 +491,7 @@ class NetworkNode:
                 
                 for peer_id, peer_info in self.peers.items():
                     # Check if peer is stale (no activity for 5 minutes)
-                    if (current_time - peer_info.last_seen).total_seconds() > 300:
+                    if hasattr(peer_info, 'last_seen') and (current_time - peer_info.last_seen).total_seconds() > 300:
                         stale_peers.append(peer_id)
                 
                 # Remove stale peers
@@ -471,8 +505,8 @@ class NetworkNode:
                 self.metrics["peers_connected"] = peer_count
                 
                 # Update routing table size if routing is available
-                if hasattr(self.routing, 'routing_table'):
-                    self.metrics["routing_table_size"] = len(getattr(self.routing, 'routing_table', {}))
+                if self.routing and hasattr(self.routing, 'routing_table'):
+                    self.metrics["routing_table_size"] = len(self.routing.routing_table)
                 
                 await asyncio.sleep(60)  # Run every minute
                 
@@ -529,18 +563,19 @@ class NetworkNode:
     async def _check_transport_health(self) -> bool:
         """Check if transport is healthy."""
         try:
-            if self.transport:
-                return await self.transport.is_healthy()
-            return False
+            # Check if transport is running
+            return self.transport.is_running if self.transport else False
         except Exception:
             return False
     
     async def _check_discovery_health(self) -> bool:
         """Check if discovery is healthy."""
         try:
-            if self.discovery:
-                return await self.discovery.is_healthy()
-            return False
+            # Check if discovery has the is_running attribute
+            if self.discovery and hasattr(self.discovery, 'is_running'):
+                return self.discovery.is_running
+            # If no is_running attribute, assume healthy if discovery exists
+            return self.discovery is not None
         except Exception:
             return False
     
@@ -567,8 +602,8 @@ class EnhancedCSPNetwork:
         """Initialize Enhanced CSP Network."""
         self.config = config or NetworkConfig()
         self.nodes: Dict[str, NetworkNode] = {}
-        self.node_id = NodeID.generate()  # Add this line
-        self.is_running = False  # Add this line
+        self.node_id = NodeID.generate()
+        self.is_running = False
         
         # Add metrics attribute to prevent AttributeError
         self.metrics = {
@@ -648,7 +683,7 @@ class EnhancedCSPNetwork:
         """Get a network node by name."""
         return self.nodes.get(name)
 
-    async def metrics(self) -> Dict[str, Any]:
+    async def get_metrics(self) -> Dict[str, Any]:
         """Return network metrics including per-node details."""
         # Base metrics for the overall network
         metrics_snapshot = self.metrics.copy()
@@ -657,7 +692,7 @@ class EnhancedCSPNetwork:
         node_metrics = {}
         for name, node in self.nodes.items():
             # Each NetworkNode stores metrics as a dictionary
-            node_metrics[name] = getattr(node, "metrics", {}).copy()
+            node_metrics[name] = node.metrics.copy()
 
         metrics_snapshot["nodes"] = node_metrics
         return metrics_snapshot

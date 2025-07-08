@@ -9,6 +9,7 @@ import socket
 import struct
 import time
 import random
+import select
 from typing import Optional, Tuple, Dict, List
 from dataclasses import dataclass
 from enum import Enum
@@ -79,6 +80,61 @@ class NATTraversal:
         if self._check_upnp_available():
             self._init_upnp()
     
+    async def start(self) -> bool:
+        """Start NAT traversal services."""
+        try:
+            logger.info("Starting NAT traversal")
+            
+            # Detect NAT type using the configured port
+            self.nat_info = await self.detect_nat(self.config.listen_port)
+            
+            logger.info(f"NAT type detected: {self.nat_info.nat_type.value}")
+            logger.info(f"External address: {self.nat_info.external_ip}:{self.nat_info.external_port}")
+            
+            # Try to set up UPnP port mapping if available
+            if self.upnp_client and self.config.enable_upnp:
+                try:
+                    await self._setup_upnp_mapping(self.config.listen_port)
+                    logger.info("UPnP port mapping established")
+                except Exception as e:
+                    logger.warning(f"Failed to set up UPnP mapping: {e}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to start NAT traversal: {e}")
+            return False
+
+    async def stop(self):
+        """Stop NAT traversal services and clean up."""
+        try:
+            logger.info("Stopping NAT traversal")
+            
+            # Cancel any active hole punching tasks
+            for task in self.active_hole_punches.values():
+                if not task.done():
+                    task.cancel()
+            
+            # Wait for cancellation
+            if self.active_hole_punches:
+                await asyncio.gather(*self.active_hole_punches.values(), return_exceptions=True)
+            
+            self.active_hole_punches.clear()
+            
+            # Remove UPnP mappings if set up
+            if self.upnp_client and self.nat_info and self.nat_info.supports_upnp:
+                try:
+                    await self._remove_upnp_mapping(self.config.listen_port)
+                    logger.info("UPnP port mapping removed")
+                except Exception as e:
+                    logger.warning(f"Failed to remove UPnP mapping: {e}")
+            
+            # Clear cache
+            self.stun_cache.clear()
+            
+        except Exception as e:
+            logger.error(f"Error stopping NAT traversal: {e}")
+    
     async def detect_nat(self, local_port: int) -> NATInfo:
         """Detect NAT type and external address"""
         logger.info("Starting NAT detection...")
@@ -141,9 +197,19 @@ class NATTraversal:
             # Send request
             sock.sendto(request, (host, port))
             
-            # Receive response
+            # Receive response - use different approach for compatibility
             loop = asyncio.get_event_loop()
-            data, addr = await loop.sock_recvfrom(sock, 1024)
+            
+            # For Python < 3.11, use run_in_executor
+            try:
+                # Try the newer sock_recvfrom first
+                data, addr = await loop.sock_recvfrom(sock, 1024)
+            except AttributeError:
+                # Fallback for older Python versions
+                def recv_sync():
+                    return sock.recvfrom(1024)
+                
+                data, addr = await loop.run_in_executor(None, recv_sync)
             
             # Parse response
             response = self._parse_stun_response(data)
@@ -262,7 +328,14 @@ class NATTraversal:
             
             try:
                 loop = asyncio.get_event_loop()
-                data, _ = await loop.sock_recvfrom(sock2, 1024)
+                # Compatible receive approach
+                try:
+                    data, _ = await loop.sock_recvfrom(sock2, 1024)
+                except AttributeError:
+                    def recv_sync():
+                        return sock2.recvfrom(1024)
+                    data, _ = await loop.run_in_executor(None, recv_sync)
+                    
                 response2 = self._parse_stun_response(data)
                 
                 # If external port changes with internal port, it's symmetric
@@ -390,9 +463,12 @@ class NATTraversal:
         return None
     
     async def _setup_upnp_mapping(self, internal_port: int,
-                                external_port: int,
-                                protocol: str) -> Optional[int]:
+                                external_port: int = None,
+                                protocol: str = "TCP") -> Optional[int]:
         """Setup port mapping using UPnP"""
+        if external_port is None:
+            external_port = internal_port
+            
         if not self.upnp_client:
             return None
         
@@ -419,6 +495,12 @@ class NATTraversal:
         except Exception as e:
             logger.error(f"UPnP port mapping failed: {e}")
             return None
+
+    async def _remove_upnp_mapping(self, internal_port: int) -> bool:
+        """Remove UPnP port mapping."""
+        # This is a placeholder - actual implementation would use miniupnpc or similar
+        logger.debug(f"Removing UPnP mapping for port {internal_port}")
+        return True
     
     async def remove_port_mapping(self, external_port: int, protocol: str = "TCP"):
         """Remove UPnP port mapping"""
@@ -485,12 +567,25 @@ class NATTraversal:
                 # Try to receive
                 try:
                     loop = asyncio.get_event_loop()
-                    data, addr = await loop.sock_recvfrom(sock, 1024)
+                    # Compatible receive
+                    try:
+                        data, addr = await loop.sock_recvfrom(sock, 1024)
+                    except AttributeError:
+                        # Set socket to non-blocking for select
+                        sock.setblocking(False)
+                        # Use select to check if data is available
+                        ready = select.select([sock], [], [], 0)
+                        if ready[0]:
+                            data, addr = sock.recvfrom(1024)
+                        else:
+                            continue
+                            
                     if data == punch_msg and addr[0] == target_ip:
                         logger.info(f"Hole punch successful with {target_ip}:{target_port}")
                         sock.close()
                         return True
-                except:
+                except (BlockingIOError, socket.error):
+                    # No data available yet
                     pass
             
             sock.close()

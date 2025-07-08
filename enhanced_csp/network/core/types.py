@@ -1,4 +1,6 @@
-"""Core network types and data structures."""
+# In enhanced_csp/network/core/types.py
+# Update the NodeID dataclass to be hashable
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -6,8 +8,6 @@ from typing import Optional, Dict, Any, List
 import uuid
 import hashlib
 from .config import P2PConfig
-
-
 
 
 class MessageType(Enum):
@@ -24,13 +24,23 @@ class MessageType(Enum):
     ROUTE_UPDATE = "route_update"
 
 
-@dataclass
+@dataclass(frozen=True)  # Make it immutable and hashable
 class NodeID:
     """Node identifier."""
     value: str
     
     def __str__(self):
         return self.value
+    
+    def __hash__(self):
+        """Make NodeID hashable."""
+        return hash(self.value)
+    
+    def __eq__(self, other):
+        """Equality comparison."""
+        if isinstance(other, NodeID):
+            return self.value == other.value
+        return False
         
     @classmethod
     def generate(cls) -> 'NodeID':

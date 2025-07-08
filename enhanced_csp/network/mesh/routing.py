@@ -199,6 +199,8 @@ class BatmanRouting:
             except Exception as e:
                 logger.error(f"Error in OGM sender: {e}")
     
+    # Replace the send_ogm method in BatmanRouting class with this fixed version:
+
     async def send_ogm(self):
         """Send originator message to all neighbors"""
         # Increment sequence number
@@ -213,11 +215,18 @@ class BatmanRouting:
         )
         
         # Determine if we're a gateway (super-peer)
-        if self.node.node_id in self.topology.super_peers:
+        if hasattr(self.topology, 'super_peers') and self.node.node_id in self.topology.super_peers:
             ogm.gateway_flags = 1
         
-        # Send to all mesh neighbors
-        neighbors = self.topology.peer_connections.get(self.node.node_id, set())
+        # Get neighbors - handle both old and new topology interfaces
+        neighbors = set()
+        
+        # Try new interface first
+        if hasattr(self.topology, 'peer_connections'):
+            neighbors = self.topology.peer_connections.get(self.node.node_id, set())
+        # Fallback to get_mesh_neighbors
+        elif hasattr(self.topology, 'get_mesh_neighbors'):
+            neighbors = set(self.topology.get_mesh_neighbors())
         
         for neighbor_id in neighbors:
             # Adjust TQ based on link quality to neighbor
@@ -333,6 +342,8 @@ class BatmanRouting:
         alt_routes.sort(key=lambda r: r.tq, reverse=True)
         self.alternative_routes[originator] = alt_routes[:3]
     
+    # Replace the _forward_ogm method in BatmanRouting class with this fixed version:
+
     async def _forward_ogm(self, ogm: OriginatorMessage, received_from: NodeID):
         """Forward OGM to other neighbors"""
         # Decrease TTL
@@ -341,8 +352,15 @@ class BatmanRouting:
         # Apply forwarding penalty to TQ
         ogm.tq = (ogm.tq * 230) // 255  # ~10% penalty
         
-        # Get our neighbors
-        neighbors = self.topology.peer_connections.get(self.node.node_id, set())
+        # Get our neighbors - handle both old and new topology interfaces
+        neighbors = set()
+        
+        # Try new interface first
+        if hasattr(self.topology, 'peer_connections'):
+            neighbors = self.topology.peer_connections.get(self.node.node_id, set())
+        # Fallback to get_mesh_neighbors
+        elif hasattr(self.topology, 'get_mesh_neighbors'):
+            neighbors = set(self.topology.get_mesh_neighbors())
         
         # Forward to all neighbors except sender
         for neighbor_id in neighbors:

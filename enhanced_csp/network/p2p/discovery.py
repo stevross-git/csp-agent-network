@@ -53,6 +53,12 @@ class HybridDiscovery:
         self.node_id = node_id
         self.is_running = False
         
+        # Store the main event loop for thread-safe operations
+        try:
+            self._main_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self._main_loop = None
+        
         # Discovery mechanisms
         self.zeroconf: Optional[Zeroconf] = None
         self.mdns_browser: Optional[ServiceBrowser] = None
@@ -75,6 +81,10 @@ class HybridDiscovery:
             
         logger.info(f"Starting hybrid discovery for node {self.node_id}")
         self.is_running = True
+        
+        # Update main loop reference if needed
+        if not self._main_loop:
+            self._main_loop = asyncio.get_running_loop()
         
         # Start mDNS discovery if available
         if HAS_ZEROCONF and self.config.enable_mdns:
@@ -186,7 +196,18 @@ class HybridDiscovery:
     
     def add_service(self, zeroconf: Zeroconf, service_type: str, name: str):
         """Called when a new mDNS service is discovered."""
-        asyncio.create_task(self._handle_mdns_service(zeroconf, service_type, name))
+        # Check if we have a running event loop
+        try:
+            loop = asyncio.get_running_loop()
+            # We're in an async context, create task directly
+            asyncio.create_task(self._handle_mdns_service(zeroconf, service_type, name))
+        except RuntimeError:
+            # No running loop, we're in a thread - schedule the coroutine
+            if self._main_loop:
+                asyncio.run_coroutine_threadsafe(
+                    self._handle_mdns_service(zeroconf, service_type, name),
+                    self._main_loop
+                )
     
     def remove_service(self, zeroconf: Zeroconf, service_type: str, name: str):
         """Called when an mDNS service is removed."""
@@ -194,16 +215,46 @@ class HybridDiscovery:
     
     def update_service(self, zeroconf: Zeroconf, service_type: str, name: str):
         """Called when an mDNS service is updated."""
-        asyncio.create_task(self._handle_mdns_service(zeroconf, service_type, name))
+        # Same fix as add_service
+        try:
+            loop = asyncio.get_running_loop()
+            asyncio.create_task(self._handle_mdns_service(zeroconf, service_type, name))
+        except RuntimeError:
+            if self._main_loop:
+                asyncio.run_coroutine_threadsafe(
+                    self._handle_mdns_service(zeroconf, service_type, name),
+                    self._main_loop
+                )
     
     async def _handle_mdns_service(self, zeroconf: Zeroconf, service_type: str, name: str):
         """Handle discovered mDNS service."""
         try:
-            info = zeroconf.get_service_info(service_type, name)
+            # For zeroconf >= 0.39.0, we need to use async API
+            try:
+                # Try async API first (newer versions)
+                from zeroconf import AsyncServiceInfo
+                info = AsyncServiceInfo(service_type, name)
+                await info.async_request(zeroconf, 3000)  # 3 second timeout
+            except (ImportError, AttributeError):
+                # Fallback to sync API wrapped in executor for older versions
+                loop = asyncio.get_event_loop()
+                info = await loop.run_in_executor(
+                    None,
+                    zeroconf.get_service_info,
+                    service_type,
+                    name
+                )
+            
             if not info:
                 return
                 
-            properties = info.properties
+            # Access properties based on API version
+            try:
+                properties = info.properties
+            except AttributeError:
+                # Older API might use decoded_properties
+                properties = getattr(info, 'decoded_properties', {})
+            
             node_id_bytes = properties.get(b"node_id")
             if not node_id_bytes:
                 return
@@ -214,16 +265,25 @@ class HybridDiscovery:
             if node_id_str == self.node_id.value:
                 return
             
-            # Parse addresses
+            # Parse addresses - handle both old and new API
             addresses = []
-            for addr in info.addresses:
-                ip = socket.inet_ntoa(addr)
-                port = info.port
+            addr_list = getattr(info, 'addresses', None) or getattr(info, 'address', [])
+            if not isinstance(addr_list, list):
+                addr_list = [addr_list]
                 
-                # Create multiaddr format
-                addresses.append(f"/ip4/{ip}/tcp/{port}/p2p/{node_id_str}")
-                if b'quic' in properties.get(b'protocols', b''):
-                    addresses.append(f"/ip4/{ip}/udp/{port}/quic/p2p/{node_id_str}")
+            for addr in addr_list:
+                if isinstance(addr, bytes):
+                    ip = socket.inet_ntoa(addr)
+                else:
+                    # Might be IPv4Address or string
+                    ip = str(addr)
+                    
+            port = getattr(info, 'port', self.config.listen_port)
+            
+            # Create multiaddr format
+            addresses.append(f"/ip4/{ip}/tcp/{port}/p2p/{node_id_str}")
+            if b'quic' in properties.get(b'protocols', b''):
+                addresses.append(f"/ip4/{ip}/udp/{port}/quic/p2p/{node_id_str}")
             
             # Create peer info
             peer_info = {
@@ -261,14 +321,61 @@ class HybridDiscovery:
     async def _connect_bootstrap(self, address: str) -> bool:
         """Connect to a single bootstrap node."""
         try:
-            peer_info = self._parse_multiaddr(address)
-            if peer_info:
-                peer_info['peer_type'] = PeerType.BOOTSTRAP.value
-                await self.announce_peer(peer_info)
-                return True
-            return False
+            peer_info = None
+            
+            # Check if it's a multiaddr format
+            if address.startswith('/'):
+                peer_info = self._parse_multiaddr(address)
+            # Check if it's a DNS name or IP:port format
+            else:
+                # Try to resolve DNS name
+                if ':' in address:
+                    host, port = address.rsplit(':', 1)
+                    try:
+                        port = int(port)
+                    except ValueError:
+                        # Not a valid port, treat whole thing as hostname
+                        host = address
+                        port = self.config.listen_port
+                else:
+                    host = address
+                    port = self.config.listen_port
+                
+                # Resolve DNS if needed
+                try:
+                    # Try to parse as IP first
+                    socket.inet_aton(host)
+                    resolved_host = host
+                except socket.error:
+                    # It's a hostname, resolve it
+                    try:
+                        resolved_host = socket.gethostbyname(host)
+                        logger.info(f"Resolved {host} to {resolved_host}")
+                    except socket.gaierror:
+                        logger.error(f"Failed to resolve bootstrap host: {host}")
+                        return False
+                
+                # Create a pseudo peer info for bootstrap
+                peer_info = {
+                    'node_id': f'bootstrap-{resolved_host}:{port}',
+                    'addresses': [f'/ip4/{resolved_host}/tcp/{port}'],
+                    'source': 'bootstrap',
+                    'peer_type': PeerType.BOOTSTRAP.value
+                }
+            
+            if not peer_info:
+                logger.error(f"Invalid bootstrap address: {address}")
+                return False
+            
+            # Announce the bootstrap peer
+            await self.announce_peer(peer_info)
+            
+            # TODO: Actually connect to the bootstrap node and exchange peer lists
+            
+            return True
+            
         except Exception as e:
-            logger.error(f"Failed to connect to bootstrap node {address}: {e}")
+            logger.error(f"Failed to connect to bootstrap {address}: {e}")
             return False
     
     # DNS Seed Discovery
@@ -302,27 +409,31 @@ class HybridDiscovery:
     
     # Utility methods
     
-    def _parse_multiaddr(self, address: str) -> Optional[Dict[str, Any]]:
+    def _parse_multiaddr(self, multiaddr: str) -> Optional[Dict[str, Any]]:
         """Parse a multiaddr string into peer info."""
         try:
-            # Format: /ip4/1.2.3.4/tcp/4001/p2p/QmNodeID
-            parts = address.strip('/').split('/')
+            # Basic multiaddr parsing
+            # Format: /ip4/192.168.1.1/tcp/4001/p2p/QmNodeID
+            parts = multiaddr.strip('/').split('/')
             
-            if len(parts) < 6:
-                logger.error(f"Invalid multiaddr: {address}")
+            if len(parts) < 4:
                 return None
             
             peer_info = {
-                'node_id': parts[5],  # p2p ID
-                'addresses': [address],
-                'source': 'bootstrap',
-                'discovered_at': datetime.utcnow().isoformat()
+                'addresses': [multiaddr],
+                'source': 'multiaddr'
             }
+            
+            # Extract node ID if present
+            if 'p2p' in parts:
+                p2p_idx = parts.index('p2p')
+                if p2p_idx + 1 < len(parts):
+                    peer_info['node_id'] = parts[p2p_idx + 1]
             
             return peer_info
             
         except Exception as e:
-            logger.error(f"Failed to parse multiaddr {address}: {e}")
+            logger.error(f"Failed to parse multiaddr {multiaddr}: {e}")
             return None
     
     def _get_local_ip(self) -> str:
