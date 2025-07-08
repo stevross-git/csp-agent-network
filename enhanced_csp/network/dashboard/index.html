@@ -42,6 +42,10 @@
                     <span id="node-status" class="status-online">● Online</span>
                 </p>
                 <p class="text-sm text-gray-500 mt-1" id="node-id">Loading...</p>
+                <p class="text-sm text-gray-500" id="node-version"></p>
+                <p class="text-sm text-gray-500" id="node-network"></p>
+                <p class="text-sm text-gray-500" id="node-listen"></p>
+                <p class="text-sm text-gray-500" id="node-capabilities"></p>
             </div>
             
             <div class="card rounded-lg shadow-lg p-6">
@@ -202,10 +206,21 @@
 
         // Update node information
         function updateNodeInfo(info) {
+            nodeData = info;
             document.getElementById('node-id').textContent = info.node_id || 'Unknown';
             document.getElementById('node-status').textContent = '● Online';
             document.getElementById('node-status').className = 'status-online';
-            
+            document.getElementById('node-version').textContent = `Version: ${info.version || '-'}`;
+            document.getElementById('node-network').textContent = `Network: ${info.network_id || '-'}`;
+            document.getElementById('node-listen').textContent = `Listen: ${info.listen_address || '-'}`;
+            if (info.capabilities) {
+                const caps = Object.entries(info.capabilities)
+                    .filter(([k,v]) => v)
+                    .map(([k]) => k)
+                    .join(', ');
+                document.getElementById('node-capabilities').textContent = `Capabilities: ${caps}`;
+            }
+
             if (info.is_genesis) {
                 document.getElementById('dns-section').style.display = 'block';
             }
@@ -225,6 +240,8 @@
                 const hours = Math.floor(metrics.uptime / 3600);
                 const minutes = Math.floor((metrics.uptime % 3600) / 60);
                 document.getElementById('uptime').textContent = `${hours}h ${minutes}m`;
+                const start = new Date(Date.now() - metrics.uptime * 1000);
+                document.getElementById('start-time').textContent = start.toLocaleString();
             }
             
             // Update metrics chart
