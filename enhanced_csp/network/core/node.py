@@ -27,7 +27,7 @@ from ..mesh.routing import BatmanRouting
 from ..dns.overlay import DNSOverlay
 from ..routing.adaptive import AdaptiveRoutingEngine
 
-from enhanced_csp.network.mesh.Routing import BatmanRouting
+from enhanced_csp.network.mesh.routing import BatmanRouting
 
 logger = logging.getLogger(__name__)
 

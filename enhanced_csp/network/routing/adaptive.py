@@ -1,7 +1,7 @@
-# enhanced_csp/network/routing/adaptive.py
 """
 Adaptive routing engine with real-time optimization and ML prediction
 """
+from __future__ import annotations
 from typing import TYPE_CHECKING
 import asyncio
 import logging
@@ -18,17 +18,17 @@ try:
     ML_AVAILABLE = True
 except ImportError:
     ML_AVAILABLE = False
-    logger.warning("scikit-learn not available, ML prediction disabled")
+    logging.warning("scikit-learn not available, ML prediction disabled")
 
 from ..core.types import NodeID
 from ..core.config import RoutingConfig
+
 if TYPE_CHECKING:
     from ..core.node import NetworkNode
+    from ..mesh.routing import BatmanRouting, RoutingEntry
 
 from .metrics import MetricsCollector
 from .multipath import MultipathManager
-if TYPE_CHECKING:
-    from ..mesh.routing import BatmanRouting, RoutingEntry
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ class AdaptiveRoutingEngine:
     """Adaptive routing with ML-based prediction"""
     
     def __init__(self, node: 'NetworkNode', config: RoutingConfig,
-                 batman_routing: BatmanRouting):
+                 batman_routing: 'BatmanRouting'):
         self.node = node
         self.config = config
         self.batman = batman_routing
@@ -165,7 +165,7 @@ class AdaptiveRoutingEngine:
         if self._tasks:
             await asyncio.gather(*self._tasks, return_exceptions=True)
     
-    async def get_best_route(self, destination: NodeID) -> Optional[RoutingEntry]:
+    async def get_best_route(self, destination: NodeID) -> Optional['RoutingEntry']:
         """Get best route considering real-time metrics"""
         # Get base routes from B.A.T.M.A.N.
         routes = self.batman.get_all_routes(destination)
@@ -207,7 +207,7 @@ class AdaptiveRoutingEngine:
         return best_route
     
     async def get_multipath_routes(self, destination: NodeID, 
-                                 flow_id: Optional[str] = None) -> List[RoutingEntry]:
+                                 flow_id: Optional[str] = None) -> List['RoutingEntry']:
         """Get multiple paths for load balancing"""
         if not self.config.enable_multipath:
             route = await self.get_best_route(destination)
@@ -411,7 +411,7 @@ class AdaptiveRoutingEngine:
             except Exception as e:
                 logger.error(f"Failed to update metrics for {destination}: {e}")
     
-    def _calculate_security_score(self, route: RoutingEntry) -> float:
+    def _calculate_security_score(self, route: 'RoutingEntry') -> float:
         """Calculate security score for route"""
         # Factors:
         # - Hop count (fewer = better)
