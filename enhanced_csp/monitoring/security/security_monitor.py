@@ -4,7 +4,7 @@ Security Monitoring and Threat Detection System
 import asyncio
 import re
 import json
-from typing import Dict, List, Pattern, Optional, Set
+from typing import Dict, List, Pattern, Optional, Set, Any
 from datetime import datetime, timedelta
 from collections import defaultdict
 import logging

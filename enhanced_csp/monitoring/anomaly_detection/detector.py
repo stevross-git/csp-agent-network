@@ -4,7 +4,7 @@ Anomaly Detection System using Machine Learning
 import asyncio
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime, timedelta
 import logging
 import pickle
