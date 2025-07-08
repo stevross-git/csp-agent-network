@@ -18,18 +18,16 @@ from .types import (
 )
 from .config import NetworkConfig
 
-# Use TYPE_CHECKING to avoid circular imports
-if TYPE_CHECKING:
-    from ..p2p.transport import P2PTransport
-    from ..p2p.discovery import HybridDiscovery
-    from ..p2p.dht import KademliaDHT
-    from ..p2p.nat import NATTraversal
-    from ..mesh.topology import MeshTopologyManager
-    from ..mesh.routing import BatmanRouting
-    from ..dns.overlay import DNSOverlay
-    from ..routing.adaptive import AdaptiveRoutingEngine
-    
-    from enhanced_csp.network.mesh.Routing import BatmanRouting
+from ..p2p.transport import P2PTransport
+from ..p2p.discovery import HybridDiscovery
+from ..p2p.dht import KademliaDHT
+from ..p2p.nat import NATTraversal
+from ..mesh.topology import MeshTopologyManager
+from ..mesh.routing import BatmanRouting
+from ..dns.overlay import DNSOverlay
+from ..routing.adaptive import AdaptiveRoutingEngine
+
+from enhanced_csp.network.mesh.Routing import BatmanRouting
 
 logger = logging.getLogger(__name__)
 
