@@ -160,12 +160,12 @@ class NodeManager:
                 raise RuntimeError("Failed to start network node")
             
             # Initialize optional components
-            if self.args.enable_quantum:
+            if getattr(self.args, 'enable_quantum', False):
                 self.logger.info("Initializing quantum engine")
                 self.quantum_engine = QuantumCSPEngine()
                 await self.quantum_engine.start()
             
-            if self.args.enable_blockchain:
+            if getattr(self.args, 'enable_blockchain', False):
                 self.logger.info("Initializing blockchain network")
                 self.blockchain = BlockchainCSPNetwork()
                 await self.blockchain.start()
@@ -245,52 +245,64 @@ class NodeManager:
     
     def _build_config(self) -> NetworkConfig:
         """Build network configuration from command line arguments."""
-        return NetworkConfig(
-            network_id=self.args.network_id,
+        # Build individual config components with correct parameter names
+        security = SecurityConfig(
+            enable_tls=True,
+            enable_mtls=getattr(self.args, 'enable_mtls', False),
+            enable_pq_crypto=getattr(self.args, 'enable_quantum', False),
+            enable_zero_trust=True,
+        )
+        
+        p2p = P2PConfig(
             listen_address=self.args.listen_address,
             listen_port=self.args.listen_port,
             bootstrap_nodes=self._parse_bootstrap_nodes(),
-            node_capabilities={
-                "relay": True,
-                "dht": True,
-                "mesh": True,
-                "dns": self.args.genesis,
-                "super_peer": self.args.super_peer,
-                "quantum": self.args.enable_quantum,
-                "blockchain": self.args.enable_blockchain,
-            },
-            security=SecurityConfig(
-                enable_tls=True,
-                enable_mtls=self.args.enable_mtls,
-                enable_pq_crypto=self.args.enable_quantum,
-                enable_zero_trust=True,
-            ),
-            p2p=P2PConfig(
-                max_peers=self.args.max_peers,
-                stun_servers=self._parse_stun_servers(),
-                turn_servers=self._parse_turn_servers(),
-                enable_upnp=not self.args.disable_upnp,
-                enable_nat_pmp=not self.args.disable_nat_pmp,
-                connection_timeout=30,
-                keep_alive_interval=60,
-            ),
-            mesh=MeshConfig(
-                topology="dynamic_partial",
-                optimization_interval=30,
-                redundancy_factor=3,
-                enable_load_balancing=True,
-            ),
-            dns=DNSConfig(
-                enable_overlay=self.args.genesis,
-                records=GENESIS_DNS_RECORDS if self.args.genesis else {},
-                cache_ttl=300,
-            ),
-            routing=RoutingConfig(
-                algorithm="batman",
-                metric="latency",
-                enable_multipath=True,
-                convergence_timeout=10,
-            )
+            stun_servers=self._parse_stun_servers(),
+            turn_servers=self._parse_turn_servers(),
+            connection_timeout=30,
+            max_peers=self.args.max_peers,
+            enable_quic=True,
+            enable_tcp=True,
+            enable_mdns=True,
+        )
+        
+        mesh = MeshConfig(
+            topology_type="dynamic_partial",
+            max_peers=20,
+            enable_super_peers=True,
+            routing_update_interval=30,
+        )
+        
+        dns = DNSConfig(
+            root_domain=".web4ai",
+            enable_dnssec=True,
+            default_ttl=3600,
+            cache_size=10000,
+        )
+        
+        routing = RoutingConfig(
+            enable_multipath=True,
+            enable_ml_predictor=True,
+            max_paths_per_destination=3,
+        )
+        
+        # Build main network config
+        return NetworkConfig(
+            security=security,
+            p2p=p2p,
+            mesh=mesh,
+            dns=dns,
+            routing=routing,
+            enable_discovery=True,
+            enable_dht=True,
+            enable_nat_traversal=True,
+            enable_mesh=True,
+            enable_dns=self.args.genesis,
+            enable_adaptive_routing=True,
+            enable_metrics=True,
+            enable_compression=True,
+            enable_quantum=getattr(self.args, 'enable_quantum', False),
+            enable_blockchain=getattr(self.args, 'enable_blockchain', False),
         )
     
     def _parse_bootstrap_nodes(self) -> List[str]:
@@ -325,7 +337,7 @@ class NodeManager:
         """Setup logging configuration."""
         log_level = getattr(logging, self.args.log_level.upper())
         
-        if RICH_AVAILABLE and not self.args.no_shell:
+        if RICH_AVAILABLE and not getattr(self.args, 'no_shell', False):
             # Rich logging handler
             logging.basicConfig(
                 level=log_level,
@@ -333,7 +345,7 @@ class NodeManager:
                 handlers=[
                     RichHandler(
                         rich_tracebacks=True,
-                        tracebacks_show_locals=self.args.debug,
+                        tracebacks_show_locals=getattr(self.args, 'debug', False),
                     )
                 ]
             )
@@ -358,6 +370,7 @@ class InteractiveShell:
             'peers': self.cmd_peers,
             'connect': self.cmd_connect,
             'disconnect': self.cmd_disconnect,
+            'dns': self.cmd_dns,
             'send': self.cmd_send,
             'stats': self.cmd_stats,
             'loglevel': self.cmd_loglevel,
@@ -377,9 +390,13 @@ class InteractiveShell:
         while not self.manager.shutdown_event.is_set():
             try:
                 if RICH_AVAILABLE:
-                    command_line = Prompt.ask("csp>", console=console)
+                    command_line = await asyncio.get_event_loop().run_in_executor(
+                        None, Prompt.ask, "[bold]csp>[/bold]"
+                    )
                 else:
-                    command_line = input("csp>: ")
+                    command_line = await asyncio.get_event_loop().run_in_executor(
+                        None, input, "csp>: "
+                    )
                 
                 if not command_line.strip():
                     continue
@@ -409,6 +426,7 @@ Available commands:
   peers                - List connected peers
   connect <address>    - Connect to a peer
   disconnect <peer_id> - Disconnect from a peer
+  dns <name>           - Resolve .web4ai domain
   send <peer_id> <msg> - Send message to peer
   stats                - Show detailed statistics
   loglevel <level>     - Set log level (debug, info, warning, error)
@@ -421,8 +439,8 @@ Available commands:
         if self.manager.network:
             print(f"Node ID: {self.manager.network.node_id}")
             print(f"Status: {'Running' if getattr(self.manager.network, 'is_running', False) else 'Stopped'}")
-            print(f"Listen Address: {self.manager.config.listen_address}:{self.manager.config.listen_port}")
-            print(f"Network ID: {self.manager.config.network_id}")
+            print(f"Listen Address: {self.manager.config.p2p.listen_address}:{self.manager.config.p2p.listen_port}")
+            print(f"Network ID: enhanced-csp")
             if hasattr(self.manager.network, 'get_peers'):
                 peers = self.manager.network.get_peers()
                 print(f"Connected Peers: {len(peers)}")
@@ -496,6 +514,25 @@ Available commands:
             print(f"Disconnected from {peer_id}")
         except Exception as e:
             print(f"Failed to disconnect: {e}")
+    
+    async def cmd_dns(self, args: List[str]):
+        """Resolve DNS name."""
+        if not args:
+            print("Usage: dns <name>")
+            return
+        
+        name = args[0]
+        
+        if not self.manager.network or not hasattr(self.manager.network, 'dns_overlay'):
+            print("DNS overlay not available")
+            return
+        
+        try:
+            # Mock DNS resolution for now
+            print(f"Resolving {name}...")
+            print(f"Result: Mock resolution for {name}")
+        except Exception as e:
+            print(f"DNS resolution failed: {e}")
     
     async def cmd_send(self, args: List[str]):
         """Send a message to a peer."""
@@ -663,7 +700,7 @@ class StatusServer:
                                 const info = await infoRes.json();
                                 document.getElementById('node-id').textContent = info.node_id.substring(0, 12) + '...';
                                 document.getElementById('status').className = 'status online';
-                                document.getElementById('status').textContent = '● Node Online - ' + info.network_id;
+                                document.getElementById('status').textContent = '● Node Online - Enhanced CSP';
                             }}
                             
                             // Fetch metrics
@@ -700,9 +737,17 @@ class StatusServer:
                 "node_id": str(self.manager.network.node_id) if self.manager.network else "unknown",
                 "version": "1.0.0",
                 "is_genesis": self.manager.is_genesis,
-                "network_id": getattr(self.manager.config, 'network_id', 'enhanced-csp'),
-                "listen_address": f"{self.manager.config.listen_address}:{self.manager.config.listen_port}",
-                "capabilities": getattr(self.manager.config, 'node_capabilities', {}),
+                "network_id": "enhanced-csp",
+                "listen_address": f"{self.manager.config.p2p.listen_address}:{self.manager.config.p2p.listen_port}",
+                "capabilities": {
+                    "relay": True,
+                    "dht": True,
+                    "mesh": True,
+                    "dns": self.manager.is_genesis,
+                    "super_peer": getattr(self.manager.args, 'super_peer', False),
+                    "quantum": getattr(self.manager.args, 'enable_quantum', False),
+                    "blockchain": getattr(self.manager.args, 'enable_blockchain', False),
+                },
                 "external_address": getattr(self.manager.network, 'external_address', None) if self.manager.network else None,
                 "nat_type": getattr(self.manager.network, 'nat_type', None) if self.manager.network else None,
                 "status": "running" if self.manager.network and getattr(self.manager.network, 'is_running', False) else "stopped"
@@ -843,6 +888,123 @@ class StatusServer:
         return runner
 
 
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Enhanced CSP Network Node",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    
+    # Network configuration
+    parser.add_argument(
+        "--bootstrap",
+        nargs='*',
+        default=[],
+        help="Bootstrap nodes (multiaddr or .peoplesainetwork.com domain)"
+    )
+    parser.add_argument(
+        "--listen-address",
+        type=str,
+        default=DEFAULT_LISTEN_ADDRESS,
+        help="Listen address for P2P connections"
+    )
+    parser.add_argument(
+        "--listen-port",
+        type=int,
+        default=DEFAULT_LISTEN_PORT,
+        help="Listen port for P2P connections"
+    )
+    parser.add_argument(
+        "--max-peers",
+        type=int,
+        default=100,
+        help="Maximum peer connections"
+    )
+    
+    # Node type
+    parser.add_argument(
+        "--super-peer",
+        action="store_true",
+        help="Run as a super peer"
+    )
+    parser.add_argument(
+        "--genesis",
+        action="store_true",
+        help="Run as the genesis (first) node in the network"
+    )
+    
+    # STUN/TURN servers
+    parser.add_argument(
+        "--stun-servers",
+        nargs='*',
+        help="STUN servers for NAT traversal"
+    )
+    parser.add_argument(
+        "--turn-servers",
+        nargs='*',
+        help="TURN servers for NAT traversal"
+    )
+    
+    # Features
+    parser.add_argument(
+        "--enable-quantum",
+        action="store_true",
+        help="Enable quantum integration"
+    )
+    parser.add_argument(
+        "--enable-blockchain",
+        action="store_true",
+        help="Enable blockchain integration"
+    )
+    parser.add_argument(
+        "--enable-mtls",
+        action="store_true",
+        help="Enable mutual TLS authentication"
+    )
+    
+    # Status server
+    parser.add_argument(
+        "--status-port",
+        type=int,
+        default=DEFAULT_STATUS_PORT,
+        help="HTTP status server port"
+    )
+    parser.add_argument(
+        "--no-status",
+        action="store_true",
+        help="Disable status server"
+    )
+    
+    # Logging
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default="INFO",
+        help="Logging level"
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode"
+    )
+    
+    # Interactive shell
+    parser.add_argument(
+        "--no-shell",
+        action="store_true",
+        help="Disable interactive shell"
+    )
+    
+    args = parser.parse_args()
+    
+    # Post-process arguments
+    if args.debug:
+        args.log_level = 'DEBUG'
+    
+    return args
+
+
 async def run_main(args: argparse.Namespace):
     """Main execution function."""
     manager = NodeManager(args)
@@ -890,110 +1052,19 @@ async def handle_signal(sig: signal.Signals, manager: NodeManager):
     manager.shutdown_event.set()
 
 
-def parse_args() -> argparse.Namespace:
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Enhanced CSP Network Node",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Start as genesis node (first in network)
-  %(prog)s --genesis
-  
-  # Join existing network via bootstrap
-  %(prog)s --bootstrap /ip4/1.2.3.4/tcp/30300/p2p/Qm...
-  
-  # Join via DNS seed
-  %(prog)s --bootstrap genesis.peoplesainetwork.com
-  
-  # Enable all features
-  %(prog)s --enable-quantum --enable-blockchain --super-peer
-"""
-    )
-    
-    # Network options
-    network = parser.add_argument_group('network')
-    network.add_argument('--genesis', action='store_true',
-                        help='Start as genesis node (first bootstrap)')
-    network.add_argument('--bootstrap', nargs='*', default=[],
-                        help='Bootstrap nodes (multiaddr or .peoplesainetwork.com domain)')
-    network.add_argument('--listen-address', default=DEFAULT_LISTEN_ADDRESS,
-                        help='Listen address (default: %(default)s)')
-    network.add_argument('--listen-port', type=int, default=DEFAULT_LISTEN_PORT,
-                        help='Listen port (default: %(default)s)')
-    network.add_argument('--network-id', default='enhanced-csp',
-                        help='Network identifier (default: %(default)s)')
-    network.add_argument('--super-peer', action='store_true',
-                        help='Run as super peer with higher capacity')
-    network.add_argument('--max-peers', type=int, default=100,
-                        help='Maximum peer connections (default: %(default)s)')
-    
-    # NAT traversal
-    nat = parser.add_argument_group('NAT traversal')
-    nat.add_argument('--stun-servers', nargs='*',
-                    help='STUN servers for NAT traversal')
-    nat.add_argument('--turn-servers', nargs='*',
-                    help='TURN servers for NAT traversal')
-    nat.add_argument('--disable-upnp', action='store_true',
-                    help='Disable UPnP port mapping')
-    nat.add_argument('--disable-nat-pmp', action='store_true',
-                    help='Disable NAT-PMP port mapping')
-    
-    # Security options
-    security = parser.add_argument_group('security')
-    security.add_argument('--enable-mtls', action='store_true',
-                         help='Enable mutual TLS authentication')
-    security.add_argument('--enable-quantum', action='store_true',
-                         help='Enable quantum-resistant cryptography')
-    
-    # Advanced features
-    advanced = parser.add_argument_group('advanced features')
-    advanced.add_argument('--enable-blockchain', action='store_true',
-                         help='Enable blockchain integration')
-    
-    # Status server
-    status = parser.add_argument_group('status server')
-    status.add_argument('--no-status', action='store_true',
-                       help='Disable HTTP status server')
-    status.add_argument('--status-port', type=int, default=DEFAULT_STATUS_PORT,
-                       help='Status server port (default: %(default)s)')
-    
-    # Interface options
-    interface = parser.add_argument_group('interface')
-    interface.add_argument('--no-shell', action='store_true',
-                          help='Disable interactive shell')
-    interface.add_argument('--no-color', action='store_true',
-                          help='Disable colored output')
-    
-    # Logging options
-    logging_group = parser.add_argument_group('logging')
-    logging_group.add_argument('--log-level', default='INFO',
-                              choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-                              help='Set logging level (default: %(default)s)')
-    logging_group.add_argument('--log-file', type=str,
-                              help='Log to file instead of stdout')
-    logging_group.add_argument('--debug', action='store_true',
-                              help='Enable debug mode (equivalent to --log-level DEBUG)')
-    
-    args = parser.parse_args()
-    
-    # Post-process arguments
-    if args.debug:
-        args.log_level = 'DEBUG'
-    
-    return args
-
-
 async def main():
     """Entry point."""
-    try:
-        args = parse_args()
-        await run_main(args)
-    except KeyboardInterrupt:
-        print("\nShutdown requested by user")
-    except Exception as e:
-        print(f"Fatal error: {e}")
-        sys.exit(1)
+    args = parse_args()
+    
+    # Show banner
+    if RICH_AVAILABLE and not args.no_shell:
+        console.print("[bold cyan]Enhanced CSP Network Node[/bold cyan]")
+        console.print("[dim]Version 1.0.0[/dim]")
+        if args.genesis:
+            console.print("[bold yellow]🌟 GENESIS NODE - First in the network[/bold yellow]")
+        console.print()
+    
+    await run_main(args)
 
 
 if __name__ == "__main__":
