@@ -1,277 +1,189 @@
 import { io, Socket } from 'socket.io-client'
-import { storage } from '@/utils'
-import type { WSMessage, NetworkEvent, MetricPoint } from '@/types'
+import { useSettingsStore } from '../stores/settingsstore'
+import { useNetworkStore } from '../stores/networkstore'
+import type { NetworkNode, NetworkMetrics, NetworkEvent } from '../types'
 
-type EventHandler = (data: any) => void
-type ConnectionHandler = () => void
-
-export class WebSocketService {
+class WebSocketService {
   private socket: Socket | null = null
-  private eventHandlers: Map<string, Set<EventHandler>> = new Map()
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
-  private reconnectDelay = 1000
-  private isIntentionalDisconnect = false
+  private reconnectInterval = 1000
+  private isConnecting = false
 
-  constructor() {
-    this.connect()
+  connect(): void {
+    if (this.socket?.connected || this.isConnecting) {
+      return
+    }
+
+    this.isConnecting = true
+    const settings = useSettingsStore.getState().settings
+    const token = localStorage.getItem('auth_token')
+
+    try {
+      this.socket = io(settings.websocketUrl, {
+        auth: {
+          token
+        },
+        transports: ['websocket'],
+        forceNew: true,
+        reconnection: true,
+        reconnectionAttempts: this.maxReconnectAttempts,
+        reconnectionDelay: this.reconnectInterval,
+        reconnectionDelayMax: 5000,
+        timeout: 10000
+      })
+
+      this.setupEventListeners()
+    } catch (error) {
+      console.error('Failed to create socket connection:', error)
+      this.isConnecting = false
+    }
   }
 
-  private connect() {
-    const token = storage.get('auth_token', null)
-    
-    this.socket = io(import.meta.env.VITE_WS_URL || '/', {
-      transports: ['websocket'],
-      auth: {
-        token,
-      },
-      reconnection: true,
-      reconnectionAttempts: this.maxReconnectAttempts,
-      reconnectionDelay: this.reconnectDelay,
-    })
-
-    this.setupEventListeners()
-  }
-
-  private setupEventListeners() {
+  private setupEventListeners(): void {
     if (!this.socket) return
 
+    // Connection events
     this.socket.on('connect', () => {
       console.log('WebSocket connected')
+      this.isConnecting = false
       this.reconnectAttempts = 0
-      this.emit('connected')
+      useNetworkStore.getState().setConnectionStatus(true)
     })
 
     this.socket.on('disconnect', (reason) => {
       console.log('WebSocket disconnected:', reason)
-      if (!this.isIntentionalDisconnect) {
-        this.emit('disconnected')
-      }
+      useNetworkStore.getState().setConnectionStatus(false)
     })
 
     this.socket.on('connect_error', (error) => {
       console.error('WebSocket connection error:', error)
+      this.isConnecting = false
+      this.handleReconnection()
+    })
+
+    // Network data events
+    this.socket.on('nodes_update', (nodes: NetworkNode[]) => {
+      useNetworkStore.getState().setNodes(nodes)
+    })
+
+    this.socket.on('node_update', (data: { nodeId: string; updates: Partial<NetworkNode> }) => {
+      useNetworkStore.getState().updateNode(data.nodeId, data.updates)
+    })
+
+    this.socket.on('metrics_update', (metrics: NetworkMetrics) => {
+      useNetworkStore.getState().setMetrics(metrics)
+    })
+
+    this.socket.on('new_event', (event: NetworkEvent) => {
+      useNetworkStore.getState().addEvent(event)
+    })
+
+    // System events
+    this.socket.on('system_alert', (alert: { message: string; severity: string }) => {
+      console.warn('System alert:', alert)
+      // Could trigger a toast notification here
+    })
+
+    // Heartbeat
+    this.socket.on('ping', () => {
+      this.socket?.emit('pong')
+    })
+  }
+
+  private handleReconnection(): void {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++
+      console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
       
-      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        this.emit('max_reconnect_attempts')
-      }
-    })
-
-    // Handle incoming messages
-    this.socket.on('message', (message: WSMessage) => {
-      this.handleMessage(message)
-    })
-
-    // Handle specific event types
-    this.socket.on('metric_update', (data: any) => {
-      this.emit('metric_update', data)
-    })
-
-    this.socket.on('node_update', (data: any) => {
-      this.emit('node_update', data)
-    })
-
-    this.socket.on('event', (event: NetworkEvent) => {
-      this.emit('event', event)
-    })
-
-    this.socket.on('topology_update', (data: any) => {
-      this.emit('topology_update', data)
-    })
-  }
-
-  private handleMessage(message: WSMessage) {
-    switch (message.type) {
-      case 'metric':
-        this.emit('metric', message.payload)
-        break
-      case 'event':
-        this.emit('event', message.payload)
-        break
-      case 'node_update':
-        this.emit('node_update', message.payload)
-        break
-      case 'topology_update':
-        this.emit('topology_update', message.payload)
-        break
-      default:
-        console.warn('Unknown WebSocket message type:', message.type)
-    }
-  }
-
-  // Public methods
-  on(event: string, handler: EventHandler) {
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, new Set())
-    }
-    this.eventHandlers.get(event)!.add(handler)
-
-    // Return unsubscribe function
-    return () => {
-      this.off(event, handler)
-    }
-  }
-
-  off(event: string, handler: EventHandler) {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      handlers.delete(handler)
-      if (handlers.size === 0) {
-        this.eventHandlers.delete(event)
-      }
-    }
-  }
-
-  emit(event: string, data?: any) {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      handlers.forEach(handler => handler(data))
-    }
-  }
-
-  send(event: string, data: any) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit(event, data)
+      setTimeout(() => {
+        if (!this.socket?.connected) {
+          this.connect()
+        }
+      }, this.reconnectInterval * this.reconnectAttempts)
     } else {
-      console.warn('WebSocket not connected, cannot send:', event)
+      console.error('Max reconnection attempts reached')
+      useNetworkStore.getState().setConnectionStatus(false)
     }
   }
 
-  subscribe(channel: string) {
-    this.send('subscribe', { channel })
-  }
-
-  unsubscribe(channel: string) {
-    this.send('unsubscribe', { channel })
-  }
-
-  disconnect() {
-    this.isIntentionalDisconnect = true
+  disconnect(): void {
     if (this.socket) {
       this.socket.disconnect()
       this.socket = null
     }
+    this.reconnectAttempts = 0
+    this.isConnecting = false
+    useNetworkStore.getState().setConnectionStatus(false)
   }
 
-  reconnect() {
-    this.isIntentionalDisconnect = false
-    this.disconnect()
-    this.connect()
+  // Send data to server
+  emit(event: string, data?: any): void {
+    if (this.socket?.connected) {
+      this.socket.emit(event, data)
+    } else {
+      console.warn('WebSocket not connected, cannot emit event:', event)
+    }
   }
 
+  // Subscribe to custom events
+  on(event: string, callback: (...args: any[]) => void): void {
+    this.socket?.on(event, callback)
+  }
+
+  // Unsubscribe from events
+  off(event: string, callback?: (...args: any[]) => void): void {
+    this.socket?.off(event, callback)
+  }
+
+  // Check connection status
   isConnected(): boolean {
     return this.socket?.connected || false
+  }
+
+  // Request specific data
+  requestNodesUpdate(): void {
+    this.emit('request_nodes_update')
+  }
+
+  requestMetricsUpdate(): void {
+    this.emit('request_metrics_update')
+  }
+
+  requestTopologyUpdate(): void {
+    this.emit('request_topology_update')
+  }
+
+  // Send commands to network
+  sendNodeCommand(nodeId: string, command: string, params?: any): void {
+    this.emit('node_command', { nodeId, command, params })
+  }
+
+  // Update subscription preferences
+  updateSubscriptions(subscriptions: string[]): void {
+    this.emit('update_subscriptions', subscriptions)
   }
 }
 
 // Create singleton instance
-export const wsService = new WebSocketService()
+export const websocketService = new WebSocketService()
 
-// SSE Service for event stream
-export class SSEService {
-  private eventSource: EventSource | null = null
-  private listeners: Map<string, Set<EventHandler>> = new Map()
-  private reconnectTimeout: NodeJS.Timeout | null = null
-
-  connect(url: string = '/api/network/events/stream') {
-    const token = storage.get('auth_token', null)
-    const fullUrl = `${url}${token ? `?token=${token}` : ''}`
-
-    this.eventSource = new EventSource(fullUrl)
-
-    this.eventSource.onopen = () => {
-      console.log('SSE connected')
-      this.emit('connected')
-    }
-
-    this.eventSource.onerror = (error) => {
-      console.error('SSE error:', error)
-      this.emit('error', error)
-      this.scheduleReconnect()
-    }
-
-    this.eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        this.emit('message', data)
-        
-        // Emit specific event types
-        if (data.type) {
-          this.emit(data.type, data)
-        }
-      } catch (error) {
-        console.error('Failed to parse SSE message:', error)
-      }
-    }
-
-    // Listen for specific event types
-    this.eventSource.addEventListener('event', (event: any) => {
-      try {
-        const data = JSON.parse(event.data)
-        this.emit('event', data)
-      } catch (error) {
-        console.error('Failed to parse SSE event:', error)
-      }
-    })
-  }
-
-  private scheduleReconnect() {
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout)
-    }
-
-    this.reconnectTimeout = setTimeout(() => {
-      this.reconnect()
-    }, 5000)
-  }
-
-  on(event: string, handler: EventHandler) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set())
-    }
-    this.listeners.get(event)!.add(handler)
-
-    return () => this.off(event, handler)
-  }
-
-  off(event: string, handler: EventHandler) {
-    const handlers = this.listeners.get(event)
-    if (handlers) {
-      handlers.delete(handler)
-      if (handlers.size === 0) {
-        this.listeners.delete(event)
-      }
-    }
-  }
-
-  emit(event: string, data?: any) {
-    const handlers = this.listeners.get(event)
-    if (handlers) {
-      handlers.forEach(handler => handler(data))
-    }
-  }
-
-  disconnect() {
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout)
-      this.reconnectTimeout = null
-    }
-
-    if (this.eventSource) {
-      this.eventSource.close()
-      this.eventSource = null
-    }
-  }
-
-  reconnect() {
-    this.disconnect()
-    this.connect()
-  }
-
-  isConnected(): boolean {
-    return this.eventSource?.readyState === EventSource.OPEN
+// Hook for React components
+export const useWebSocket = () => {
+  const connect = () => websocketService.connect()
+  const disconnect = () => websocketService.disconnect()
+  const isConnected = () => websocketService.isConnected()
+  const emit = (event: string, data?: any) => websocketService.emit(event, data)
+  
+  return {
+    connect,
+    disconnect,
+    isConnected,
+    emit,
+    requestNodesUpdate: () => websocketService.requestNodesUpdate(),
+    requestMetricsUpdate: () => websocketService.requestMetricsUpdate(),
+    requestTopologyUpdate: () => websocketService.requestTopologyUpdate(),
+    sendNodeCommand: (nodeId: string, command: string, params?: any) => 
+      websocketService.sendNodeCommand(nodeId, command, params)
   }
 }
-
-export const sseService = new SSEService()

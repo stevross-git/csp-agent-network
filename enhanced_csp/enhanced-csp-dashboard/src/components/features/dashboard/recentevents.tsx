@@ -1,98 +1,122 @@
-import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { ArrowRight, AlertCircle, Info, AlertTriangle, XCircle } from 'lucide-react'
-import { useNetworkStore } from '@/stores/networkStore'
-import { formatRelativeTime, cn } from '@/utils'
-import type { NetworkEvent } from '@/types'
+import React from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card'
+import { Badge } from '../../ui/badge'
+import { ScrollArea } from '../../ui/scroll-area'
+import { formatDistanceToNow } from 'date-fns'
 
-const eventIcons = {
-  info: Info,
-  warning: AlertTriangle,
-  error: AlertCircle,
-  critical: XCircle,
-}
+const RecentEvents: React.FC = () => {
+  // Mock events data
+  const events = [
+    {
+      id: '1',
+      type: 'connection',
+      message: 'New peer connected from 192.168.1.45',
+      timestamp: new Date(Date.now() - 2 * 60 * 1000), // 2 minutes ago
+      severity: 'info'
+    },
+    {
+      id: '2',
+      type: 'performance',
+      message: 'Network throughput increased by 15%',
+      timestamp: new Date(Date.now() - 8 * 60 * 1000), // 8 minutes ago
+      severity: 'success'
+    },
+    {
+      id: '3',
+      type: 'security',
+      message: 'Suspicious activity detected from node edge-server-c',
+      timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
+      severity: 'warning'
+    },
+    {
+      id: '4',
+      type: 'system',
+      message: 'Backup completed successfully',
+      timestamp: new Date(Date.now() - 32 * 60 * 1000), // 32 minutes ago
+      severity: 'success'
+    },
+    {
+      id: '5',
+      type: 'error',
+      message: 'Failed to establish connection with peer 10.0.0.23',
+      timestamp: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
+      severity: 'error'
+    },
+    {
+      id: '6',
+      type: 'maintenance',
+      message: 'Scheduled maintenance completed for central hub',
+      timestamp: new Date(Date.now() - 68 * 60 * 1000), // 68 minutes ago
+      severity: 'info'
+    }
+  ]
 
-const eventColors = {
-  info: 'bg-blue-500/10 text-blue-700 hover:bg-blue-500/20',
-  warning: 'bg-yellow-500/10 text-yellow-700 hover:bg-yellow-500/20',
-  error: 'bg-red-500/10 text-red-700 hover:bg-red-500/20',
-  critical: 'bg-red-600/10 text-red-800 hover:bg-red-600/20',
-}
+  const getSeverityBadge = (severity: string) => {
+    switch (severity) {
+      case 'success':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Success</Badge>
+      case 'warning':
+        return <Badge variant="default" className="bg-yellow-100 text-yellow-800">Warning</Badge>
+      case 'error':
+        return <Badge variant="destructive">Error</Badge>
+      case 'info':
+      default:
+        return <Badge variant="secondary">Info</Badge>
+    }
+  }
 
-export function RecentEvents() {
-  const navigate = useNavigate()
-  const events = useNetworkStore(state => state.getRecentEvents(10))
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'connection': return '🔗'
+      case 'performance': return '📈'
+      case 'security': return '🛡️'
+      case 'system': return '⚙️'
+      case 'error': return '❌'
+      case 'maintenance': return '🔧'
+      default: return 'ℹ️'
+    }
+  }
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Recent Events</CardTitle>
-          <CardDescription>Latest network activities and alerts</CardDescription>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/events')}
-          className="text-muted-foreground"
-        >
-          View all
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+      <CardHeader>
+        <CardTitle>Recent Events</CardTitle>
+        <CardDescription>
+          Latest network events and system notifications
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px] pr-4">
-          {events.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              <p>No recent events</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {events.map((event) => (
-                <EventItem key={event.id} event={event} />
-              ))}
-            </div>
-          )}
+        <ScrollArea className="h-80">
+          <div className="space-y-4">
+            {events.map((event) => (
+              <div key={event.id} className="flex items-start space-x-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                <div className="text-lg mt-0.5">
+                  {getTypeIcon(event.type)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {event.message}
+                    </p>
+                    {getSeverityBadge(event.severity)}
+                  </div>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className="text-xs text-gray-500 capitalize">
+                      {event.type}
+                    </span>
+                    <span className="text-xs text-gray-400">•</span>
+                    <span className="text-xs text-gray-500">
+                      {formatDistanceToNow(event.timestamp, { addSuffix: true })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </ScrollArea>
       </CardContent>
     </Card>
   )
 }
 
-function EventItem({ event }: { event: NetworkEvent }) {
-  const Icon = eventIcons[event.type]
-  const colorClass = eventColors[event.type]
-
-  return (
-    <div className={cn(
-      'flex items-start gap-3 rounded-lg p-3 transition-colors',
-      'hover:bg-accent cursor-pointer'
-    )}>
-      <div className={cn('rounded-full p-2', colorClass)}>
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="flex-1 space-y-1">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium">{event.title}</p>
-          <span className="text-xs text-muted-foreground">
-            {formatRelativeTime(event.timestamp)}
-          </span>
-        </div>
-        <p className="text-sm text-muted-foreground">{event.message}</p>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
-            {event.category}
-          </Badge>
-          {event.nodeId && (
-            <Badge variant="outline" className="text-xs">
-              Node: {event.nodeId}
-            </Badge>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
+export default RecentEvents

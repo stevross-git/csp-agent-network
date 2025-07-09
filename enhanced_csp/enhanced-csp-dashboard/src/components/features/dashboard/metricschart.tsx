@@ -1,140 +1,96 @@
-import { useState } from 'react'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { chartColors } from '@/utils'
+import React from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
-// Mock data - replace with real data from API
-const generateMockData = (points: number) => {
-  const now = Date.now()
-  const interval = 5 * 60 * 1000 // 5 minutes
-  
-  return Array.from({ length: points }, (_, i) => {
-    const time = new Date(now - (points - i - 1) * interval)
-    return {
-      time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      throughput: Math.random() * 100 + 300,
-      latency: Math.random() * 20 + 10,
-      packetLoss: Math.random() * 0.5,
-    }
-  })
-}
-
-export function MetricsChart() {
-  const [timeRange, setTimeRange] = useState('1h')
-  
-  const dataPoints = {
-    '5m': 12,
-    '1h': 12,
-    '24h': 48,
-  }[timeRange] || 12
-
-  const data = generateMockData(dataPoints)
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg border bg-background p-2 shadow-sm">
-          <p className="text-sm font-medium">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value.toFixed(2)}
-              {entry.name === 'Throughput' && ' Mbps'}
-              {entry.name === 'Latency' && ' ms'}
-              {entry.name === 'Packet Loss' && '%'}
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
-  }
+const MetricsChart: React.FC = () => {
+  // Mock data for demonstration
+  const data = [
+    { time: '00:00', throughput: 1.2, latency: 45, cpu: 30 },
+    { time: '04:00', throughput: 1.8, latency: 38, cpu: 45 },
+    { time: '08:00', throughput: 2.4, latency: 42, cpu: 65 },
+    { time: '12:00', throughput: 3.1, latency: 35, cpu: 80 },
+    { time: '16:00', throughput: 2.8, latency: 40, cpu: 70 },
+    { time: '20:00', throughput: 2.2, latency: 48, cpu: 55 },
+    { time: '24:00', throughput: 1.6, latency: 44, cpu: 40 }
+  ]
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Network Metrics</CardTitle>
-            <CardDescription>Real-time performance indicators</CardDescription>
-          </div>
-          <Tabs value={timeRange} onValueChange={setTimeRange}>
-            <TabsList>
-              <TabsTrigger value="5m">5m</TabsTrigger>
-              <TabsTrigger value="1h">1h</TabsTrigger>
-              <TabsTrigger value="24h">24h</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        <CardTitle>Network Performance</CardTitle>
+        <CardDescription>
+          Real-time metrics over the last 24 hours
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
+        <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
               <XAxis 
                 dataKey="time" 
-                className="text-xs"
-                stroke="currentColor"
+                className="text-xs text-gray-500"
+                axisLine={false}
+                tickLine={false}
               />
               <YAxis 
-                yAxisId="left"
-                className="text-xs"
-                stroke="currentColor"
+                className="text-xs text-gray-500"
+                axisLine={false}
+                tickLine={false}
               />
-              <YAxis 
-                yAxisId="right"
-                orientation="right"
-                className="text-xs"
-                stroke="currentColor"
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                wrapperStyle={{
-                  paddingTop: '20px',
-                  fontSize: '12px',
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                 }}
               />
               <Line
-                yAxisId="left"
                 type="monotone"
                 dataKey="throughput"
-                stroke={chartColors.primary}
+                stroke="#3b82f6"
                 strokeWidth={2}
                 dot={false}
-                name="Throughput"
+                name="Throughput (GB/s)"
               />
               <Line
-                yAxisId="left"
                 type="monotone"
                 dataKey="latency"
-                stroke={chartColors.secondary}
+                stroke="#ef4444"
                 strokeWidth={2}
                 dot={false}
-                name="Latency"
+                name="Latency (ms)"
               />
               <Line
-                yAxisId="right"
                 type="monotone"
-                dataKey="packetLoss"
-                stroke={chartColors.danger}
+                dataKey="cpu"
+                stroke="#10b981"
                 strokeWidth={2}
                 dot={false}
-                name="Packet Loss"
+                name="CPU Usage (%)"
               />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+        
+        <div className="flex justify-center space-x-6 mt-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <span className="text-sm text-gray-600">Throughput</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <span className="text-sm text-gray-600">Latency</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span className="text-sm text-gray-600">CPU Usage</span>
+          </div>
         </div>
       </CardContent>
     </Card>
   )
 }
+
+export default MetricsChart

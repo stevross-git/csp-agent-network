@@ -1,4 +1,4 @@
-"""DNS overlay implementation for .web4ai domains."""
+"""DNS overlay implementation for .web4ai and peoplesainetwork.com domains."""
 import asyncio
 import logging
 import json
@@ -45,7 +45,7 @@ class DNSRecord:
 
 
 class DNSOverlay:
-    """DNS overlay for .web4ai domain resolution."""
+    """DNS overlay for .web4ai and peoplesainetwork.com domain resolution."""
     
     def __init__(self, network_node):
         self.node = network_node
@@ -62,6 +62,9 @@ class DNSOverlay:
         
         # DHT key prefix for DNS records
         self.dns_key_prefix = "dns:"
+        
+        # Supported domain suffixes (order matters - first is default)
+        self.supported_domains = ['.web4ai', '.peoplesainetwork.com']
         
     async def start(self):
         """Start DNS overlay service."""
@@ -96,8 +99,10 @@ class DNSOverlay:
             self.logger.error(f"Invalid domain name: {name}")
             return False
             
-        # Ensure .web4ai suffix
-        if not name.endswith('.web4ai'):
+        # Handle both .web4ai and peoplesainetwork.com domains
+        original_name = name
+        if not self._has_supported_domain_suffix(name):
+            # If no domain suffix, default to .web4ai for backward compatibility
             name = f"{name}.web4ai"
             
         record = DNSRecord(name, value, ttl, record_type)
@@ -114,14 +119,33 @@ class DNSOverlay:
         return True
         
     async def resolve(self, name: str, record_type: str = "A") -> Optional[str]:
-        """Resolve a DNS name."""
+        """Resolve a DNS name with fallback support for multiple domains."""
         if not self._validate_domain_name(name):
             return None
+        
+        # Try exact match first
+        if self._has_supported_domain_suffix(name):
+            result = await self._resolve_exact(name, record_type)
+            if result:
+                return result
+        else:
+            # If not found and no domain suffix, try both supported domains
+            # Try .web4ai first (backward compatibility)
+            web4ai_name = f"{name}.web4ai"
+            result = await self._resolve_exact(web4ai_name, record_type)
+            if result:
+                return result
             
-        # Ensure .web4ai suffix
-        if not name.endswith('.web4ai'):
-            name = f"{name}.web4ai"
-            
+            # Try .peoplesainetwork.com
+            peoples_name = f"{name}.peoplesainetwork.com"
+            result = await self._resolve_exact(peoples_name, record_type)
+            if result:
+                return result
+        
+        return None
+    
+    async def _resolve_exact(self, name: str, record_type: str = "A") -> Optional[str]:
+        """Resolve exact domain name."""
         cache_key = f"{name}:{record_type}"
         
         # Check local records first
@@ -133,7 +157,32 @@ class DNSOverlay:
         # Check cache
         if cache_key in self.cache and not self.cache[cache_key].is_expired():
             return self.cache[cache_key].value
-            
+        
+        # Try DHT lookup if available
+        if hasattr(self.node, 'dht') and self.node.dht:
+            result = await self._resolve_from_dht(name, record_type)
+            if result:
+                # Cache the result
+                record = DNSRecord(name, result, record_type=record_type)
+                self.cache[cache_key] = record
+                self.logger.debug(f"Resolved {name} -> {result}")
+                return result
+        
+        # Fallback to upstream DNS for external domains
+        if name.endswith('.peoplesainetwork.com'):
+            result = await self._resolve_upstream(name, record_type)
+            if result:
+                # Cache the result
+                record = DNSRecord(name, result, ttl=300, record_type=record_type)  # Shorter TTL for external
+                self.cache[cache_key] = record
+                return result
+        
+        return None
+    
+    async def _resolve_from_dht(self, name: str, record_type: str = "A") -> Optional[str]:
+        """Query the network for a DNS name via DHT."""
+        dht_key = self._get_dht_key(name)
+        
         # Query network with retries
         for attempt in range(self.max_retries):
             try:
@@ -143,10 +192,7 @@ class DNSOverlay:
                 )
                 
                 if result:
-                    # Cache the result
-                    record = DNSRecord(name, result, record_type=record_type)
-                    self.cache[cache_key] = record
-                    self.logger.debug(f"Resolved {name} -> {result}")
+                    self.logger.debug(f"Resolved {name} from DHT -> {result}")
                     return result
                     
             except asyncio.TimeoutError:
@@ -157,7 +203,29 @@ class DNSOverlay:
             if attempt < self.max_retries - 1:
                 await asyncio.sleep(self.retry_delay * (2 ** attempt))  # Exponential backoff
                 
-        self.logger.warning(f"Failed to resolve {name} after {self.max_retries} attempts")
+        return None
+    
+    async def _resolve_upstream(self, name: str, record_type: str = "A") -> Optional[str]:
+        """Resolve using upstream DNS servers."""
+        try:
+            import aiohttp
+            import socket
+            
+            # Try to resolve using system DNS
+            if record_type == "A":
+                try:
+                    result = socket.gethostbyname(name)
+                    self.logger.debug(f"Resolved {name} via system DNS -> {result}")
+                    return result
+                except socket.gaierror:
+                    pass
+            
+            # TODO: Implement proper DNS over HTTPS or DNS over TLS
+            # For now, just return None for non-A records
+            
+        except Exception as e:
+            self.logger.error(f"Upstream DNS resolution failed for {name}: {e}")
+        
         return None
         
     async def list_records(self) -> Dict[str, Dict[str, Any]]:
@@ -175,24 +243,52 @@ class DNSOverlay:
         
     async def delete_record(self, name: str) -> bool:
         """Delete a DNS record."""
-        if not name.endswith('.web4ai'):
-            name = f"{name}.web4ai"
+        if not self._has_supported_domain_suffix(name):
+            # Try both domain suffixes for deletion
+            web4ai_name = f"{name}.web4ai"
+            peoples_name = f"{name}.peoplesainetwork.com"
             
-        if name in self.records:
-            del self.records[name]
-            self.logger.info(f"Deleted DNS record: {name}")
-            
-            # Remove from DHT if available
-            if hasattr(self.node, 'dht') and self.node.dht:
-                dht_key = self._get_dht_key(name)
-                try:
-                    # Store an empty/expired record to indicate deletion
-                    await self.node.dht.store(dht_key, {"deleted": True}, ttl=1)
-                except Exception as e:
-                    self.logger.error(f"Failed to propagate DNS deletion: {e}")
+            deleted = False
+            if web4ai_name in self.records:
+                del self.records[web4ai_name]
+                self.logger.info(f"Deleted DNS record: {web4ai_name}")
+                deleted = True
+                
+                # Remove from DHT if available
+                if hasattr(self.node, 'dht') and self.node.dht:
+                    await self._propagate_deletion(web4ai_name)
                     
-            return True
+            if peoples_name in self.records:
+                del self.records[peoples_name]
+                self.logger.info(f"Deleted DNS record: {peoples_name}")
+                deleted = True
+                
+                # Remove from DHT if available
+                if hasattr(self.node, 'dht') and self.node.dht:
+                    await self._propagate_deletion(peoples_name)
+                    
+            return deleted
+        else:
+            # Delete specific domain
+            if name in self.records:
+                del self.records[name]
+                self.logger.info(f"Deleted DNS record: {name}")
+                
+                # Remove from DHT if available
+                if hasattr(self.node, 'dht') and self.node.dht:
+                    await self._propagate_deletion(name)
+                    
+                return True
         return False
+    
+    async def _propagate_deletion(self, name: str):
+        """Propagate DNS record deletion to the network."""
+        dht_key = self._get_dht_key(name)
+        try:
+            # Store an empty/expired record to indicate deletion
+            await self.node.dht.store(dht_key, {"deleted": True}, ttl=1)
+        except Exception as e:
+            self.logger.error(f"Failed to propagate DNS deletion for {name}: {e}")
         
     async def bulk_register(self, records: List[Dict[str, Any]]) -> Dict[str, bool]:
         """Register multiple DNS records at once."""
@@ -209,24 +305,40 @@ class DNSOverlay:
                 results[name] = False
                 
         return results
+    
+    def _has_supported_domain_suffix(self, name: str) -> bool:
+        """Check if name has a supported domain suffix."""
+        return any(name.endswith(domain) for domain in self.supported_domains)
         
     def _validate_domain_name(self, name: str) -> bool:
         """Validate domain name format."""
         if not name or len(name) > 253:
             return False
             
-        # Allow temporary names without .web4ai for internal use
-        if not name.endswith('.web4ai'):
-            # For registration, we'll add .web4ai suffix
-            return len(name) > 0 and '.' not in name or name.count('.') <= 2
+        # Allow temporary names without domain suffix for internal use
+        if not self._has_supported_domain_suffix(name):
+            # For registration, we'll add appropriate domain suffix
+            return len(name) > 0 and (name.count('.') <= 2)
             
-        # Basic validation for .web4ai domains
-        parts = name[:-8].split('.')  # Remove .web4ai suffix
-        return all(
-            len(part) > 0 and len(part) <= 63 and
-            part.replace('-', '').replace('_', '').isalnum()
-            for part in parts
-        )
+        # Validate supported domain formats
+        if name.endswith('.web4ai'):
+            # Basic validation for .web4ai domains
+            parts = name[:-8].split('.')  # Remove .web4ai suffix
+            return all(
+                len(part) > 0 and len(part) <= 63 and
+                part.replace('-', '').replace('_', '').isalnum()
+                for part in parts
+            )
+        elif name.endswith('.peoplesainetwork.com'):
+            # Basic validation for .peoplesainetwork.com domains
+            parts = name[:-21].split('.')  # Remove .peoplesainetwork.com suffix
+            return all(
+                len(part) > 0 and len(part) <= 63 and
+                part.replace('-', '').replace('_', '').isalnum()
+                for part in parts
+            )
+            
+        return False
         
     def _get_dht_key(self, name: str) -> str:
         """Get DHT key for DNS name."""
@@ -335,24 +447,49 @@ class DNSOverlay:
         valid_records = sum(1 for r in self.records.values() if not r.is_expired())
         valid_cache = sum(1 for r in self.cache.values() if not r.is_expired())
         
+        # Count records by domain
+        web4ai_records = sum(1 for name in self.records.keys() if name.endswith('.web4ai'))
+        peoples_records = sum(1 for name in self.records.keys() if name.endswith('.peoplesainetwork.com'))
+        
         return {
             "total_records": len(self.records),
             "valid_records": valid_records,
             "cached_records": len(self.cache),
             "valid_cached": valid_cache,
+            "web4ai_records": web4ai_records,
+            "peoplesainetwork_records": peoples_records,
+            "supported_domains": self.supported_domains,
             "is_running": self.is_running,
             "has_dht": hasattr(self.node, 'dht') and self.node.dht is not None
         }
         
     async def refresh_record(self, name: str) -> bool:
         """Refresh a DNS record by re-propagating it to the network."""
-        if not name.endswith('.web4ai'):
-            name = f"{name}.web4ai"
+        if not self._has_supported_domain_suffix(name):
+            # Try to refresh both domain variants
+            web4ai_name = f"{name}.web4ai"
+            peoples_name = f"{name}.peoplesainetwork.com"
             
-        if name in self.records:
-            record = self.records[name]
-            if not record.is_expired():
-                # Update created time and re-propagate
-                record.created_at = datetime.utcnow()
-                return await self._propagate_record(record)
+            refreshed = False
+            if web4ai_name in self.records:
+                record = self.records[web4ai_name]
+                if not record.is_expired():
+                    record.created_at = datetime.utcnow()
+                    refreshed = await self._propagate_record(record) or refreshed
+                    
+            if peoples_name in self.records:
+                record = self.records[peoples_name]
+                if not record.is_expired():
+                    record.created_at = datetime.utcnow()
+                    refreshed = await self._propagate_record(record) or refreshed
+                    
+            return refreshed
+        else:
+            # Refresh specific domain
+            if name in self.records:
+                record = self.records[name]
+                if not record.is_expired():
+                    # Update created time and re-propagate
+                    record.created_at = datetime.utcnow()
+                    return await self._propagate_record(record)
         return False

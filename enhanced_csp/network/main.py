@@ -83,11 +83,21 @@ DEFAULT_STATUS_PORT = 6969
 LOG_ROTATION_DAYS = 7
 TLS_ROTATION_DAYS = 30
 GENESIS_DNS_RECORDS = {
-    # Initial DNS seeds for the network
+    # Original .web4ai domains
     "seed1.web4ai": None,  # Will be set to this node's multiaddr
     "seed2.web4ai": None,  # Will be set to this node's multiaddr
     "bootstrap.web4ai": None,  # Will be set to this node's multiaddr
     "genesis.web4ai": None,  # Will be set to this node's multiaddr
+    
+    # New peoplesainetwork.com domains
+    "genesis.peoplesainetwork.com": None,  # Will be set to this node's multiaddr
+    "bootstrap.peoplesainetwork.com": None,  # Will be set to this node's multiaddr
+    "seed1.peoplesainetwork.com": None,  # Will be set to this node's multiaddr
+    "seed2.peoplesainetwork.com": None,  # Will be set to this node's multiaddr
+    
+    # Additional bootstrap points
+    "boot1.peoplesainetwork.com": None,
+    "boot2.peoplesainetwork.com": None,
 }
 
 # Global console for rich output

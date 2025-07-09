@@ -1,132 +1,99 @@
-import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Maximize2 } from 'lucide-react'
-import { useTopology } from '@/hooks/usequeries'
-import { getStatusColor } from '@/utils'
+import React from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card'
+import { Badge } from '../../ui/badge'
 
-export function MiniTopology() {
-  const navigate = useNavigate()
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { data: topology } = useTopology()
+const MiniTopology: React.FC = () => {
+  // Mock network topology data
+  const nodes = [
+    { id: 'node-1', name: 'Central Hub', status: 'active', connections: 8, type: 'hub' },
+    { id: 'node-2', name: 'Edge Server A', status: 'active', connections: 4, type: 'edge' },
+    { id: 'node-3', name: 'Edge Server B', status: 'active', connections: 3, type: 'edge' },
+    { id: 'node-4', name: 'Peer Node 1', status: 'warning', connections: 2, type: 'peer' },
+    { id: 'node-5', name: 'Peer Node 2', status: 'active', connections: 1, type: 'peer' },
+    { id: 'node-6', name: 'Storage Node', status: 'inactive', connections: 0, type: 'storage' }
+  ]
 
-  useEffect(() => {
-    if (!canvasRef.current || !topology) return
-
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    // Set canvas size
-    const rect = canvas.getBoundingClientRect()
-    canvas.width = rect.width * window.devicePixelRatio
-    canvas.height = rect.height * window.devicePixelRatio
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
-
-    // Clear canvas
-    ctx.clearRect(0, 0, rect.width, rect.height)
-
-    // Simple force-directed layout
-    const nodes = topology.nodes.map((node, i) => ({
-      ...node,
-      x: Math.random() * (rect.width - 40) + 20,
-      y: Math.random() * (rect.height - 40) + 20,
-      vx: 0,
-      vy: 0,
-    }))
-
-    // Simulate for a few iterations
-    for (let i = 0; i < 50; i++) {
-      // Apply forces
-      nodes.forEach((node, i) => {
-        // Repulsion between nodes
-        nodes.forEach((other, j) => {
-          if (i === j) return
-          const dx = node.x - other.x
-          const dy = node.y - other.y
-          const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 100) {
-            const force = (100 - dist) / 100 * 2
-            node.vx += dx / dist * force
-            node.vy += dy / dist * force
-          }
-        })
-
-        // Attraction to center
-        const cx = rect.width / 2
-        const cy = rect.height / 2
-        node.vx += (cx - node.x) * 0.01
-        node.vy += (cy - node.y) * 0.01
-
-        // Damping
-        node.vx *= 0.8
-        node.vy *= 0.8
-
-        // Update position
-        node.x += node.vx
-        node.y += node.vy
-
-        // Keep in bounds
-        node.x = Math.max(20, Math.min(rect.width - 20, node.x))
-        node.y = Math.max(20, Math.min(rect.height - 20, node.y))
-      })
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-500'
+      case 'warning': return 'bg-yellow-500'
+      case 'inactive': return 'bg-red-500'
+      default: return 'bg-gray-500'
     }
+  }
 
-    // Draw links
-    ctx.strokeStyle = '#e5e7eb'
-    ctx.lineWidth = 1
-    topology.links.forEach(link => {
-      const source = nodes.find(n => n.id === link.source)
-      const target = nodes.find(n => n.id === link.target)
-      if (source && target) {
-        ctx.beginPath()
-        ctx.moveTo(source.x, source.y)
-        ctx.lineTo(target.x, target.y)
-        ctx.stroke()
-      }
-    })
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active': return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
+      case 'warning': return <Badge variant="default" className="bg-yellow-100 text-yellow-800">Warning</Badge>
+      case 'inactive': return <Badge variant="destructive">Inactive</Badge>
+      default: return <Badge variant="secondary">Unknown</Badge>
+    }
+  }
 
-    // Draw nodes
-    nodes.forEach(node => {
-      const color = getStatusColor(node.status).replace('text-', '')
-      ctx.fillStyle = color === 'green-500' ? '#10b981' :
-                      color === 'yellow-500' ? '#f59e0b' :
-                      color === 'red-500' ? '#ef4444' : '#3b82f6'
-      
-      ctx.beginPath()
-      ctx.arc(node.x, node.y, 8, 0, 2 * Math.PI)
-      ctx.fill()
-      
-      // Node label
-      ctx.fillStyle = '#6b7280'
-      ctx.font = '10px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText(node.label, node.x, node.y + 20)
-    })
-  }, [topology])
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'hub': return '🏢'
+      case 'edge': return '🌐'
+      case 'peer': return '💻'
+      case 'storage': return '💾'
+      default: return '⚪'
+    }
+  }
 
   return (
-    <Card className="h-full">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Network Topology</CardTitle>
-          <CardDescription>Live network map</CardDescription>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/topology')}
-        >
-          <Maximize2 className="h-4 w-4" />
-        </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle>Network Topology</CardTitle>
+        <CardDescription>
+          Overview of connected nodes and their status
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <canvas
-          ref={canvasRef}
-          className="w-full h-[250px] bg-muted/20 rounded-lg"
-        />
+        <div className="space-y-4">
+          {/* Visual representation */}
+          <div className="bg-gray-50 rounded-lg p-4 min-h-32 flex items-center justify-center">
+            <div className="grid grid-cols-3 gap-4 w-full max-w-md">
+              {nodes.slice(0, 6).map((node, index) => (
+                <div key={node.id} className="flex flex-col items-center space-y-1">
+                  <div className={`w-8 h-8 rounded-full ${getStatusColor(node.status)} flex items-center justify-center text-white text-xs font-bold relative`}>
+                    {getTypeIcon(node.type)}
+                    {node.connections > 0 && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">
+                        {node.connections}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-center text-gray-600 max-w-16 truncate">
+                    {node.name}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Node list */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-gray-700">Node Status</h4>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {nodes.map((node) => (
+                <div key={node.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-2 h-2 rounded-full ${getStatusColor(node.status)}`}></div>
+                    <span className="text-sm font-medium">{node.name}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-500">{node.connections} conn.</span>
+                    {getStatusBadge(node.status)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
 }
+
+export default MiniTopology

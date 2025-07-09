@@ -1,22 +1,23 @@
+import React from 'react'
+import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { BrowserRouter } from 'react-router-dom'
 import { ErrorBoundary } from 'react-error-boundary'
-import { Toaster } from 'sonner'
-import { ErrorFallback } from '@/components/ui/error-fallback'
-import { useAuthStore } from '@/stores/authstore'
-import { useEffect, Suspense, lazy } from 'react'
+import { Toaster } from './components/ui/toaster'
+import { ErrorFallback } from './components/ui/error-fallback'
+import MainLayout from './components/layout/mainlayout'
+import { useAuthStore } from './stores/authstore'
+import { useEffect } from 'react'
 
-// Lazy load the main Dashboard component
-const Dashboard = lazy(() => import('@/pages/dashboard'))
-
-// Create a client
+// Create a client with real-time optimized settings
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 3,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false,
+      staleTime: 30 * 1000, // 30 seconds - shorter for real-time data
+      gcTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: true, // Refetch when window gets focus
+      refetchInterval: 30 * 1000, // Auto-refetch every 30 seconds
     },
     mutations: {
       retry: 1,
@@ -25,9 +26,10 @@ const queryClient = new QueryClient({
 })
 
 function App() {
-  const checkAuth = useAuthStore(state => state.checkAuth)
+  const checkAuth = useAuthStore((state) => state.checkAuth)
 
   useEffect(() => {
+    // Check authentication on app start
     checkAuth()
   }, [checkAuth])
 
@@ -40,11 +42,9 @@ function App() {
     >
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-            <Dashboard />
-          </Suspense>
+          <MainLayout />
           <Toaster />
-          {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
+          {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>
