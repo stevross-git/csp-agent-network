@@ -65,14 +65,15 @@ except ImportError:
     except ImportError:
         # These modules may not exist, create placeholder classes
         class SecurityOrchestrator:
-            def __init__(self, *args, **kwargs):
+            def __init__(self, config):
+                self.config = config
                 self.logger = logging.getLogger("security_orchestrator")
                 self.logger.info("Security orchestrator placeholder initialized")
                 
-            async def start(self):
+            async def initialize(self):
                 return True
                 
-            async def stop(self):
+            async def shutdown(self):
                 pass
                 
         class QuantumCSPEngine:
@@ -149,10 +150,10 @@ class NodeManager:
         self.logger.info("Initializing Enhanced CSP Node...")
         
         try:
-            # Initialize security first
+            # Initialize security first with config
             self.logger.info("Initializing security orchestrator")
-            self.security_orchestrator = SecurityOrchestrator()
-            await self.security_orchestrator.start()
+            self.security_orchestrator = SecurityOrchestrator(self.config.security)
+            await self.security_orchestrator.initialize()
             
             # Initialize network
             self.network = EnhancedCSPNetwork(self.config)
@@ -200,7 +201,7 @@ class NodeManager:
             await self.network.stop()
         
         if self.security_orchestrator:
-            await self.security_orchestrator.stop()
+            await self.security_orchestrator.shutdown()
         
         self.logger.info("Node shutdown complete")
     
