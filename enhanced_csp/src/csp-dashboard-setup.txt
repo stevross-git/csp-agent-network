@@ -1,0 +1,60 @@
+## Enhanced CSP Network Dashboard - Setup Guide
+
+### Initial Setup Commands
+
+```bash
+# Create project with Vite
+pnpm create vite@latest enhanced-csp-dashboard --template react-ts
+cd enhanced-csp-dashboard
+
+# Install all dependencies
+pnpm add react-router-dom @tanstack/react-query zustand axios
+pnpm add @radix-ui/react-* lucide-react class-variance-authority clsx tailwind-merge
+pnpm add recharts react-flow-renderer framer-motion
+pnpm add react-i18next i18next socket.io-client
+pnpm add date-fns react-window react-hook-form zod
+pnpm add -D @types/react @types/react-dom @types/node
+pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-library/user-event
+pnpm add -D eslint eslint-plugin-react-hooks eslint-plugin-react-refresh
+pnpm add -D prettier tailwindcss postcss autoprefixer
+pnpm add -D husky lint-staged @vitejs/plugin-pwa
+
+# Initialize Tailwind CSS
+pnpm tailwindcss init -p
+
+# Setup Husky
+pnpm husky install
+pnpm husky add .husky/pre-commit "pnpm lint-staged"
+
+# Create folder structure
+mkdir -p src/{components/{ui,layout,features},features/{dashboard,topology,metrics,auth},hooks,services,types,utils,lib}
+mkdir -p public/icons docs
+
+# Start development
+pnpm dev
+```
+
+### Project Structure
+
+```
+enhanced-csp-dashboard/
+├── src/
+│   ├── components/
+│   │   ├── ui/           # shadcn/ui components
+│   │   ├── layout/       # Layout components
+│   │   └── features/     # Feature-specific components
+│   ├── features/
+│   │   ├── dashboard/    # Dashboard KPIs
+│   │   ├── topology/     # Network topology visualization
+│   │   ├── metrics/      # Time-series charts
+│   │   └── auth/         # Authentication
+│   ├── hooks/            # Custom React hooks
+│   ├── services/         # API services & WebSocket
+│   ├── types/            # TypeScript types
+│   ├── utils/            # Utility functions
+│   └── lib/              # Library configurations
+├── public/
+│   └── icons/           # PWA icons
+├── docs/                # Documentation
+└── tests/               # Test files
+```
