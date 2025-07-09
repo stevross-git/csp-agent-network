@@ -119,6 +119,10 @@ class NetworkConfig:
     mesh: MeshConfig = field(default_factory=MeshConfig)
     dns: DNSConfig = field(default_factory=DNSConfig)
     routing: RoutingConfig = field(default_factory=RoutingConfig)
+    network_id: str = field(default_factory=lambda: f"csp-network-{int(time.time())}")
+    listen_address: str = "0.0.0.0"
+    listen_port: int = 30300
+    node_capabilities: List[str] = field(default_factory=lambda: ["relay", "storage"])
     
     # Feature flags
     enable_discovery: bool = True

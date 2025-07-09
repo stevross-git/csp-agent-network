@@ -67,6 +67,7 @@ class NetworkNode:
         """Initialize network node with configuration."""
         self.config = config or NetworkConfig()
         self.node_id = NodeID.generate()
+        self._event_handlers = {}
         self.capabilities = NodeCapabilities(
             relay=True,
             storage=self.config.enable_storage,
@@ -590,6 +591,24 @@ class NetworkNode:
     def get_all_peers(self) -> Dict[NodeID, PeerInfo]:
         """Get all peer information."""
         return self.peers.copy()
+    
+    def on_event(self, event_type: str, handler: Callable):
+        """Register an event handler."""
+        if event_type not in self._event_handlers:
+            self._event_handlers[event_type] = []
+        self._event_handlers[event_type].append(handler)
+    
+    async def emit_event(self, event_type: str, data: Any):
+        """Emit an event to registered handlers."""
+        handlers = self._event_handlers.get(event_type, [])
+        for handler in handlers:
+            try:
+                if asyncio.iscoroutinefunction(handler):
+                    await handler(data)
+                else:
+                    handler(data)
+            except Exception as e:
+                logger.error(f"Error in event handler: {e}")
 
 
 class EnhancedCSPNetwork:

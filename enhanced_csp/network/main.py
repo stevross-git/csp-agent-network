@@ -10,6 +10,7 @@ import sys
 import os
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import argparse
@@ -66,11 +67,29 @@ except ImportError:
         class SecurityOrchestrator:
             def __init__(self, *args, **kwargs):
                 pass
+            async def initialize(self):
+                pass
+            async def shutdown(self):
+                pass
+            async def monitor_threats(self):
+                pass
+            async def rotate_tls_certificates(self):
+                pass
+                
         class QuantumCSPEngine:
             def __init__(self, *args, **kwargs):
                 pass
+            async def initialize(self):
+                pass
+            async def shutdown(self):
+                pass
+                
         class BlockchainCSPNetwork:
             def __init__(self, *args, **kwargs):
+                pass
+            async def initialize(self):
+                pass
+            async def shutdown(self):
                 pass
 
 # Constants
@@ -166,48 +185,48 @@ class NodeManager:
         self.config.max_peers = 1000  # Higher limit for genesis
         
         # Disable bootstrap attempts since we ARE the bootstrap
-        self.config.bootstrap_nodes = []
+        self.config.p2p.bootstrap_nodes = []
         
         # Enable all capabilities for genesis node
-        self.config.node_capabilities.update({
-            "relay": True,
-            "storage": True,
-            "compute": True,
-            "dns": True,
-            "bootstrap": True,
-        })
+        self.config.node_capabilities = ["relay", "storage", "compute", "dns", "bootstrap"]
         
         # Set up genesis-specific security
-        self.config.security.enable_ca_mode = True  # Act as Certificate Authority
-        self.config.security.trust_anchors = ["self"]  # Self-signed root
+        self.config.security.enable_ca_mode = getattr(self.config.security, 'enable_ca_mode', True)
+        self.config.security.trust_anchors = getattr(self.config.security, 'trust_anchors', ["self"])
         
     async def _setup_genesis_dns(self):
         """Set up initial DNS records for the network."""
         self.logger.info("Setting up genesis DNS records...")
         
-        # Get our public address
-        public_ip = await self._get_public_ip()
-        node_multiaddr = f"/ip4/{public_ip}/tcp/{self.config.listen_port}/p2p/{self.network.node_id}"
-        
-        # Register all genesis DNS names
-        for domain, _ in GENESIS_DNS_RECORDS.items():
-            try:
-                await self.network.dns_overlay.register(domain, node_multiaddr)
-                self.logger.info(f"Registered DNS: {domain} -> {node_multiaddr}")
-            except Exception as e:
-                self.logger.error(f"Failed to register {domain}: {e}")
-        
-        # Also register our node ID as a DNS name
-        short_id = str(self.network.node_id)[:16]
-        await self.network.dns_overlay.register(f"{short_id}.web4ai", node_multiaddr)
+        try:
+            # Get our public address
+            public_ip = await self._get_public_ip()
+            node_multiaddr = f"/ip4/{public_ip}/tcp/{self.config.p2p.listen_port}/p2p/{self.network.node_id}"
+            
+            # Register all genesis DNS names if DNS overlay is available
+            if hasattr(self.network, 'dns_overlay') and self.network.dns_overlay:
+                for domain, _ in GENESIS_DNS_RECORDS.items():
+                    try:
+                        await self.network.dns_overlay.register(domain, node_multiaddr)
+                        self.logger.info(f"Registered DNS: {domain} -> {node_multiaddr}")
+                    except Exception as e:
+                        self.logger.error(f"Failed to register {domain}: {e}")
+                
+                # Also register our node ID as a DNS name
+                short_id = str(self.network.node_id)[:16]
+                await self.network.dns_overlay.register(f"{short_id}.web4ai", node_multiaddr)
+            else:
+                self.logger.warning("DNS overlay not available, skipping DNS registration")
+        except Exception as e:
+            self.logger.error(f"Failed to setup genesis DNS: {e}")
         
     async def _get_public_ip(self) -> str:
         """Get public IP address of this node."""
         # Try STUN first
-        if self.config.stun_servers:
+        if self.config.p2p.stun_servers:
             try:
                 import aiostun
-                stun_client = aiostun.Client(self.config.stun_servers[0])
+                stun_client = aiostun.Client(self.config.p2p.stun_servers[0])
                 response = await stun_client.get_external_address()
                 return response['external_ip']
             except:
@@ -221,8 +240,8 @@ class NodeManager:
                     return await resp.text()
         except:
             # Last resort - use configured listen address
-            if self.config.listen_address != "0.0.0.0":
-                return self.config.listen_address
+            if self.config.p2p.listen_address != "0.0.0.0":
+                return self.config.p2p.listen_address
             return "127.0.0.1"  # Localhost fallback
     
     def _start_background_tasks(self):
@@ -251,14 +270,19 @@ class NodeManager:
                 await asyncio.sleep(300)  # Every 5 minutes
                 
                 # Update DNS records if our IP changed
-                current_ip = await self._get_public_ip()
-                node_multiaddr = f"/ip4/{current_ip}/tcp/{self.config.listen_port}/p2p/{self.network.node_id}"
-                
-                for domain in GENESIS_DNS_RECORDS.keys():
-                    existing = await self.network.dns_overlay.resolve(domain)
-                    if existing != node_multiaddr:
-                        await self.network.dns_overlay.register(domain, node_multiaddr)
-                        self.logger.info(f"Updated DNS record: {domain}")
+                if hasattr(self.network, 'dns_overlay') and self.network.dns_overlay:
+                    current_ip = await self._get_public_ip()
+                    node_multiaddr = f"/ip4/{current_ip}/tcp/{self.config.p2p.listen_port}/p2p/{self.network.node_id}"
+                    
+                    for domain in GENESIS_DNS_RECORDS.keys():
+                        try:
+                            existing = await self.network.dns_overlay.resolve(domain)
+                            if existing != node_multiaddr:
+                                await self.network.dns_overlay.register(domain, node_multiaddr)
+                                self.logger.info(f"Updated DNS record: {domain}")
+                        except:
+                            # Skip if DNS operations fail
+                            pass
                 
                 # Log network statistics
                 stats = await self.collect_metrics()
@@ -305,7 +329,14 @@ class NodeManager:
     async def collect_metrics(self) -> Dict[str, Any]:
         """Collect current node metrics."""
         if self.network:
-            return await self.network.metrics()
+            # Fix: Access metrics as attribute, not method
+            if hasattr(self.network, 'metrics') and isinstance(self.network.metrics, dict):
+                return self.network.metrics.copy()
+            # Fallback to node metrics if available
+            elif hasattr(self.network, 'node') and hasattr(self.network.node, 'metrics'):
+                return self.network.node.metrics.copy()
+        
+        # Default metrics if network not available
         return {
             "peers": 0,
             "messages_sent": 0,
@@ -384,11 +415,20 @@ class NodeManager:
         
         # Build main network config
         config = NetworkConfig(
+            # Add missing fields that were causing AttributeError
+            network_id=self.args.network_id,
+            listen_address=self.args.listen_address,
+            listen_port=self.args.listen_port,
+            node_capabilities=["relay", "storage"] if not self.args.genesis else ["relay", "storage", "compute", "dns", "bootstrap"],
+            
+            # Sub-configurations
             security=security,
             p2p=p2p,
             mesh=mesh,
             dns=dns,
             routing=routing,
+            
+            # Feature flags
             enable_discovery=True,
             enable_dht=not self.args.no_dht,
             enable_nat_traversal=not self.args.no_nat,
@@ -641,7 +681,11 @@ Available commands:
     
     async def cmd_peers(self, args: List[str]):
         """List connected peers."""
-        peers = self.manager.network.get_peers()
+        try:
+            peers = self.manager.network.get_peers() if hasattr(self.manager.network, 'get_peers') else []
+        except:
+            peers = []
+            
         if not peers:
             print("No connected peers")
             return
@@ -674,19 +718,26 @@ Available commands:
             print("       dns register <name> <addr> - Register DNS name (genesis only)")
             return
         
+        if not hasattr(self.manager.network, 'dns_overlay') or not self.manager.network.dns_overlay:
+            print("DNS overlay not available")
+            return
+        
         if args[0] == "list" and self.manager.is_genesis:
-            records = await self.manager.network.dns_overlay.list_records()
-            if RICH_AVAILABLE:
-                table = Table(title="DNS Records")
-                table.add_column("Domain", style="cyan")
-                table.add_column("Address", style="green")
-                for domain, addr in records.items():
-                    table.add_row(domain, addr)
-                console.print(table)
-            else:
-                print("\nDNS Records:")
-                for domain, addr in records.items():
-                    print(f"  {domain} -> {addr}")
+            try:
+                records = await self.manager.network.dns_overlay.list_records()
+                if RICH_AVAILABLE:
+                    table = Table(title="DNS Records")
+                    table.add_column("Domain", style="cyan")
+                    table.add_column("Address", style="green")
+                    for domain, addr in records.items():
+                        table.add_row(domain, addr)
+                    console.print(table)
+                else:
+                    print("\nDNS Records:")
+                    for domain, addr in records.items():
+                        print(f"  {domain} -> {addr}")
+            except Exception as e:
+                print(f"Failed to list DNS records: {e}")
             return
         
         if args[0] == "register" and len(args) >= 3 and self.manager.is_genesis:
@@ -717,8 +768,11 @@ Available commands:
         message = " ".join(args[1:])
         
         try:
-            await self.manager.network.send_message(peer_id, message)
-            print(f"Message sent to {peer_id}")
+            if hasattr(self.manager.network, 'send_message'):
+                await self.manager.network.send_message(peer_id, message)
+                print(f"Message sent to {peer_id}")
+            else:
+                print("Message sending not implemented")
         except Exception as e:
             print(f"Failed to send message: {e}")
     
@@ -816,46 +870,70 @@ class StatusServer:
 
     async def handle_api_info(self, request: web.Request) -> web.Response:
         """API endpoint for node information."""
-        info = {
-            "node_id": str(self.manager.network.node_id),
-            "version": "1.0.0",
-            "is_genesis": self.manager.is_genesis,
-            "network_id": self.manager.config.network_id,
-            "listen_address": f"{self.manager.config.listen_address}:{self.manager.config.listen_port}",
-            "capabilities": self.manager.config.node_capabilities
-        }
-        return web.json_response(info)
+        try:
+            info = {
+                "node_id": str(self.manager.network.node_id),
+                "version": "1.0.0",
+                "is_genesis": self.manager.is_genesis,
+                "network_id": getattr(self.manager.config, 'network_id', 'unknown'),
+                "listen_address": f"{getattr(self.manager.config, 'listen_address', '0.0.0.0')}:{getattr(self.manager.config, 'listen_port', 30300)}",
+                "capabilities": getattr(self.manager.config, 'node_capabilities', [])
+            }
+            return web.json_response(info)
+        except Exception as e:
+            self.manager.logger.error(f"Error in handle_api_info: {e}")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def handle_api_status(self, request: web.Request) -> web.Response:
         """API endpoint for node metrics."""
-        metrics = await self.manager.collect_metrics()
-        return web.json_response(metrics)
+        try:
+            metrics = await self.manager.collect_metrics()
+            return web.json_response(metrics)
+        except Exception as e:
+            self.manager.logger.error(f"Error in handle_api_status: {e}")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def handle_api_peers(self, request: web.Request) -> web.Response:
         """API endpoint for peer list."""
-        peers = self.manager.network.get_peers()
-        peer_list = [
-            {
-                "id": str(peer.id),
-                "address": peer.address,
-                "port": peer.port,
-                "latency": peer.latency,
-                "reputation": peer.reputation,
-                "last_seen": peer.last_seen.isoformat() if peer.last_seen else None
-            }
-            for peer in peers
-        ]
-        return web.json_response(peer_list)
+        try:
+            if hasattr(self.manager.network, 'get_peers'):
+                peers = self.manager.network.get_peers()
+            else:
+                peers = []
+            
+            peer_list = []
+            for peer in peers:
+                peer_data = {
+                    "id": str(getattr(peer, 'id', 'unknown')),
+                    "address": getattr(peer, 'address', 'unknown'),
+                    "port": getattr(peer, 'port', 0),
+                    "latency": getattr(peer, 'latency', 0),
+                    "reputation": getattr(peer, 'reputation', 0),
+                    "last_seen": getattr(peer, 'last_seen', None)
+                }
+                if peer_data["last_seen"]:
+                    peer_data["last_seen"] = peer_data["last_seen"].isoformat()
+                peer_list.append(peer_data)
+            
+            return web.json_response(peer_list)
+        except Exception as e:
+            self.manager.logger.error(f"Error in handle_api_peers: {e}")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def handle_api_dns(self, request: web.Request) -> web.Response:
         """API endpoint for DNS records."""
-        if hasattr(self.manager.network.dns_overlay, 'list_records'):
-            records = await self.manager.network.dns_overlay.list_records()
+        try:
+            if hasattr(self.manager.network, 'dns_overlay') and self.manager.network.dns_overlay:
+                if hasattr(self.manager.network.dns_overlay, 'list_records'):
+                    records = await self.manager.network.dns_overlay.list_records()
+                else:
+                    records = getattr(self.manager.network.dns_overlay, 'records', {})
+            else:
+                records = {}
             return web.json_response(records)
-        else:
-            # Fallback for stub implementation
-            records = getattr(self.manager.network.dns_overlay, 'records', {})
-            return web.json_response(records)
+        except Exception as e:
+            self.manager.logger.error(f"Error in handle_api_dns: {e}")
+            return web.json_response({"error": str(e)}, status=500)
 
     async def handle_api_connect(self, request: web.Request) -> web.Response:
         """API endpoint to connect to a peer."""
@@ -863,8 +941,11 @@ class StatusServer:
             data = await request.json()
             address = data.get('address')
             if address:
-                await self.manager.network.connect(address)
-                return web.json_response({"status": "connecting", "address": address})
+                if hasattr(self.manager.network, 'connect'):
+                    await self.manager.network.connect(address)
+                    return web.json_response({"status": "connecting", "address": address})
+                else:
+                    return web.json_response({"error": "Connect method not implemented"}, status=501)
             else:
                 return web.json_response({"error": "No address provided"}, status=400)
         except Exception as e:
@@ -905,24 +986,27 @@ class StatusServer:
     
     async def handle_info(self, request: web.Request) -> web.Response:
         """Node information endpoint."""
-        info = {
-            "node_id": str(self.manager.network.node_id),
-            "version": "1.0.0",
-            "network_id": self.manager.config.network_id,
-            "is_genesis": self.manager.is_genesis,
-            "capabilities": self.manager.config.node_capabilities,
-            "security": {
-                "tls": self.manager.config.security.enable_tls,
-                "mtls": self.manager.config.security.enable_mtls,
-                "pq_crypto": self.manager.config.security.enable_pq_crypto,
-                "zero_trust": self.manager.config.security.enable_zero_trust,
+        try:
+            info = {
+                "node_id": str(self.manager.network.node_id),
+                "version": "1.0.0",
+                "network_id": getattr(self.manager.config, 'network_id', 'unknown'),
+                "is_genesis": self.manager.is_genesis,
+                "capabilities": getattr(self.manager.config, 'node_capabilities', []),
+                "security": {
+                    "tls": self.manager.config.security.enable_tls,
+                    "mtls": self.manager.config.security.enable_mtls,
+                    "pq_crypto": self.manager.config.security.enable_pq_crypto,
+                    "zero_trust": self.manager.config.security.enable_zero_trust,
+                }
             }
-        }
-        return web.json_response(info)
+            return web.json_response(info)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
     
     async def handle_health(self, request: web.Request) -> web.Response:
         """Health check endpoint."""
-        if self.manager.network and self.manager.network.is_running:
+        if self.manager.network and getattr(self.manager.network, 'is_running', False):
             return web.json_response({"status": "healthy"})
         else:
             return web.json_response({"status": "unhealthy"}, status=503)
