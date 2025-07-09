@@ -177,7 +177,7 @@ class BatmanRouting:
         ])
         
         # Register message handlers
-        self.node.on_event('originator_message', self.handle_ogm)
+        #self.node.on_event('originator_message', self.handle_ogm)
     
     async def stop(self):
         """Stop routing protocol"""

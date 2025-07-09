@@ -115,6 +115,41 @@ class NetworkNode:
             'last_updated': time.time()
         }
         
+    # --------------------------------------------------------------------
+    # Event-bus helpers – required by BatmanRouting and other subsystems
+    # --------------------------------------------------------------------
+    def on_event(self, name: str, handler: Callable[[dict], Any]) -> None:
+        """Register a callback for a custom event type (e.g. 'originator_message')."""
+        self._event_handlers.setdefault(name, []).append(handler)
+
+    async def _dispatch_event(self, name: str, payload: dict) -> None:
+        """Internal: dispatch an event to all registered handlers."""
+        for fn in self._event_handlers.get(name, []):
+            try:
+                if asyncio.iscoroutinefunction(fn):
+                    await fn(payload)
+                else:
+                    fn(payload)
+            except Exception:
+                logger.exception("Unhandled exception in %s handler", name)
+
+    # --------------------------------------------------------------------
+    # Thin wrapper around the transport layer – used by BatmanRouting
+    # --------------------------------------------------------------------
+    async def send_message(self, peer_id: NodeID, message: dict) -> bool:
+        """Send a JSON-serialisable message to a peer via the transport layer."""
+        if not self.transport:
+            logger.error("Transport not initialised – cannot send message")
+            return False
+        try:
+            await self.transport.send(peer_id, message)
+            self.stats["messages_sent"] += 1
+            return True
+        except Exception:
+            logger.exception("Failed to send message to %s", peer_id.to_base58()[:16])
+            return False
+
+        
     async def start(self) -> bool:
         """
         Start the network node and all components.
@@ -225,7 +260,7 @@ class NetworkNode:
             
             # Initialize DNS overlay
             if self.config.enable_dns:
-                self.dns = DNSOverlay(self.node_id, self.dht, self.config.dns)
+                self.dns = DNSOverlay(self)
             
             # Initialize adaptive routing
             if self.config.enable_adaptive_routing and self.routing:

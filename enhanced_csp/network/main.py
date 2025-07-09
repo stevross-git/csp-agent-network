@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Enhanced CSP Network - Production Entry Script
-Boots, configures, and supervises a single Enhanced CSP peer-node with all features.
+Enhanced CSP Network - Unified Implementation
+Production entry script with integrated core network node implementation.
+Supports genesis nodes, peer discovery, security, and extensible components.
 """
 
 import asyncio
@@ -12,7 +13,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Callable, Union
 import argparse
 from datetime import datetime, timedelta
 import ipaddress
@@ -45,7 +46,9 @@ try:
         NetworkConfig, SecurityConfig, P2PConfig, MeshConfig, 
         DNSConfig, RoutingConfig
     )
-    from enhanced_csp.network.core.node import EnhancedCSPNetwork
+    from enhanced_csp.network.core.types import (
+        NodeID, NodeCapabilities, PeerInfo, NetworkMessage, MessageType
+    )
     from enhanced_csp.security_hardening import SecurityOrchestrator
     from enhanced_csp.quantum_csp_engine import QuantumCSPEngine
     from enhanced_csp.blockchain_csp_network import BlockchainCSPNetwork
@@ -56,7 +59,9 @@ except ImportError:
         NetworkConfig, SecurityConfig, P2PConfig, MeshConfig, 
         DNSConfig, RoutingConfig
     )
-    from core.node import EnhancedCSPNetwork
+    from core.types import (
+        NodeID, NodeCapabilities, PeerInfo, NetworkMessage, MessageType
+    )
     sys.path.insert(0, str(Path(__file__).parent.parent))
     try:
         from security_hardening import SecurityOrchestrator
@@ -65,42 +70,30 @@ except ImportError:
     except ImportError:
         # These modules may not exist, create placeholder classes
         class SecurityOrchestrator:
-            def __init__(self, config):
-                self.config = config
-                self.logger = logging.getLogger("security_orchestrator")
-                self.logger.info("Security orchestrator placeholder initialized")
-                
+            def __init__(self, *args, **kwargs):
+                pass
             async def initialize(self):
-                return True
-                
+                pass
             async def shutdown(self):
                 pass
-                
             async def monitor_threats(self):
                 pass
-                
             async def rotate_tls_certificates(self):
                 pass
                 
         class QuantumCSPEngine:
             def __init__(self, *args, **kwargs):
-                self.logger = logging.getLogger("quantum_engine")
-                self.logger.info("Quantum engine placeholder initialized")
-                
+                pass
             async def initialize(self):
-                return True
-                
+                pass
             async def shutdown(self):
                 pass
                 
         class BlockchainCSPNetwork:
             def __init__(self, *args, **kwargs):
-                self.logger = logging.getLogger("blockchain_network")
-                self.logger.info("Blockchain network placeholder initialized")
-                
+                pass
             async def initialize(self):
-                return True
-                
+                pass
             async def shutdown(self):
                 pass
 
@@ -115,16 +108,16 @@ LOG_ROTATION_DAYS = 7
 TLS_ROTATION_DAYS = 30
 GENESIS_DNS_RECORDS = {
     # Original .web4ai domains
-    "seed1.web4ai": None,  # Will be set to this node's multiaddr
-    "seed2.web4ai": None,  # Will be set to this node's multiaddr
-    "bootstrap.web4ai": None,  # Will be set to this node's multiaddr
-    "genesis.web4ai": None,  # Will be set to this node's multiaddr
+    "seed1.web4ai": None,
+    "seed2.web4ai": None,
+    "bootstrap.web4ai": None,
+    "genesis.web4ai": None,
     
     # New peoplesainetwork.com domains
-    "genesis.peoplesainetwork.com": None,  # Will be set to this node's multiaddr
-    "bootstrap.peoplesainetwork.com": None,  # Will be set to this node's multiaddr
-    "seed1.peoplesainetwork.com": None,  # Will be set to this node's multiaddr
-    "seed2.peoplesainetwork.com": None,  # Will be set to this node's multiaddr
+    "genesis.peoplesainetwork.com": None,
+    "bootstrap.peoplesainetwork.com": None,
+    "seed1.peoplesainetwork.com": None,
+    "seed2.peoplesainetwork.com": None,
     
     # Additional bootstrap points
     "boot1.peoplesainetwork.com": None,
@@ -134,9 +127,597 @@ GENESIS_DNS_RECORDS = {
 # Global console for rich output
 console = Console() if RICH_AVAILABLE else None
 
+logger = logging.getLogger(__name__)
+
+
+class SimpleRoutingStub:
+    """Fallback routing stub so the node can still start if BatmanRouting is missing."""
+
+    def __init__(self, node=None, topology=None):
+        self.node = node
+        self.topology = topology
+        self.routing_table: Dict[str, Any] = {}
+        self.is_running = False
+
+    async def start(self):
+        self.is_running = True
+        logger.info("Simple routing stub started")
+        return True
+
+    async def stop(self):
+        self.is_running = False
+        logger.info("Simple routing stub stopped")
+
+    def get_route(self, destination):
+        return self.routing_table.get(destination)
+
+    def get_all_routes(self, destination):
+        route = self.routing_table.get(destination)
+        return [route] if route else []
+
+
+class EnhancedCSPNetwork:
+    """
+    Unified Enhanced CSP Network node combining core networking with production features.
+    Integrates transport, discovery, routing, security, and optional quantum/blockchain components.
+    """
+
+    def __init__(self, config: Optional[NetworkConfig] = None):
+        self.config = config or NetworkConfig()
+        self.node_id = NodeID.generate()
+        self._event_handlers: Dict[str, List[Callable]] = {}
+
+        self.capabilities = NodeCapabilities(
+            relay=True,
+            storage=self.config.enable_storage,
+            compute=self.config.enable_compute,
+            quantum=self.config.enable_quantum,
+            blockchain=self.config.enable_blockchain,
+            dns=self.config.enable_dns,
+            bootstrap=False,
+        )
+
+        # Core components
+        self.transport: Optional[Any] = None
+        self.discovery: Optional[Any] = None
+        self.dht: Optional[Any] = None
+        self.nat: Optional[Any] = None
+        self.topology: Optional[Any] = None
+        self.routing: Optional[Any] = None
+        self.dns_overlay: Optional[Any] = None
+        self.adaptive_routing: Optional[Any] = None
+
+        # Runtime state
+        self.peers: Dict[NodeID, PeerInfo] = {}
+        self.is_running = False
+        self._message_handlers: Dict[MessageType, List[Callable]] = {}
+        self._background_tasks: List[asyncio.Task] = []
+
+        # Stats/metrics
+        self.stats = {
+            "messages_sent": 0,
+            "messages_received": 0,
+            "bytes_sent": 0,
+            "bytes_received": 0,
+            "peers_connected": 0,
+            "start_time": None,
+        }
+        self.metrics = {
+            "messages_sent": 0,
+            "messages_received": 0,
+            "peers_connected": 0,
+            "bandwidth_in": 0,
+            "bandwidth_out": 0,
+            "routing_table_size": 0,
+            "uptime": 0,
+            "last_updated": time.time(),
+        }
+
+    # Event-bus helpers
+    def on_event(self, name: str, handler: Callable[[dict], Any]) -> None:
+        self._event_handlers.setdefault(name, []).append(handler)
+
+    async def _dispatch_event(self, name: str, payload: dict) -> None:
+        for fn in self._event_handlers.get(name, []):
+            try:
+                if asyncio.iscoroutinefunction(fn):
+                    await fn(payload)
+                else:
+                    fn(payload)
+            except Exception:
+                logger.exception("Unhandled exception in %s handler", name)
+
+    # Polymorphic send_message – supports both routing-level and API-level
+    async def send_message(self, *args) -> bool:
+        """Send either a raw dict to a peer or a high-level NetworkMessage.
+        
+        * send_message(peer_id: NodeID, data: dict) – low-level, used by routing layer
+        * send_message(message: NetworkMessage) – high-level application API
+        """
+        if not self.transport or not self.is_running:
+            logger.error("Transport not initialised or node not running")
+            return False
+
+        try:
+            # High-level form – single NetworkMessage argument
+            if len(args) == 1 and isinstance(args[0], NetworkMessage):
+                nm: NetworkMessage = args[0]
+                packet = {
+                    "type": nm.type.value if hasattr(nm.type, "value") else str(nm.type),
+                    "payload": nm.payload,
+                    "sender": str(nm.sender),
+                    "recipient": str(nm.recipient) if nm.recipient else None,
+                    "timestamp": nm.timestamp.isoformat()
+                    if hasattr(nm.timestamp, "isoformat")
+                    else str(nm.timestamp),
+                }
+                peer = str(nm.recipient)
+                success = await self.transport.send(peer, packet)
+            # Low-level form – peer_id + raw dict
+            elif len(args) == 2:
+                peer, packet = args
+                success = await self.transport.send(str(peer), packet)
+            else:
+                raise ValueError("Invalid arguments for send_message")
+
+            if success:
+                self.stats["messages_sent"] += 1
+                self.stats["bytes_sent"] += len(str(packet))
+                self.metrics["messages_sent"] += 1
+                self.metrics["last_updated"] = time.time()
+            return success
+        except Exception as exc:
+            logger.exception("Failed to send message: %s", exc)
+            return False
+
+    async def start(self) -> bool:
+        """Start the network node and all subsystems."""
+        if self.is_running:
+            logger.warning("Node is already running")
+            return True
+
+        try:
+            logger.info("Starting Enhanced CSP network node %s", self.node_id)
+            await self._initialize_components()
+
+            # Start components in order
+            if self.transport and not await self._start_transport():
+                return False
+            if self.discovery and not await self._start_discovery():
+                return False
+            if self.dht and not await self._start_dht():
+                return False
+            if self.nat and not await self._start_nat():
+                return False
+            if self.topology and not await self._start_topology():
+                return False
+            if self.routing and not await self._start_routing():
+                return False
+            if self.dns_overlay and not await self._start_dns():
+                return False
+            if self.adaptive_routing and not await self._start_adaptive_routing():
+                return False
+
+            self._start_background_tasks()
+            self.is_running = True
+            self.stats["start_time"] = time.time()
+            logger.info("Enhanced CSP network node %s started successfully", self.node_id)
+            return True
+        except Exception:
+            logger.exception("Failed to start network node")
+            await self.stop()
+            return False
+
+    async def _initialize_components(self):
+        """Lazy-import and construct components."""
+        try:
+            # Transport
+            from ..p2p.transport import MultiProtocolTransport
+            self.transport = MultiProtocolTransport(self.config.p2p)
+
+            # Discovery
+            from ..p2p.discovery import HybridDiscovery
+            self.discovery = HybridDiscovery(self.config.p2p, self.node_id)
+
+            # DHT
+            if self.config.enable_dht:
+                from ..p2p.dht import KademliaDHT
+                self.dht = KademliaDHT(self.node_id, self.transport)
+
+            # NAT traversal
+            from ..p2p.nat import NATTraversal
+            self.nat = NATTraversal(self.config.p2p)
+
+            # Mesh topology
+            if self.config.enable_mesh:
+                from ..mesh.topology import MeshTopologyManager
+                async def _send(peer: str, pkt: Any) -> bool:
+                    return await self.transport.send(peer, pkt)
+                self.topology = MeshTopologyManager(self.node_id, self.config.mesh, _send)
+
+            # Routing
+            if getattr(self.config, "enable_routing", True) and self.topology:
+                try:
+                    from ..mesh.routing import BatmanRouting
+                    self.routing = BatmanRouting(self, self.topology)
+                    logger.info("BatmanRouting initialised successfully")
+                except Exception as exc:
+                    logger.warning("BatmanRouting unavailable (%s) – using stub", exc)
+                    self.routing = SimpleRoutingStub(self, self.topology)
+
+            # DNS overlay
+            if self.config.enable_dns:
+                from ..dns.overlay import DNSOverlay
+                self.dns_overlay = DNSOverlay(self)
+
+            # Adaptive routing (ML-based)
+            if self.config.enable_adaptive_routing and self.routing:
+                from ..routing.adaptive import AdaptiveRoutingEngine
+                self.adaptive_routing = AdaptiveRoutingEngine(self, self.config.routing, self.routing)
+
+        except ImportError as e:
+            logger.warning("Some components unavailable: %s. Using stubs where possible.", e)
+            # Create minimal stubs for missing components
+            if not self.transport:
+                class StubTransport:
+                    def __init__(self):
+                        self.is_running = True
+                        self.handlers = {}
+                    
+                    async def start(self):
+                        logger.info("Stub transport started")
+                        return True
+                    
+                    async def stop(self):
+                        logger.info("Stub transport stopped")
+                        return True
+                    
+                    async def send(self, peer, data):
+                        logger.debug(f"Stub transport: would send to {peer}: {data}")
+                        return False
+                    
+                    def register_handler(self, event, handler):
+                        self.handlers[event] = handler
+                        logger.debug(f"Registered handler for {event}")
+                
+                self.transport = StubTransport()
+            
+            # Create stubs for other missing components
+            if not self.discovery:
+                class StubDiscovery:
+                    def __init__(self):
+                        self.is_running = True
+                    
+                    async def start(self):
+                        logger.info("Stub discovery started")
+                        return True
+                    
+                    async def stop(self):
+                        logger.info("Stub discovery stopped")
+                        return True
+                
+                self.discovery = StubDiscovery()
+            
+            if not self.nat:
+                class StubNAT:
+                    def __init__(self):
+                        self.is_running = True
+                    
+                    async def start(self):
+                        logger.info("Stub NAT traversal started")
+                        return True
+                    
+                    async def stop(self):
+                        logger.info("Stub NAT traversal stopped")
+                        return True
+                
+                self.nat = StubNAT()
+            
+            if not self.topology:
+                class StubTopology:
+                    def __init__(self):
+                        self.is_running = True
+                    
+                    async def start(self):
+                        logger.info("Stub topology manager started")
+                        return True
+                    
+                    async def stop(self):
+                        logger.info("Stub topology manager stopped")
+                        return True
+                
+                self.topology = StubTopology()
+            
+            if not self.routing:
+                self.routing = SimpleRoutingStub(self, self.topology)
+            
+            if not self.dns_overlay:
+                class StubDNS:
+                    def __init__(self):
+                        self.is_running = True
+                        self.records = {}
+                    
+                    async def start(self):
+                        logger.info("Stub DNS overlay started")
+                        return True
+                    
+                    async def stop(self):
+                        logger.info("Stub DNS overlay stopped")
+                        return True
+                    
+                    async def register(self, domain, address):
+                        self.records[domain] = address
+                        logger.info(f"Registered DNS: {domain} -> {address}")
+                        return True
+                    
+                    async def resolve(self, domain):
+                        result = self.records.get(domain)
+                        if result:
+                            return result
+                        raise Exception(f"Domain {domain} not found")
+                    
+                    async def list_records(self):
+                        return self.records.copy()
+                
+                self.dns_overlay = StubDNS()
+
+    async def _start_transport(self) -> bool:
+        if not self.transport:
+            logger.warning("No transport available")
+            return False
+        try:
+            if hasattr(self.transport, 'start'):
+                result = await self.transport.start()
+                if result and hasattr(self.transport, 'register_handler'):
+                    self.transport.register_handler("__raw__", self._raw_incoming)
+                return result
+            return True
+        except Exception as e:
+            logger.exception("Failed to start transport: %s", e)
+            return False
+
+    async def _raw_incoming(self, peer: str, packet: dict):
+        """Handle incoming packets and dispatch to event bus."""
+        await self._dispatch_event(packet.get("type", "unknown"), {**packet, "sender_id": peer})
+        self.stats["messages_received"] += 1
+        self.stats["bytes_received"] += len(str(packet))
+        self.metrics["messages_received"] += 1
+        self.metrics["last_updated"] = time.time()
+
+    async def _start_discovery(self) -> bool:
+        if not self.discovery:
+            return True
+        try:
+            if hasattr(self.discovery, 'start'):
+                await self.discovery.start()
+            return True
+        except Exception as e:
+            logger.exception("Failed to start discovery: %s", e)
+            return False
+
+    async def _start_dht(self) -> bool:
+        if not self.dht:
+            return True
+        try:
+            if hasattr(self.dht, 'start'):
+                await self.dht.start()
+            return True
+        except Exception as e:
+            logger.exception("Failed to start DHT: %s", e)
+            return False
+
+    async def _start_nat(self) -> bool:
+        if not self.nat:
+            return True
+        try:
+            if hasattr(self.nat, 'start'):
+                await self.nat.start()
+            return True
+        except Exception as e:
+            logger.exception("Failed to start NAT traversal: %s", e)
+            return False
+
+    async def _start_topology(self) -> bool:
+        if not self.topology:
+            return True
+        try:
+            if hasattr(self.topology, 'start'):
+                await self.topology.start()
+            return True
+        except Exception as e:
+            logger.exception("Failed to start topology manager: %s", e)
+            return False
+
+    async def _start_routing(self) -> bool:
+        if not self.routing:
+            return True
+        try:
+            if hasattr(self.routing, 'start'):
+                return await self.routing.start()
+            return True
+        except Exception as e:
+            logger.exception("Failed to start routing layer: %s", e)
+            return False
+
+    async def _start_dns(self) -> bool:
+        if not self.dns_overlay:
+            return True
+        try:
+            if hasattr(self.dns_overlay, 'start'):
+                await self.dns_overlay.start()
+            return True
+        except Exception as e:
+            logger.exception("Failed to start DNS overlay: %s", e)
+            return False
+
+    async def _start_adaptive_routing(self) -> bool:
+        if not self.adaptive_routing:
+            return True
+        try:
+            if hasattr(self.adaptive_routing, 'start'):
+                await self.adaptive_routing.start()
+            return True
+        except Exception as e:
+            logger.exception("Failed to start adaptive routing: %s", e)
+            return False
+
+    async def stop(self) -> bool:
+        """Stop the network node and all subsystems."""
+        if not self.is_running:
+            return True
+
+        # Cancel background tasks
+        for task in self._background_tasks:
+            task.cancel()
+        await asyncio.gather(*self._background_tasks, return_exceptions=True)
+
+        # Stop components in reverse order
+        for component in (
+            self.adaptive_routing,
+            self.dns_overlay,
+            self.routing,
+            self.topology,
+            self.nat,
+            self.dht,
+            self.discovery,
+            self.transport,
+        ):
+            if component and hasattr(component, "stop"):
+                try:
+                    await component.stop()
+                except Exception:
+                    logger.exception("Error stopping %s", component)
+
+        self.is_running = False
+        logger.info("Enhanced CSP network node %s stopped", self.node_id)
+        return True
+
+    async def broadcast_message(self, message: NetworkMessage) -> int:
+        """Broadcast a message to all connected peers."""
+        if not self.is_running or not self.transport:
+            return 0
+        packet = {
+            "type": message.type.value if hasattr(message.type, "value") else str(message.type),
+            "payload": message.payload,
+            "sender": str(message.sender),
+            "timestamp": message.timestamp.isoformat() if hasattr(message.timestamp, "isoformat") else str(message.timestamp),
+        }
+        count = 0
+        for pid in self.peers:
+            if hasattr(self.transport, 'send') and await self.transport.send(str(pid), packet):
+                count += 1
+        if count:
+            self.stats["messages_sent"] += count
+            self.stats["bytes_sent"] += len(str(packet)) * count
+            self.metrics["messages_sent"] += count
+            self.metrics["last_updated"] = time.time()
+        return count
+
+    def _start_background_tasks(self):
+        """Start background maintenance tasks."""
+        self._background_tasks = [
+            asyncio.create_task(self._peer_maintenance_loop()),
+            asyncio.create_task(self._stats_update_loop()),
+            asyncio.create_task(self._health_check_loop()),
+        ]
+
+    async def _peer_maintenance_loop(self):
+        """Maintain peer connections and cleanup stale entries."""
+        while self.is_running:
+            try:
+                now = datetime.utcnow()
+                stale = [
+                    pid for pid, info in self.peers.items() 
+                    if hasattr(info, 'last_seen') and (now - info.last_seen).total_seconds() > 300
+                ]
+                for pid in stale:
+                    del self.peers[pid]
+                
+                self.stats["peers_connected"] = len(self.peers)
+                self.metrics["peers_connected"] = len(self.peers)
+                self.metrics["routing_table_size"] = len(self.routing.routing_table) if self.routing and hasattr(self.routing, 'routing_table') else 0
+                self.metrics["uptime"] = time.time() - self.stats["start_time"] if self.stats["start_time"] else 0
+                self.metrics["last_updated"] = time.time()
+                
+                await asyncio.sleep(60)
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                logger.exception("Peer maintenance error")
+                await asyncio.sleep(60)
+
+    async def _stats_update_loop(self):
+        """Periodically log statistics."""
+        while self.is_running:
+            try:
+                if self.stats["start_time"]:
+                    uptime = time.time() - self.stats["start_time"]
+                    logger.info(
+                        "Node stats – Uptime: %.0fs, Sent: %d, Received: %d, Peers: %d",
+                        uptime,
+                        self.stats["messages_sent"],
+                        self.stats["messages_received"],
+                        self.stats["peers_connected"],
+                    )
+                await asyncio.sleep(300)  # Every 5 minutes
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                logger.exception("Stats loop error")
+                await asyncio.sleep(300)
+
+    async def _health_check_loop(self):
+        """Monitor component health."""
+        while self.is_running:
+            try:
+                healthy = True
+                if self.transport and not getattr(self.transport, "is_running", True):
+                    healthy = False
+                if self.discovery and not getattr(self.discovery, "is_running", True):
+                    healthy = False
+                if not healthy:
+                    logger.warning("Node health check failed")
+                await asyncio.sleep(120)  # Every 2 minutes
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                logger.exception("Health check error")
+                await asyncio.sleep(120)
+
+    # Utility methods
+    def add_message_handler(self, message_type: MessageType, handler: Callable):
+        """Add a message handler for a specific message type."""
+        self._message_handlers.setdefault(message_type, []).append(handler)
+        if self.transport and hasattr(self.transport, 'register_handler'):
+            self.transport.register_handler(str(message_type), handler)
+
+    def remove_message_handler(self, message_type: MessageType, handler: Callable):
+        """Remove a message handler."""
+        self._message_handlers.get(message_type, []).remove(handler)
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get current node statistics."""
+        return self.stats.copy()
+
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get current node metrics."""
+        return self.metrics.copy()
+
+    def get_peer_info(self, peer_id: NodeID) -> Optional[PeerInfo]:
+        """Get information about a specific peer."""
+        return self.peers.get(peer_id)
+
+    def get_all_peers(self) -> Dict[NodeID, PeerInfo]:
+        """Get information about all connected peers."""
+        return self.peers.copy()
+
+    def get_peers(self) -> List[PeerInfo]:
+        """Get list of connected peers (compatibility method)."""
+        return list(self.peers.values())
+
 
 class NodeManager:
-    """Manages the lifecycle of an Enhanced CSP node."""
+    """Manages the lifecycle of an Enhanced CSP node with production features."""
     
     def __init__(self, args: argparse.Namespace):
         self.args = args
@@ -149,7 +730,6 @@ class NodeManager:
         self.tasks: List[asyncio.Task] = []
         self.logger = self._setup_logging()
         self.is_genesis = args.genesis
-        self.start_time = time.time()
         
     async def initialize(self):
         """Initialize the node and all subsystems."""
@@ -168,18 +748,17 @@ class NodeManager:
         await self.security_orchestrator.initialize()
         
         # Attach quantum engine if enabled
-        if getattr(self.args, 'enable_quantum', False):
+        if self.args.enable_quantum:
             self.quantum_engine = QuantumCSPEngine(self.network)
             await self.quantum_engine.initialize()
             
         # Attach blockchain if enabled
-        if getattr(self.args, 'enable_blockchain', False):
+        if self.args.enable_blockchain:
             self.blockchain = BlockchainCSPNetwork(self.network)
             await self.blockchain.initialize()
             
         # Start the network
-        if not await self.network.start():
-            raise RuntimeError("Failed to start network node")
+        await self.network.start()
         
         self.logger.info(f"Node started with ID: {self.network.node_id}")
         
@@ -221,18 +800,27 @@ class NodeManager:
             if hasattr(self.network, 'dns_overlay') and self.network.dns_overlay:
                 for domain, _ in GENESIS_DNS_RECORDS.items():
                     try:
-                        await self.network.dns_overlay.register(domain, node_multiaddr)
-                        self.logger.info(f"Registered DNS: {domain} -> {node_multiaddr}")
+                        if hasattr(self.network.dns_overlay, 'register'):
+                            await self.network.dns_overlay.register(domain, node_multiaddr)
+                            self.logger.info(f"Registered DNS: {domain} -> {node_multiaddr}")
+                        else:
+                            self.logger.warning(f"DNS overlay doesn't support registration for {domain}")
                     except Exception as e:
                         self.logger.error(f"Failed to register {domain}: {e}")
                 
                 # Also register our node ID as a DNS name
                 short_id = str(self.network.node_id)[:16]
-                await self.network.dns_overlay.register(f"{short_id}.web4ai", node_multiaddr)
+                try:
+                    if hasattr(self.network.dns_overlay, 'register'):
+                        await self.network.dns_overlay.register(f"{short_id}.web4ai", node_multiaddr)
+                except Exception as e:
+                    self.logger.error(f"Failed to register node ID DNS: {e}")
             else:
                 self.logger.warning("DNS overlay not available, skipping DNS registration")
         except Exception as e:
             self.logger.error(f"Failed to setup genesis DNS: {e}")
+            # Don't fail the entire startup for DNS issues
+            pass
         
     async def _get_public_ip(self) -> str:
         """Get public IP address of this node."""
@@ -261,7 +849,7 @@ class NodeManager:
     def _start_background_tasks(self):
         """Start background maintenance tasks."""
         # TLS key rotation
-        if hasattr(self.config.security, 'tls_rotation_interval') and self.config.security.tls_rotation_interval:
+        if self.config.security.tls_rotation_interval:
             self.tasks.append(asyncio.create_task(self._tls_rotation_task()))
         
         # Metrics collection
@@ -290,17 +878,18 @@ class NodeManager:
                     
                     for domain in GENESIS_DNS_RECORDS.keys():
                         try:
-                            existing = await self.network.dns_overlay.resolve(domain)
-                            if existing != node_multiaddr:
-                                await self.network.dns_overlay.register(domain, node_multiaddr)
-                                self.logger.info(f"Updated DNS record: {domain}")
+                            if hasattr(self.network.dns_overlay, 'resolve'):
+                                existing = await self.network.dns_overlay.resolve(domain)
+                                if existing != node_multiaddr:
+                                    await self.network.dns_overlay.register(domain, node_multiaddr)
+                                    self.logger.info(f"Updated DNS record: {domain}")
                         except:
                             # Skip if DNS operations fail
                             pass
                 
                 # Log network statistics
                 stats = await self.collect_metrics()
-                self.logger.info(f"Genesis node stats: {stats['peers']} peers connected")
+                self.logger.info(f"Genesis node stats: {stats.get('peers_connected', 0)} peers connected")
                 
             except asyncio.CancelledError:
                 break
@@ -309,7 +898,7 @@ class NodeManager:
     
     async def _tls_rotation_task(self):
         """Rotate TLS certificates periodically."""
-        rotation_interval = timedelta(days=getattr(self.args, 'tls_rotation_days', TLS_ROTATION_DAYS))
+        rotation_interval = timedelta(days=self.args.tls_rotation_days)
         while not self.shutdown_event.is_set():
             try:
                 await asyncio.sleep(rotation_interval.total_seconds())
@@ -328,12 +917,9 @@ class NodeManager:
                 metrics = await self.collect_metrics()
                 
                 # Log key metrics
-                self.logger.debug(f"Metrics: peers={metrics.get('peers', 0)}, "
+                self.logger.debug(f"Metrics: peers={metrics.get('peers_connected', 0)}, "
                                 f"messages_sent={metrics.get('messages_sent', 0)}, "
                                 f"uptime={metrics.get('uptime', 0):.0f}s")
-                
-                # Store metrics for monitoring
-                # TODO: Send to monitoring system
                 
             except asyncio.CancelledError:
                 break
@@ -342,33 +928,18 @@ class NodeManager:
     
     async def collect_metrics(self) -> Dict[str, Any]:
         """Collect current node metrics."""
-        metrics = {
-            "uptime": time.time() - self.start_time,
-            "peers": 0,
+        if self.network:
+            return self.network.get_metrics()
+        
+        # Default metrics if network not available
+        return {
+            "peers_connected": 0,
             "messages_sent": 0,
             "messages_received": 0,
             "bandwidth_in": 0,
             "bandwidth_out": 0,
-            "memory_usage": 0,
-            "cpu_usage": 0,
+            "uptime": 0
         }
-        
-        try:
-            if self.network:
-                # Fix: Access metrics as attribute, not method
-                if hasattr(self.network, 'metrics') and isinstance(self.network.metrics, dict):
-                    metrics.update(self.network.metrics)
-                # Fallback to node metrics if available
-                elif hasattr(self.network, 'node') and hasattr(self.network.node, 'metrics'):
-                    metrics.update(self.network.node.metrics)
-                # Try get_peers method for peer count
-                elif hasattr(self.network, 'get_peers'):
-                    metrics["peers"] = len(self.network.get_peers())
-                    
-        except Exception as e:
-            self.logger.warning(f"Failed to collect some metrics: {e}")
-        
-        return metrics
     
     async def shutdown(self):
         """Gracefully shutdown the node."""
@@ -394,12 +965,21 @@ class NodeManager:
     
     def _build_config(self) -> NetworkConfig:
         """Build network configuration from command line arguments."""
-        # Build security config with safe attribute access
+        # Build security config
         security = SecurityConfig(
-            enable_tls=not getattr(self.args, 'no_tls', False),
-            enable_mtls=getattr(self.args, 'mtls', False),
-            enable_pq_crypto=getattr(self.args, 'pq_crypto', False),
-            enable_zero_trust=getattr(self.args, 'zero_trust', False),
+            enable_tls=not self.args.no_tls,
+            enable_mtls=self.args.mtls,
+            enable_pq_crypto=self.args.pq_crypto,
+            enable_zero_trust=self.args.zero_trust,
+            tls_cert_path=self.args.tls_cert,
+            tls_key_path=self.args.tls_key,
+            ca_cert_path=self.args.ca_cert,
+            audit_log_path=Path(self.args.audit_log) if self.args.audit_log else None,
+            enable_threat_detection=not self.args.no_threat_detection,
+            enable_intrusion_prevention=self.args.ips,
+            enable_compliance_mode=self.args.compliance,
+            compliance_standards=self.args.compliance_standards.split(',') if self.args.compliance_standards else [],
+            tls_rotation_interval=self.args.tls_rotation_days * 86400,
         )
         
         # Build P2P config
@@ -407,41 +987,35 @@ class NodeManager:
             listen_address=self.args.listen_address,
             listen_port=self.args.listen_port,
             bootstrap_nodes=self.args.bootstrap if not self.args.genesis else [],
-            stun_servers=getattr(self.args, 'stun_servers', None) or DEFAULT_STUN_SERVERS,
-            turn_servers=getattr(self.args, 'turn_servers', None) or [],
+            stun_servers=self.args.stun_servers or DEFAULT_STUN_SERVERS,
+            turn_servers=self.args.turn_servers or [],
             max_peers=self.args.max_peers,
-            enable_mdns=not getattr(self.args, 'no_mdns', False),
-            enable_quic=True,
-            enable_tcp=True,
-            connection_timeout=30,
+            enable_mdns=not self.args.no_mdns,
         )
         
         # Build mesh config
         mesh = MeshConfig(
-            topology_type="dynamic_partial",
-            max_peers=20,
-            enable_super_peers=True,
-            routing_update_interval=30,
+            max_peers=self.args.max_peers,
         )
         
         # Build DNS config
         dns = DNSConfig(
             root_domain=".web4ai",
-            enable_dnssec=True,
-            default_ttl=3600,
-            cache_size=10000,
         )
         
         # Build routing config
         routing = RoutingConfig(
-            enable_multipath=True,
-            enable_ml_predictor=True,
-            max_paths_per_destination=3,
-            enable_qos=getattr(self.args, 'qos', False),
+            enable_qos=self.args.qos,
         )
         
         # Build main network config
         config = NetworkConfig(
+            # Core network settings
+            network_id=self.args.network_id,
+            listen_address=self.args.listen_address,
+            listen_port=self.args.listen_port,
+            node_capabilities=["relay", "storage"] if not self.args.genesis else ["relay", "storage", "compute", "dns", "bootstrap"],
+            
             # Sub-configurations
             security=security,
             p2p=p2p,
@@ -449,19 +1023,19 @@ class NodeManager:
             dns=dns,
             routing=routing,
             
-            # Feature flags with safe defaults
+            # Feature flags
             enable_discovery=True,
-            enable_dht=not getattr(self.args, 'no_dht', False),
-            enable_nat_traversal=not getattr(self.args, 'no_nat', False),
+            enable_dht=not self.args.no_dht,
+            enable_nat_traversal=not self.args.no_nat,
             enable_mesh=True,
-            enable_dns=getattr(self.args, 'enable_dns', False) or self.args.genesis,
+            enable_dns=self.args.enable_dns or self.args.genesis,
             enable_adaptive_routing=True,
-            enable_metrics=not getattr(self.args, 'no_metrics', False),
-            enable_compression=not getattr(self.args, 'no_compression', False),
-            enable_storage=getattr(self.args, 'enable_storage', False),
-            enable_quantum=getattr(self.args, 'enable_quantum', False),
-            enable_blockchain=getattr(self.args, 'enable_blockchain', False),
-            enable_compute=getattr(self.args, 'enable_compute', False),
+            enable_metrics=not self.args.no_metrics,
+            enable_compression=not self.args.no_compression,
+            enable_storage=self.args.enable_storage,
+            enable_quantum=self.args.enable_quantum,
+            enable_blockchain=self.args.enable_blockchain,
+            enable_compute=self.args.enable_compute,
         )
         
         return config
@@ -470,7 +1044,7 @@ class NodeManager:
         """Setup logging configuration."""
         log_level = getattr(logging, self.args.log_level.upper())
         
-        if RICH_AVAILABLE and not getattr(self.args, 'no_shell', False):
+        if RICH_AVAILABLE and not self.args.no_shell:
             # Rich logging handler
             logging.basicConfig(
                 level=log_level,
@@ -478,7 +1052,7 @@ class NodeManager:
                 handlers=[
                     RichHandler(
                         rich_tracebacks=True,
-                        tracebacks_show_locals=getattr(self.args, 'debug', False),
+                        tracebacks_show_locals=self.args.debug,
                     )
                 ]
             )
@@ -490,552 +1064,6 @@ class NodeManager:
             )
         
         return logging.getLogger("enhanced_csp.main")
-
-
-class InteractiveShell:
-    """Interactive command shell for the node."""
-    
-    def __init__(self, manager: NodeManager):
-        self.manager = manager
-        self.commands = {
-            'help': self.cmd_help,
-            'status': self.cmd_status,
-            'peers': self.cmd_peers,
-            'connect': self.cmd_connect,
-            'disconnect': self.cmd_disconnect,
-            'dns': self.cmd_dns,
-            'send': self.cmd_send,
-            'stats': self.cmd_stats,
-            'loglevel': self.cmd_loglevel,
-            'quit': self.cmd_quit,
-        }
-    
-    async def run(self):
-        """Run the interactive shell."""
-        if RICH_AVAILABLE:
-            console.print("\n[bold cyan]Enhanced CSP Node Interactive Shell[/bold cyan]")
-            console.print("Type 'help' for available commands\n")
-        else:
-            print("\nEnhanced CSP Node Interactive Shell")
-            print("Type 'help' for available commands\n")
-        
-        while not self.manager.shutdown_event.is_set():
-            try:
-                if RICH_AVAILABLE:
-                    command = await asyncio.get_event_loop().run_in_executor(
-                        None, Prompt.ask, "[bold]csp>[/bold]"
-                    )
-                else:
-                    command = await asyncio.get_event_loop().run_in_executor(
-                        None, input, "csp>: "
-                    )
-                
-                if not command:
-                    continue
-                
-                parts = command.strip().split()
-                if not parts:
-                    continue
-                
-                cmd = parts[0].lower()
-                args = parts[1:]
-                
-                if cmd in self.commands:
-                    await self.commands[cmd](args)
-                else:
-                    print(f"Unknown command: {cmd}")
-                    
-            except (EOFError, KeyboardInterrupt):
-                print("\nUse 'quit' to exit")
-            except Exception as e:
-                print(f"Error: {e}")
-    
-    async def cmd_help(self, args: List[str]):
-        """Show help message."""
-        help_text = """
-Available commands:
-  help                 - Show this help message
-  status               - Show node status
-  peers                - List connected peers
-  connect <address>    - Connect to a peer
-  disconnect <peer_id> - Disconnect from a peer
-  dns <name>           - Resolve .web4ai domain
-  send <peer> <msg>    - Send message to peer
-  stats                - Show node statistics
-  loglevel <level>     - Set logging level
-  quit                 - Exit the shell
-"""
-        print(help_text)
-    
-    async def cmd_status(self, args: List[str]):
-        """Show node status."""
-        if self.manager.network:
-            print(f"Node ID: {self.manager.network.node_id}")
-            print(f"Status: {'Running' if getattr(self.manager.network, 'is_running', False) else 'Stopped'}")
-            print(f"Listen Address: {self.manager.config.p2p.listen_address}:{self.manager.config.p2p.listen_port}")
-            print(f"Network ID: enhanced-csp")
-            if hasattr(self.manager.network, 'get_peers'):
-                peers = self.manager.network.get_peers()
-                print(f"Connected Peers: {len(peers)}")
-        else:
-            print("Network not initialized")
-    
-    async def cmd_peers(self, args: List[str]):
-        """List connected peers."""
-        try:
-            peers = self.manager.network.get_peers() if hasattr(self.manager.network, 'get_peers') else []
-        except:
-            peers = []
-            
-        if not peers:
-            print("No connected peers")
-            return
-        
-        if RICH_AVAILABLE:
-            table = Table(title="Connected Peers")
-            table.add_column("Peer ID", style="cyan")
-            table.add_column("Address", style="green")
-            table.add_column("Latency", style="yellow")
-            table.add_column("Reputation", style="blue")
-            
-            for peer in peers:
-                table.add_row(
-                    str(getattr(peer, 'id', 'unknown'))[:16] + "...",
-                    f"{getattr(peer, 'address', 'unknown')}:{getattr(peer, 'port', 0)}",
-                    f"{getattr(peer, 'latency', 0):.2f}ms" if getattr(peer, 'latency', None) else "N/A",
-                    f"{getattr(peer, 'reputation', 0):.2f}"
-                )
-            console.print(table)
-        else:
-            print(f"\nConnected peers ({len(peers)}):")
-            for peer in peers:
-                print(f"  {getattr(peer, 'id', 'unknown')}: {getattr(peer, 'address', 'unknown')}:{getattr(peer, 'port', 0)}")
-    
-    async def cmd_connect(self, args: List[str]):
-        """Connect to a peer."""
-        if not args:
-            print("Usage: connect <address>")
-            return
-        
-        address = args[0]
-        
-        if not self.manager.network or not hasattr(self.manager.network, 'connect'):
-            print("Network not available")
-            return
-        
-        try:
-            await self.manager.network.connect(address)
-            print(f"Connecting to {address}...")
-        except Exception as e:
-            print(f"Failed to connect: {e}")
-    
-    async def cmd_disconnect(self, args: List[str]):
-        """Disconnect from a peer."""
-        if not args:
-            print("Usage: disconnect <peer_id>")
-            return
-        
-        peer_id = args[0]
-        
-        if not self.manager.network or not hasattr(self.manager.network, 'disconnect'):
-            print("Network not available")
-            return
-        
-        try:
-            await self.manager.network.disconnect(peer_id)
-            print(f"Disconnected from {peer_id}")
-        except Exception as e:
-            print(f"Failed to disconnect: {e}")
-    
-    async def cmd_dns(self, args: List[str]):
-        """DNS operations."""
-        if not args:
-            print("Usage: dns <name>")
-            print("       dns list              - List all DNS records (genesis only)")
-            print("       dns register <name> <addr> - Register DNS name (genesis only)")
-            return
-        
-        if not hasattr(self.manager.network, 'dns_overlay') or not self.manager.network.dns_overlay:
-            print("DNS overlay not available")
-            return
-        
-        if args[0] == "list" and self.manager.is_genesis:
-            try:
-                records = await self.manager.network.dns_overlay.list_records()
-                if RICH_AVAILABLE:
-                    table = Table(title="DNS Records")
-                    table.add_column("Domain", style="cyan")
-                    table.add_column("Address", style="green")
-                    for domain, addr in records.items():
-                        table.add_row(domain, addr)
-                    console.print(table)
-                else:
-                    print("\nDNS Records:")
-                    for domain, addr in records.items():
-                        print(f"  {domain} -> {addr}")
-            except Exception as e:
-                print(f"Failed to list DNS records: {e}")
-            return
-        
-        if args[0] == "register" and len(args) >= 3 and self.manager.is_genesis:
-            domain = args[1]
-            addr = " ".join(args[2:])
-            try:
-                await self.manager.network.dns_overlay.register(domain, addr)
-                print(f"Registered: {domain} -> {addr}")
-            except Exception as e:
-                print(f"Failed to register: {e}")
-            return
-        
-        # Regular DNS resolution
-        name = args[0]
-        try:
-            result = await self.manager.network.dns_overlay.resolve(name)
-            print(f"{name} -> {result}")
-        except Exception as e:
-            print(f"Failed to resolve {name}: {e}")
-    
-    async def cmd_send(self, args: List[str]):
-        """Send message to peer."""
-        if len(args) < 2:
-            print("Usage: send <peer_id> <message>")
-            return
-        
-        peer_id = args[0]
-        message = " ".join(args[1:])
-        
-        try:
-            if hasattr(self.manager.network, 'send_message'):
-                await self.manager.network.send_message(peer_id, message)
-                print(f"Message sent to {peer_id}")
-            else:
-                print("Message sending not implemented")
-        except Exception as e:
-            print(f"Failed to send message: {e}")
-    
-    async def cmd_stats(self, args: List[str]):
-        """Show node statistics."""
-        metrics = await self.manager.collect_metrics()
-        
-        if RICH_AVAILABLE:
-            table = Table(title="Node Statistics")
-            table.add_column("Metric", style="cyan")
-            table.add_column("Value", style="green")
-            
-            for key, value in metrics.items():
-                if key == "uptime":
-                    value = f"{value:.0f}s"
-                elif key in ["bandwidth_in", "bandwidth_out"]:
-                    value = f"{value / 1024 / 1024:.2f} MB"
-                table.add_row(key.replace("_", " ").title(), str(value))
-            
-            console.print(table)
-        else:
-            print("\nNode Statistics:")
-            for key, value in metrics.items():
-                print(f"  {key}: {value}")
-    
-    async def cmd_loglevel(self, args: List[str]):
-        """Set logging level."""
-        if not args:
-            print("Usage: loglevel <debug|info|warning|error>")
-            return
-        
-        level = args[0].upper()
-        try:
-            logging.getLogger().setLevel(getattr(logging, level))
-            print(f"Log level set to {level}")
-        except AttributeError:
-            print(f"Invalid log level: {level}")
-    
-    async def cmd_quit(self, args: List[str]):
-        """Exit the shell."""
-        print("Exiting shell...")
-        self.manager.shutdown_event.set()
-
-
-class StatusServer:
-    """HTTP/WebSocket status endpoint server."""
-    
-    def __init__(self, manager: NodeManager, port: int):
-        self.manager = manager
-        self.port = port
-        self.app = web.Application()
-        self.setup_routes()
-    
-    def setup_routes(self):
-        """Setup HTTP routes."""
-        # Dashboard
-        self.app.router.add_get('/', self.handle_root)
-        
-        # API endpoints
-        self.app.router.add_get('/api/info', self.handle_api_info)
-        self.app.router.add_get('/api/status', self.handle_api_status)
-        self.app.router.add_get('/api/peers', self.handle_api_peers)
-        self.app.router.add_get('/api/dns', self.handle_api_dns)
-        self.app.router.add_post('/api/connect', self.handle_api_connect)
-        
-        # Legacy endpoints
-        self.app.router.add_get('/metrics', self.handle_metrics)
-        self.app.router.add_get('/info', self.handle_info)
-        self.app.router.add_get('/health', self.handle_health)
-    
-    async def handle_root(self, request: web.Request) -> web.Response:
-        """Serve the dashboard HTML."""
-        dashboard_path = Path(__file__).parent / 'dashboard' / 'index.html'
-        if dashboard_path.exists():
-            return web.FileResponse(dashboard_path)
-        else:
-            # Enhanced fallback with working status page
-            html = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Enhanced CSP Node - {self.manager.network.node_id if self.manager.network else 'Unknown'}</title>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <style>
-                    body {{ font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }}
-                    .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-                    .status {{ padding: 10px; border-radius: 4px; margin: 10px 0; }}
-                    .online {{ background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }}
-                    .offline {{ background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }}
-                    .metrics {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }}
-                    .metric {{ background: #f8f9fa; padding: 15px; border-radius: 4px; text-align: center; }}
-                    .metric h3 {{ margin: 0 0 10px 0; color: #495057; }}
-                    .metric .value {{ font-size: 24px; font-weight: bold; color: #007bff; }}
-                    a {{ color: #007bff; text-decoration: none; margin-right: 15px; }}
-                    a:hover {{ text-decoration: underline; }}
-                    .refresh {{ background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }}
-                    .refresh:hover {{ background: #0056b3; }}
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>Enhanced CSP Node Status</h1>
-                    <div id="status" class="status online">● Node Online</div>
-                    
-                    <div class="metrics" id="metrics">
-                        <div class="metric">
-                            <h3>Node ID</h3>
-                            <div class="value" id="node-id">Loading...</div>
-                        </div>
-                        <div class="metric">
-                            <h3>Peers</h3>
-                            <div class="value" id="peer-count">0</div>
-                        </div>
-                        <div class="metric">
-                            <h3>Uptime</h3>
-                            <div class="value" id="uptime">0s</div>
-                        </div>
-                        <div class="metric">
-                            <h3>Messages</h3>
-                            <div class="value" id="messages">0</div>
-                        </div>
-                    </div>
-                    
-                    <button class="refresh" onclick="refreshData()">Refresh Data</button>
-                    
-                    <h2>API Endpoints</h2>
-                    <p>
-                        <a href="/api/info">Node Info</a>
-                        <a href="/api/status">Status & Metrics</a>
-                        <a href="/api/peers">Peer List</a>
-                        <a href="/api/dns">DNS Records</a>
-                        <a href="/health">Health Check</a>
-                    </p>
-                </div>
-                
-                <script>
-                    async function refreshData() {{
-                        try {{
-                            // Fetch node info
-                            const infoRes = await fetch('/api/info');
-                            if (infoRes.ok) {{
-                                const info = await infoRes.json();
-                                document.getElementById('node-id').textContent = info.node_id.substring(0, 12) + '...';
-                                document.getElementById('status').className = 'status online';
-                                document.getElementById('status').textContent = '● Node Online - Enhanced CSP';
-                            }}
-                            
-                            // Fetch metrics
-                            const statusRes = await fetch('/api/status');
-                            if (statusRes.ok) {{
-                                const metrics = await statusRes.json();
-                                document.getElementById('peer-count').textContent = metrics.peers || 0;
-                                document.getElementById('uptime').textContent = Math.floor(metrics.uptime || 0) + 's';
-                                document.getElementById('messages').textContent = (metrics.messages_sent || 0) + '/' + (metrics.messages_received || 0);
-                            }}
-                            
-                        }} catch (error) {{
-                            console.error('Failed to refresh:', error);
-                            document.getElementById('status').className = 'status offline';
-                            document.getElementById('status').textContent = '● Connection Error';
-                        }}
-                    }}
-                    
-                    // Auto-refresh every 5 seconds
-                    setInterval(refreshData, 5000);
-                    
-                    // Initial load
-                    refreshData();
-                </script>
-            </body>
-            </html>
-            """
-            return web.Response(text=html, content_type='text/html')
-
-    async def handle_api_info(self, request: web.Request) -> web.Response:
-        """API endpoint for node information."""
-        try:
-            info = {
-                "node_id": str(self.manager.network.node_id) if self.manager.network else "unknown",
-                "version": "1.0.0",
-                "is_genesis": self.manager.is_genesis,
-                "network_id": "enhanced-csp",
-                "listen_address": f"{self.manager.config.p2p.listen_address}:{self.manager.config.p2p.listen_port}",
-                "capabilities": {
-                    "relay": True,
-                    "dht": True,
-                    "mesh": True,
-                    "dns": self.manager.is_genesis,
-                    "super_peer": getattr(self.manager.args, 'super_peer', False),
-                    "quantum": getattr(self.manager.args, 'enable_quantum', False),
-                    "blockchain": getattr(self.manager.args, 'enable_blockchain', False),
-                },
-                "status": "running" if self.manager.network and getattr(self.manager.network, 'is_running', False) else "stopped"
-            }
-            return web.json_response(info)
-        except Exception as e:
-            self.manager.logger.error(f"Error in handle_api_info: {e}")
-            return web.json_response({"error": str(e)}, status=500)
-
-    async def handle_api_status(self, request: web.Request) -> web.Response:
-        """API endpoint for node metrics."""
-        try:
-            metrics = await self.manager.collect_metrics()
-            
-            # Add network-specific metrics if available
-            if self.manager.network:
-                network_metrics = {
-                    "is_running": getattr(self.manager.network, 'is_running', False),
-                    "node_id": str(self.manager.network.node_id),
-                }
-                if hasattr(self.manager.network, 'get_peers'):
-                    network_metrics["peers"] = len(self.manager.network.get_peers())
-                
-                metrics.update(network_metrics)
-            
-            return web.json_response(metrics)
-        except Exception as e:
-            self.manager.logger.error(f"Error in handle_api_status: {e}")
-            # Return basic metrics even if collection fails
-            basic_metrics = {
-                "uptime": time.time() - self.manager.start_time,
-                "peers": 0,
-                "messages_sent": 0,
-                "messages_received": 0,
-                "error": str(e)
-            }
-            return web.json_response(basic_metrics)
-
-    async def handle_api_peers(self, request: web.Request) -> web.Response:
-        """API endpoint for peer list."""
-        try:
-            if hasattr(self.manager.network, 'get_peers'):
-                peers = self.manager.network.get_peers()
-            else:
-                peers = []
-            
-            peer_list = []
-            for peer in peers:
-                peer_data = {
-                    "id": str(getattr(peer, 'id', 'unknown')),
-                    "address": getattr(peer, 'address', 'unknown'),
-                    "port": getattr(peer, 'port', 0),
-                    "latency": getattr(peer, 'latency', 0),
-                    "reputation": getattr(peer, 'reputation', 0),
-                    "last_seen": getattr(peer, 'last_seen', None)
-                }
-                if peer_data["last_seen"] and hasattr(peer_data["last_seen"], 'isoformat'):
-                    peer_data["last_seen"] = peer_data["last_seen"].isoformat()
-                peer_list.append(peer_data)
-            
-            return web.json_response(peer_list)
-        except Exception as e:
-            self.manager.logger.error(f"Error in handle_api_peers: {e}")
-            return web.json_response({"error": str(e)}, status=500)
-
-    async def handle_api_dns(self, request: web.Request) -> web.Response:
-        """API endpoint for DNS records."""
-        try:
-            if hasattr(self.manager.network, 'dns_overlay') and self.manager.network.dns_overlay:
-                if hasattr(self.manager.network.dns_overlay, 'list_records'):
-                    records = await self.manager.network.dns_overlay.list_records()
-                else:
-                    records = getattr(self.manager.network.dns_overlay, 'records', {})
-            else:
-                records = {}
-            return web.json_response(records)
-        except Exception as e:
-            self.manager.logger.error(f"Error in handle_api_dns: {e}")
-            return web.json_response({"error": str(e)}, status=500)
-
-    async def handle_api_connect(self, request: web.Request) -> web.Response:
-        """API endpoint to connect to a peer."""
-        try:
-            data = await request.json()
-            address = data.get('address')
-            if address:
-                if hasattr(self.manager.network, 'connect'):
-                    await self.manager.network.connect(address)
-                    return web.json_response({"status": "connecting", "address": address})
-                else:
-                    return web.json_response({"error": "Connect method not implemented"}, status=501)
-            else:
-                return web.json_response({"error": "No address provided"}, status=400)
-        except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
-    
-    async def handle_metrics(self, request: web.Request) -> web.Response:
-        """Prometheus-compatible metrics endpoint."""
-        try:
-            metrics = await self.manager.collect_metrics()
-            
-            # Convert to Prometheus format
-            prometheus_metrics = []
-            for key, value in metrics.items():
-                if isinstance(value, (int, float)):
-                    prometheus_metrics.append(f"enhanced_csp_{key} {value}")
-            
-            return web.Response(
-                text="\n".join(prometheus_metrics),
-                content_type="text/plain"
-            )
-        except Exception as e:
-            return web.Response(text=f"# Error collecting metrics: {e}", status=500)
-    
-    async def handle_info(self, request: web.Request) -> web.Response:
-        """Legacy info endpoint."""
-        return await self.handle_api_info(request)
-    
-    async def handle_health(self, request: web.Request) -> web.Response:
-        """Health check endpoint."""
-        if self.manager.network and getattr(self.manager.network, 'is_running', False):
-            return web.json_response({"status": "healthy"})
-        else:
-            return web.json_response({"status": "unhealthy"}, status=503)
-    
-    async def start(self):
-        """Start the status server."""
-        runner = web.AppRunner(self.app)
-        await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', self.port)
-        await site.start()
-        logging.getLogger("enhanced_csp.main").info(
-            f"Status server started on http://0.0.0.0:{self.port}"
-        )
-        return runner
 
 
 def parse_args() -> argparse.Namespace:
@@ -1174,32 +1202,441 @@ Examples:
     parser.add_argument('--no-shell', action='store_true',
                        help='Disable interactive shell')
     
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+class InteractiveShell:
+    """Interactive command shell for the node."""
     
-    # Set default values for attributes that might be missing
-    if not hasattr(args, 'enable_quantum'):
-        args.enable_quantum = False
-    if not hasattr(args, 'enable_blockchain'):
-        args.enable_blockchain = False
-    if not hasattr(args, 'enable_storage'):
-        args.enable_storage = False
-    if not hasattr(args, 'enable_compute'):
-        args.enable_compute = False
-    if not hasattr(args, 'enable_dns'):
-        args.enable_dns = False
+    def __init__(self, manager: NodeManager):
+        self.manager = manager
+        self.commands = {
+            'help': self.cmd_help,
+            'peers': self.cmd_peers,
+            'dns': self.cmd_dns,
+            'send': self.cmd_send,
+            'stats': self.cmd_stats,
+            'loglevel': self.cmd_loglevel,
+            'quit': self.cmd_quit,
+        }
     
-    # Post-process arguments
-    if args.debug:
-        args.log_level = 'DEBUG'
+    async def run(self):
+        """Run the interactive shell."""
+        if RICH_AVAILABLE:
+            console.print("\n[bold cyan]Enhanced CSP Node Interactive Shell[/bold cyan]")
+            console.print("Type 'help' for available commands\n")
+        else:
+            print("\nEnhanced CSP Node Interactive Shell")
+            print("Type 'help' for available commands\n")
+        
+        while not self.manager.shutdown_event.is_set():
+            try:
+                if RICH_AVAILABLE:
+                    command = await asyncio.get_event_loop().run_in_executor(
+                        None, Prompt.ask, "[bold]csp>[/bold]"
+                    )
+                else:
+                    command = await asyncio.get_event_loop().run_in_executor(
+                        None, input, "csp>: "
+                    )
+                
+                if not command:
+                    continue
+                
+                parts = command.strip().split()
+                if not parts:
+                    continue
+                
+                cmd = parts[0].lower()
+                args = parts[1:]
+                
+                if cmd in self.commands:
+                    await self.commands[cmd](args)
+                else:
+                    print(f"Unknown command: {cmd}")
+                    
+            except (EOFError, KeyboardInterrupt):
+                print("\nUse 'quit' to exit")
+            except Exception as e:
+                print(f"Error: {e}")
     
-    return args
+    async def cmd_help(self, args: List[str]):
+        """Show help message."""
+        help_text = """
+Available commands:
+  help              - Show this help message
+  peers             - List connected peers
+  dns <name>        - Resolve .web4ai domain
+  send <peer> <msg> - Send message to peer
+  stats             - Show node statistics
+  loglevel <level>  - Set logging level
+  quit              - Exit the shell
+"""
+        print(help_text)
+    
+    async def cmd_peers(self, args: List[str]):
+        """List connected peers."""
+        try:
+            peers = self.manager.network.get_peers() if hasattr(self.manager.network, 'get_peers') else []
+        except:
+            peers = []
+            
+        if not peers:
+            print("No connected peers")
+            return
+        
+        if RICH_AVAILABLE:
+            table = Table(title="Connected Peers")
+            table.add_column("Peer ID", style="cyan")
+            table.add_column("Address", style="green")
+            table.add_column("Latency", style="yellow")
+            table.add_column("Reputation", style="blue")
+            
+            for peer in peers:
+                table.add_row(
+                    str(getattr(peer, 'id', 'unknown'))[:16] + "...",
+                    f"{getattr(peer, 'address', 'unknown')}:{getattr(peer, 'port', 0)}",
+                    f"{getattr(peer, 'latency', 0):.2f}ms" if getattr(peer, 'latency', None) else "N/A",
+                    f"{getattr(peer, 'reputation', 0):.2f}"
+                )
+            console.print(table)
+        else:
+            print(f"\nConnected peers ({len(peers)}):")
+            for peer in peers:
+                print(f"  {getattr(peer, 'id', 'unknown')}: {getattr(peer, 'address', 'unknown')}:{getattr(peer, 'port', 0)}")
+    
+    async def cmd_dns(self, args: List[str]):
+        """DNS operations."""
+        if not args:
+            print("Usage: dns <name>")
+            print("       dns list              - List all DNS records (genesis only)")
+            print("       dns register <name> <addr> - Register DNS name (genesis only)")
+            return
+        
+        if not hasattr(self.manager.network, 'dns_overlay') or not self.manager.network.dns_overlay:
+            print("DNS overlay not available")
+            return
+        
+        if args[0] == "list" and self.manager.is_genesis:
+            try:
+                if hasattr(self.manager.network.dns_overlay, 'list_records'):
+                    records = await self.manager.network.dns_overlay.list_records()
+                else:
+                    records = getattr(self.manager.network.dns_overlay, 'records', {})
+                    
+                if RICH_AVAILABLE:
+                    table = Table(title="DNS Records")
+                    table.add_column("Domain", style="cyan")
+                    table.add_column("Address", style="green")
+                    for domain, addr in records.items():
+                        table.add_row(domain, addr)
+                    console.print(table)
+                else:
+                    print("\nDNS Records:")
+                    for domain, addr in records.items():
+                        print(f"  {domain} -> {addr}")
+            except Exception as e:
+                print(f"Failed to list DNS records: {e}")
+            return
+        
+        if args[0] == "register" and len(args) >= 3 and self.manager.is_genesis:
+            domain = args[1]
+            addr = " ".join(args[2:])
+            try:
+                if hasattr(self.manager.network.dns_overlay, 'register'):
+                    await self.manager.network.dns_overlay.register(domain, addr)
+                    print(f"Registered: {domain} -> {addr}")
+                else:
+                    print("DNS registration not available")
+            except Exception as e:
+                print(f"Failed to register: {e}")
+            return
+        
+        # Regular DNS resolution
+        name = args[0]
+        try:
+            if hasattr(self.manager.network.dns_overlay, 'resolve'):
+                result = await self.manager.network.dns_overlay.resolve(name)
+                print(f"{name} -> {result}")
+            else:
+                print("DNS resolution not available")
+        except Exception as e:
+            print(f"Failed to resolve {name}: {e}")
+    
+    async def cmd_send(self, args: List[str]):
+        """Send message to peer."""
+        if len(args) < 2:
+            print("Usage: send <peer_id> <message>")
+            return
+        
+        peer_id = args[0]
+        message = " ".join(args[1:])
+        
+        try:
+            if hasattr(self.manager.network, 'send_message'):
+                # Use low-level send_message interface
+                success = await self.manager.network.send_message(peer_id, {"content": message, "type": "chat"})
+                if success:
+                    print(f"Message sent to {peer_id}")
+                else:
+                    print(f"Failed to send message to {peer_id}")
+            else:
+                print("Message sending not implemented")
+        except Exception as e:
+            print(f"Failed to send message: {e}")
+    
+    async def cmd_stats(self, args: List[str]):
+        """Show node statistics."""
+        metrics = await self.manager.collect_metrics()
+        
+        if RICH_AVAILABLE:
+            table = Table(title="Node Statistics")
+            table.add_column("Metric", style="cyan")
+            table.add_column("Value", style="green")
+            
+            for key, value in metrics.items():
+                if key == "uptime":
+                    value = f"{value:.0f}s"
+                elif key in ["bandwidth_in", "bandwidth_out"]:
+                    value = f"{value / 1024 / 1024:.2f} MB"
+                table.add_row(key.replace("_", " ").title(), str(value))
+            
+            console.print(table)
+        else:
+            print("\nNode Statistics:")
+            for key, value in metrics.items():
+                print(f"  {key}: {value}")
+    
+    async def cmd_loglevel(self, args: List[str]):
+        """Set logging level."""
+        if not args:
+            print("Usage: loglevel <debug|info|warning|error>")
+            return
+        
+        level = args[0].upper()
+        try:
+            logging.getLogger().setLevel(getattr(logging, level))
+            print(f"Log level set to {level}")
+        except AttributeError:
+            print(f"Invalid log level: {level}")
+    
+    async def cmd_quit(self, args: List[str]):
+        """Exit the shell."""
+        print("Exiting shell...")
+        self.manager.shutdown_event.set()
+
+
+class StatusServer:
+    """HTTP/WebSocket status endpoint server."""
+    
+    def __init__(self, manager: NodeManager, port: int):
+        self.manager = manager
+        self.port = port
+        self.app = web.Application()
+        self.setup_routes()
+    
+    def setup_routes(self):
+        """Setup HTTP routes."""
+        # Dashboard
+        self.app.router.add_get('/', self.handle_root)
+        
+        # API endpoints
+        self.app.router.add_get('/api/info', self.handle_api_info)
+        self.app.router.add_get('/api/status', self.handle_api_status)
+        self.app.router.add_get('/api/peers', self.handle_api_peers)
+        self.app.router.add_get('/api/dns', self.handle_api_dns)
+        self.app.router.add_post('/api/connect', self.handle_api_connect)
+        
+        # Legacy endpoints
+        self.app.router.add_get('/metrics', self.handle_metrics)
+        self.app.router.add_get('/info', self.handle_info)
+        self.app.router.add_get('/health', self.handle_health)
+    
+    async def handle_root(self, request: web.Request) -> web.Response:
+        """Serve the dashboard HTML."""
+        dashboard_path = Path(__file__).parent / 'dashboard' / 'index.html'
+        if dashboard_path.exists():
+            return web.FileResponse(dashboard_path)
+        else:
+            # Fallback to simple status page
+            html = """
+            <!DOCTYPE html>
+            <html>
+            <head><title>Enhanced CSP Node</title></head>
+            <body>
+                <h1>Enhanced CSP Node Status</h1>
+                <p>Node is running. Visit /api/status for JSON data.</p>
+                <ul>
+                    <li><a href="/api/info">Node Info</a></li>
+                    <li><a href="/api/status">Status</a></li>
+                    <li><a href="/api/peers">Peers</a></li>
+                    <li><a href="/api/dns">DNS Records</a></li>
+                </ul>
+            </body>
+            </html>
+            """
+            return web.Response(text=html, content_type='text/html')
+
+    async def handle_api_info(self, request: web.Request) -> web.Response:
+        """API endpoint for node information."""
+        try:
+            info = {
+                "node_id": str(self.manager.network.node_id),
+                "version": "1.0.0",
+                "is_genesis": self.manager.is_genesis,
+                "network_id": getattr(self.manager.config, 'network_id', 'unknown'),
+                "listen_address": f"{getattr(self.manager.config, 'listen_address', '0.0.0.0')}:{getattr(self.manager.config, 'listen_port', 30300)}",
+                "capabilities": getattr(self.manager.config, 'node_capabilities', [])
+            }
+            return web.json_response(info)
+        except Exception as e:
+            self.manager.logger.error(f"Error in handle_api_info: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def handle_api_status(self, request: web.Request) -> web.Response:
+        """API endpoint for node metrics."""
+        try:
+            metrics = await self.manager.collect_metrics()
+            return web.json_response(metrics)
+        except Exception as e:
+            self.manager.logger.error(f"Error in handle_api_status: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def handle_api_peers(self, request: web.Request) -> web.Response:
+        """API endpoint for peer list."""
+        try:
+            if hasattr(self.manager.network, 'get_peers'):
+                peers = self.manager.network.get_peers()
+            else:
+                peers = []
+            
+            peer_list = []
+            for peer in peers:
+                peer_data = {
+                    "id": str(getattr(peer, 'id', 'unknown')),
+                    "address": getattr(peer, 'address', 'unknown'),
+                    "port": getattr(peer, 'port', 0),
+                    "latency": getattr(peer, 'latency', 0),
+                    "reputation": getattr(peer, 'reputation', 0),
+                    "last_seen": getattr(peer, 'last_seen', None)
+                }
+                if peer_data["last_seen"] and hasattr(peer_data["last_seen"], 'isoformat'):
+                    peer_data["last_seen"] = peer_data["last_seen"].isoformat()
+                peer_list.append(peer_data)
+            
+            return web.json_response(peer_list)
+        except Exception as e:
+            self.manager.logger.error(f"Error in handle_api_peers: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def handle_api_dns(self, request: web.Request) -> web.Response:
+        """API endpoint for DNS records."""
+        try:
+            if hasattr(self.manager.network, 'dns_overlay') and self.manager.network.dns_overlay:
+                if hasattr(self.manager.network.dns_overlay, 'list_records'):
+                    records = await self.manager.network.dns_overlay.list_records()
+                else:
+                    records = getattr(self.manager.network.dns_overlay, 'records', {})
+            else:
+                records = {}
+            return web.json_response(records)
+        except Exception as e:
+            self.manager.logger.error(f"Error in handle_api_dns: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def handle_api_connect(self, request: web.Request) -> web.Response:
+        """API endpoint to connect to a peer."""
+        try:
+            data = await request.json()
+            address = data.get('address')
+            if address:
+                if hasattr(self.manager.network, 'connect'):
+                    await self.manager.network.connect(address)
+                    return web.json_response({"status": "connecting", "address": address})
+                else:
+                    return web.json_response({"error": "Connect method not implemented"}, status=501)
+            else:
+                return web.json_response({"error": "No address provided"}, status=400)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def handle_metrics(self, request: web.Request) -> web.Response:
+        """Prometheus-compatible metrics endpoint."""
+        metrics = await self.manager.collect_metrics()
+
+        # Format as Prometheus metrics
+        lines = [
+            "# HELP enhanced_csp_peers Number of connected peers",
+            "# TYPE enhanced_csp_peers gauge",
+            f"enhanced_csp_peers {metrics.get('peers_connected', 0)}",
+            "",
+            "# HELP enhanced_csp_messages_sent Total messages sent",
+            "# TYPE enhanced_csp_messages_sent counter",
+            f"enhanced_csp_messages_sent {metrics.get('messages_sent', 0)}",
+            "",
+            "# HELP enhanced_csp_messages_received Total messages received",
+            "# TYPE enhanced_csp_messages_received counter",
+            f"enhanced_csp_messages_received {metrics.get('messages_received', 0)}",
+            "",
+            "# HELP enhanced_csp_bandwidth_in_bytes Bandwidth in (bytes)",
+            "# TYPE enhanced_csp_bandwidth_in_bytes counter",
+            f"enhanced_csp_bandwidth_in_bytes {metrics.get('bandwidth_in', 0)}",
+            "",
+            "# HELP enhanced_csp_bandwidth_out_bytes Bandwidth out (bytes)",
+            "# TYPE enhanced_csp_bandwidth_out_bytes counter",
+            f"enhanced_csp_bandwidth_out_bytes {metrics.get('bandwidth_out', 0)}",
+            "",
+            "# HELP enhanced_csp_uptime_seconds Node uptime in seconds",
+            "# TYPE enhanced_csp_uptime_seconds gauge",
+            f"enhanced_csp_uptime_seconds {metrics.get('uptime', 0)}",
+        ]
+        
+        return web.Response(text="\n".join(lines), content_type="text/plain")
+    
+    async def handle_info(self, request: web.Request) -> web.Response:
+        """Node information endpoint."""
+        try:
+            info = {
+                "node_id": str(self.manager.network.node_id),
+                "version": "1.0.0",
+                "network_id": getattr(self.manager.config, 'network_id', 'unknown'),
+                "is_genesis": self.manager.is_genesis,
+                "capabilities": getattr(self.manager.config, 'node_capabilities', []),
+                "security": {
+                    "tls": self.manager.config.security.enable_tls,
+                    "mtls": self.manager.config.security.enable_mtls,
+                    "pq_crypto": self.manager.config.security.enable_pq_crypto,
+                    "zero_trust": self.manager.config.security.enable_zero_trust,
+                }
+            }
+            return web.json_response(info)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def handle_health(self, request: web.Request) -> web.Response:
+        """Health check endpoint."""
+        if self.manager.network and getattr(self.manager.network, 'is_running', False):
+            return web.json_response({"status": "healthy"})
+        else:
+            return web.json_response({"status": "unhealthy"}, status=503)
+    
+    async def start(self):
+        """Start the status server."""
+        runner = web.AppRunner(self.app)
+        await runner.setup()
+        site = web.TCPSite(runner, '0.0.0.0', self.port)
+        await site.start()
+        logging.getLogger("enhanced_csp.main").info(
+            f"Status server started on http://0.0.0.0:{self.port}"
+        )
+        return runner
 
 
 async def run_main(args: argparse.Namespace):
     """Main execution function."""
     manager = NodeManager(args)
     shell = InteractiveShell(manager) if not args.no_shell else None
-    status_server = None  # Initialize status_server at the top
+    status_server = None
     
     # Setup signal handlers
     loop = asyncio.get_event_loop()
@@ -1258,8 +1695,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    # Ensure we're using the right event loop policy on Windows
-    if sys.platform.startswith('win'):
-        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-    
     asyncio.run(main())
