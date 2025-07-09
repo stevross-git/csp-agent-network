@@ -17,9 +17,9 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { useAuthStore } from '@/stores/authStore'
-import { SettingsDrawer } from '@/components/features/settings/SettingsDrawer'
-import { NotificationCenter } from '@/components/features/notifications/NotificationCenter'
+import { useAuthStore } from '@/stores/authstore'
+import { SettingsDrawer } from '@/components/features/settings/settingsdrawer'
+import { NotificationCenter } from '@/components/features/notifications/notificationcenter'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },

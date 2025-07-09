@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Maximize2 } from 'lucide-react'
-import { useTopology } from '@/hooks/useQueries'
+import { useTopology } from '@/hooks/usequeries'
 import { getStatusColor } from '@/utils'
 
 export function MiniTopology() {

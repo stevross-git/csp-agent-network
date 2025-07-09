@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/authstore'
 
 const publicPaths = ['/login', '/forgot-password', '/reset-password']
 

@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion'
-import { useNetworkStore } from '@/stores/networkStore'
-import { KPICard } from './KPICard'
-import { MiniTopology } from './MiniTopology'
-import { RecentEvents } from './RecentEvents'
-import { MetricsChart } from './MetricsChart'
+import { useNetworkStore } from '@/stores/networkstore'
+import { KPICard } from './kpicard'
+import { MiniTopology } from './minitopology'
+import { RecentEvents } from './recentevents'
+import { MetricsChart } from './metricschart'
 import {
   Activity,
   AlertTriangle,

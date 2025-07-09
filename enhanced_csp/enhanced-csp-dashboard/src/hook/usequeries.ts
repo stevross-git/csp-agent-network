@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import { useSettingsStore } from '@/stores/settingsStore'
+import { useSettingsStore } from '@/stores/settingsstore'
 import type { NetworkNode, TopologyData, PrometheusMetric } from '@/types'
 
 // Query keys
