@@ -65,3 +65,14 @@ Add the following secrets in **Settings → Secrets** for CI/CD workflows:
 | `TF_DYNAMODB_TABLE` | DynamoDB table for state locking |
 | `GITHUB_TOKEN` | Automatically provided GitHub token |
 
+## Monitoring Database
+
+Performance metrics collected by the backend are persisted in the `monitoring`
+schema. The database initialization routine automatically creates this schema
+when invoking `create_tables()` during startup.
+
+For a deeper look at the backend architecture see
+[`docs/backend_overview.md`](docs/backend_overview.md).
+The mapping of frontend services to backend routes is documented in
+[`docs/frontend_backend_api_mapping.md`](docs/frontend_backend_api_mapping.md).
+

@@ -8,7 +8,19 @@ SQLAlchemy models with UUID primary keys and comprehensive relationships
 import uuid
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from sqlalchemy import Column, String, Text, DateTime, Boolean, Integer, Float, JSON, ForeignKey, Table
+from sqlalchemy import (
+    Column,
+    String,
+    Text,
+    DateTime,
+    Boolean,
+    Integer,
+    Float,
+    JSON,
+    ForeignKey,
+    Table,
+    BigInteger,
+)
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
@@ -256,6 +268,21 @@ class ExecutionMetric(Base):
     
     # Relationships
     session = relationship("ExecutionSession", back_populates="metrics")
+
+# ============================================================================
+# MONITORING METRICS
+# ============================================================================
+
+class MonitoringMetric(Base):
+    """Generic monitoring metric stored in the monitoring schema"""
+    __tablename__ = "metrics"
+    __table_args__ = {"schema": "monitoring"}
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    metric_name = Column(String(255), nullable=False)
+    metric_value = Column(Float, nullable=False)
+    labels = Column(JSON, default=dict)
+    timestamp = Column(DateTime, default=datetime.utcnow)
 
 # ============================================================================
 # COMPONENT MODELS

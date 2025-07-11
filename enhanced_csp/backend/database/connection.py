@@ -219,11 +219,13 @@ async def database_transaction():
 async def create_tables():
     """Create all database tables"""
     from backend.models.database_models import Base
-    
+
     if not db_manager.engine:
         raise RuntimeError("Database engine not initialized")
-    
+
     async with db_manager.engine.begin() as conn:
+        # Ensure monitoring schema exists before creating tables
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS monitoring"))
         await conn.run_sync(Base.metadata.create_all)
     
     logger.info("✅ Database tables created")

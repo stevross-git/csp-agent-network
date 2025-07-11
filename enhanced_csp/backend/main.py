@@ -1046,6 +1046,14 @@ async def get_current_user_info_unified_endpoint(
         "is_email_verified": current_user.is_email_verified
     }
 
+
+@app.get("/api/auth/validate", tags=["authentication"])
+async def validate_current_token(
+    current_user: UnifiedUserInfo = Depends(get_current_user_unified),
+) -> Dict[str, Any]:
+    """Validate the provided authentication token and return the user"""
+    return {"valid": True, "user": current_user}
+
 @app.get("/api/auth/permissions", tags=["authentication"])
 async def get_user_permissions_unified(
     current_user: UnifiedUserInfo = Depends(get_current_user_unified)
@@ -1230,6 +1238,25 @@ async def forgot_password(
 # ============================================================================
 # AZURE AD SPECIFIC ENDPOINTS (for backward compatibility)
 # ============================================================================
+
+class AzureLoginRequest(BaseModel):
+    azure_token: str
+
+@app.post("/api/auth/azure-login", tags=["authentication"])
+async def azure_login(request: AzureLoginRequest) -> Dict[str, Any]:
+    """Validate an Azure AD token and return user info"""
+    try:
+        azure_user = await azure_validator.validate_token(request.azure_token)
+        return {
+            "user_id": azure_user.user_id,
+            "email": azure_user.email,
+            "name": azure_user.name,
+            "roles": azure_user.app_roles,
+            "tenant_id": azure_user.tenant_id,
+            "auth_method": "azure",
+        }
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="Invalid Azure token")
 
 @app.get("/api/auth/azure/me", tags=["authentication"])
 async def get_current_user_info_azure(
