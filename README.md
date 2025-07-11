@@ -76,3 +76,10 @@ For a deeper look at the backend architecture see
 The mapping of frontend services to backend routes is documented in
 [`docs/frontend_backend_api_mapping.md`](docs/frontend_backend_api_mapping.md).
 
+Detailed setup instructions for the FastAPI backend live in
+[`enhanced_csp/backend/README.md`](enhanced_csp/backend/README.md).
+Frontend configuration and development instructions are in [`enhanced_csp/frontend/README.md`](enhanced_csp/frontend/README.md).
+
+Documentation on the database schemas is available in [docs/database_schema_overview.md](docs/database_schema_overview.md).
+The peer-to-peer networking layer is documented in
+[`enhanced_csp/network/README.md`](enhanced_csp/network/README.md).
