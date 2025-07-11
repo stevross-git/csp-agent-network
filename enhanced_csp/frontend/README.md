@@ -1,44 +1,57 @@
-# 🚀 Enhanced CSP System - Frontend Setup
+# Enhanced CSP Frontend
 
-## Quick Start
+This directory contains the single-page application (SPA) used to administer the Enhanced CSP system.  It integrates with Azure Active Directory for authentication and communicates with the FastAPI backend.
 
-1. **Configure Azure AD** (if not done already):
-   - Follow the reconfiguration guide
-   - Set up as Single-page application (SPA)
-   - Add redirect URIs for localhost:3000
+## Requirements
+- Node.js 18+ and npm
+- Python 3.8+ (for the bundled development server)
 
-2. **Start the test server**:
-   ```bash
-   cd /home/mate/PAIN/csp-agent-network/csp-agent-network-1/enhanced_csp/frontend
-   python3 test-server.py
-   ```
+## Installation
+Install the JavaScript dependencies and prepare environment variables:
 
-3. **Access the application**:
-   - Login: http://localhost:3000/pages/login.html
-   - Dashboard: http://localhost:3000/csp_admin_portal.html
+```bash
+cd enhanced_csp/frontend
+npm install
+cp .env.example .env  # then edit values as needed
+```
 
-## Configuration
+## Running the Development Server
+Launch the local server which serves the static files and proxies API requests:
 
+```bash
+npm start
+```
 
+By default it listens on `http://localhost:3000`. Useful pages include:
 
-## File Structure
+- `http://localhost:3000/pages/login.html` – login screen
+- `http://localhost:3000/csp_admin_portal.html` – main dashboard
+
+The server exposes `/health` and `/config.js` endpoints for basic status checks.
+
+## Testing
+End‑to‑end tests reside in the `cypress/` directory and can be started with:
+
+```bash
+npx cypress open
+```
+
+## Directory Overview
 
 ```
 frontend/
-├── config/
-│   └── azureConfig.js       # Azure AD configuration
-├── services/
-│   └── authService.js       # Authentication service
-├── pages/
-│   └── login.html          # Login page with Azure AD
-├── test-server.py          # Development server
-├── package.json            # Dependencies
-└── README.md              # This file
+├── components/          # React UI components
+├── config/              # Authentication and role definitions
+├── css/                 # Stylesheets
+├── cypress/             # Cypress tests
+├── hooks/               # Custom React hooks
+├── js/                  # Core logic and page scripts
+├── middleware/          # Express-style middleware
+├── pages/               # HTML entry points
+├── services/            # API wrappers and session handling
+├── stores/              # Zustand state stores
+├── test-server.py       # Development server
+└── package.json
 ```
 
-## Next Steps
-
-1. Test Azure AD authentication
-2. Create user groups in Azure AD
-3. Implement role-based access control
-4. Deploy to production
+For backend setup details see [`../backend/README.md`](../backend/README.md).
