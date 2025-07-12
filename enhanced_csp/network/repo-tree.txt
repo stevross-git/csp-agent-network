@@ -17,8 +17,10 @@
 ├── dns
 │   ├── __init__.py
 │   └── overlay.py
+├── errors.py
 ├── examples
-│   └── chat_application.py
+│   ├── chat_application.py
+│   └── speed_optimization_example.py
 ├── __init__.py
 ├── main.py
 ├── mesh
@@ -26,6 +28,7 @@
 │   ├── routing.py
 │   └── topology.py
 ├── metrics_endpoint.py
+├── minimal_speed_test.py
 ├── monitoring_integration.py
 ├── monitoring.py
 ├── optimized_channel.py
@@ -35,8 +38,10 @@
 │   ├── __init__.py
 │   ├── nat.py
 │   ├── quantum_manager.py
+│   ├── quic_transport.py
 │   └── transport.py
 ├── protocol_optimizer.py
+├── README.md
 ├── repo-structure.txt
 ├── repo-tree.txt
 ├── routing
@@ -44,10 +49,23 @@
 │   ├── __init__.py
 │   ├── metrics.py
 │   └── multipath.py
+├── standalone_speed_test.py
 ├── test_compression.py
+├── test_optimizations.py
 ├── tests
 │   ├── test_network_complete.py
 │   └── test_network_stack.py
+├── utils
+│   ├── __init__.py
+│   ├── message_batcher.py
+│   ├── rate_limit.py
+│   ├── retry.py
+│   ├── secure_random.py
+│   ├── structured_logging.py
+│   ├── task_manager.py
+│   ├── threadsafe.py
+│   └── validation.py
+├── utils.py
 └── zero_copy.py
 
-8 directories, 42 files
+9 directories, 59 files
