@@ -1,14 +1,17 @@
 .
 ├── adaptive_optimizer.py
+├── batching_fixes.py
 ├── batching.py
 ├── compression.py
 ├── connection_pool.py
 ├── core
 │   ├── config.py
 │   ├── constraints.txt
+│   ├── enhanced_config.py
 │   ├── __init__.py
 │   ├── node.py
 │   └── types.py
+├── cpu_optimizations.py
 ├── dashboard
 │   ├── index.html
 │   └── status_server_update.py
@@ -20,7 +23,12 @@
 ├── errors.py
 ├── examples
 │   ├── chat_application.py
+│   ├── complete_optimization_example.py
 │   └── speed_optimization_example.py
+├── fast_event_loop.py
+├── fast_serialization.py
+├── fixes
+│   └── critical_optimizations.py
 ├── __init__.py
 ├── main.py
 ├── mesh
@@ -29,6 +37,7 @@
 │   └── topology.py
 ├── metrics_endpoint.py
 ├── minimal_speed_test.py
+├── ml_routing.py
 ├── monitoring_integration.py
 ├── monitoring.py
 ├── optimized_channel.py
@@ -55,6 +64,8 @@
 ├── tests
 │   ├── test_network_complete.py
 │   └── test_network_stack.py
+├── topology_optimizer.py
+├── transport_factory.py
 ├── utils
 │   ├── __init__.py
 │   ├── message_batcher.py
@@ -66,6 +77,7 @@
 │   ├── threadsafe.py
 │   └── validation.py
 ├── utils.py
+├── vectorized_io.py
 └── zero_copy.py
 
-9 directories, 59 files
+10 directories, 70 files
