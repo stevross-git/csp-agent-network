@@ -363,9 +363,10 @@ class RuntimeSettings(BaseModel):
     enable_optimization: bool = True
     enable_debugging: bool = False
     scheduling_policy: SchedulingPolicy = Field(
-        default_factory=lambda: SchedulingPolicy(
-            os.getenv("RUNTIME_SCHEDULING_POLICY", SchedulingPolicy.round_robin.value)
+        default_factory=lambda: os.getenv(
+            "RUNTIME_SCHEDULING_POLICY", SchedulingPolicy.round_robin.value
         ),
+        validate_default=True,
         description="Task scheduling strategy for the CSP execution engine",
     )
 

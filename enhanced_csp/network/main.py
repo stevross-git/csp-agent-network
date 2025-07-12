@@ -49,7 +49,7 @@ try:
     from enhanced_csp.network.core.types import (
         NodeID, NodeCapabilities, PeerInfo, NetworkMessage, MessageType
     )
-    from enhanced_csp.security_hardening import SecurityOrchestrator
+    from enhanced_csp.network.security.security_hardening import SecurityOrchestrator
     from enhanced_csp.quantum_csp_engine import QuantumCSPEngine
     from enhanced_csp.blockchain_csp_network import BlockchainCSPNetwork
 except ImportError:
@@ -64,7 +64,7 @@ except ImportError:
     )
     sys.path.insert(0, str(Path(__file__).parent.parent))
     try:
-        from security_hardening import SecurityOrchestrator
+        from security.security_hardening import SecurityOrchestrator
         from quantum_csp_engine import QuantumCSPEngine
         from blockchain_csp_network import BlockchainCSPNetwork
     except ImportError:
@@ -313,7 +313,7 @@ class EnhancedCSPNetwork:
         try:
             # Transport
             from ..p2p.transport import MultiProtocolTransport
-            self.transport = MultiProtocolTransport(self.config.p2p)
+            self.transport = MultiProtocolTransport(self.config.p2p, self.config.security)
 
             # Discovery
             from ..p2p.discovery import HybridDiscovery

@@ -4,20 +4,24 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, TYPE_CHECKING
 import uuid
 import hashlib
 from cryptography.hazmat.primitives import serialization
 from ..utils.secure_random import secure_bytes
 from cryptography.hazmat.primitives.asymmetric import ed25519
-from .config import (
-    SecurityConfig,
-    P2PConfig,
-    MeshConfig,
-    DNSConfig,
-    RoutingConfig,
-    NetworkConfig,
-)
+
+if TYPE_CHECKING:  # pragma: no cover - for type checkers only
+    from .config import (
+        SecurityConfig,
+        P2PConfig,
+        MeshConfig,
+        DNSConfig,
+        RoutingConfig,
+        NetworkConfig,
+    )
+else:
+    from .config import NetworkConfig
 
 
 class MessageType(Enum):
@@ -182,12 +186,6 @@ class NetworkMessage:
 
 
 __all__ = [
-    "SecurityConfig",
-    "P2PConfig",
-    "MeshConfig",
-    "DNSConfig",
-    "RoutingConfig",
-    "NetworkConfig",
     "NodeID",
     "NodeCapabilities",
     "PeerInfo",
