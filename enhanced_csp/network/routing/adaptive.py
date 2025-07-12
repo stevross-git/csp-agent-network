@@ -30,7 +30,9 @@ if TYPE_CHECKING:
 from .metrics import MetricsCollector
 from .multipath import MultipathManager
 
-logger = logging.getLogger(__name__)
+from ..utils.structured_logging import get_logger
+
+logger = get_logger("routing")
 
 
 @dataclass

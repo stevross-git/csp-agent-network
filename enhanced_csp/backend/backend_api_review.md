@@ -29,6 +29,7 @@ This comprehensive code review analyzes the Enhanced CSP (Communicating Sequenti
 #### **Core Authentication** (4 endpoints)
 - **`GET /api/auth/info`** (Public) - Authentication configuration
 - **`GET /api/auth/me`** (Protected) - Current user information (unified)
+- **`GET /api/auth/validate`** (Protected) - Validate token and return user
 - **`GET /api/auth/permissions`** (Protected) - User permissions (unified)
 - **`POST /api/auth/logout`** (Protected) - Logout (unified)
 
@@ -42,6 +43,7 @@ This comprehensive code review analyzes the Enhanced CSP (Communicating Sequenti
 - **`GET /api/auth/azure/me`** (Protected) - Azure AD user info
 - **`GET /api/auth/azure/permissions`** (Protected) - Azure AD permissions
 - **`POST /api/auth/azure/logout`** (Protected) - Azure AD logout
+- **`POST /api/auth/azure-login`** (Public) - Validate Azure token
 
 #### **Legacy Authentication** (2 endpoints)
 - **`POST /api/auth/register`** (Public) - Legacy registration

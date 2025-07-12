@@ -13,6 +13,7 @@ import json
 
 from ..core.types import NetworkMessage, MessageType
 from ..core.config import P2PConfig
+from ..utils import validate_ip_address, validate_port_number, validate_message_size
 from ..protocol_optimizer import BinaryProtocol, MessageType as BinaryMessageType
 
 logger = logging.getLogger(__name__)
@@ -139,10 +140,11 @@ class MultiProtocolTransport(P2PTransport):
             # Parse address
             if ':' in address:
                 host, port = address.split(':')
-                port = int(port)
+                port = validate_port_number(port)
             else:
                 host = address
                 port = self.config.listen_port
+            validate_ip_address(host)
             
             # Create connection
             reader, writer = await asyncio.wait_for(
@@ -191,6 +193,7 @@ class MultiProtocolTransport(P2PTransport):
                 elif message.get('type') in ['control', 'peer_exchange']:
                     msg_type = BinaryMessageType.CONTROL
             
+            validate_message_size(message, self.config.max_message_size)
             # Encode message
             encoded = self.protocol.encode_message(message, msg_type)
             
@@ -232,6 +235,10 @@ class MultiProtocolTransport(P2PTransport):
                     _, _, _, length = self.protocol.decode_header_only(header_data)
                 except Exception as e:
                     logger.error(f"Invalid header from {address}: {e}")
+                    break
+
+                if length > self.config.max_message_size:
+                    logger.warning("message from %s exceeds max size", address)
                     break
                 
                 # Read full message

@@ -65,3 +65,21 @@ Add the following secrets in **Settings → Secrets** for CI/CD workflows:
 | `TF_DYNAMODB_TABLE` | DynamoDB table for state locking |
 | `GITHUB_TOKEN` | Automatically provided GitHub token |
 
+## Monitoring Database
+
+Performance metrics collected by the backend are persisted in the `monitoring`
+schema. The database initialization routine automatically creates this schema
+when invoking `create_tables()` during startup.
+
+For a deeper look at the backend architecture see
+[`docs/backend_overview.md`](docs/backend_overview.md).
+The mapping of frontend services to backend routes is documented in
+[`docs/frontend_backend_api_mapping.md`](docs/frontend_backend_api_mapping.md).
+
+Detailed setup instructions for the FastAPI backend live in
+[`enhanced_csp/backend/README.md`](enhanced_csp/backend/README.md).
+Frontend configuration and development instructions are in [`enhanced_csp/frontend/README.md`](enhanced_csp/frontend/README.md).
+
+Documentation on the database schemas is available in [docs/database_schema_overview.md](docs/database_schema_overview.md).
+The peer-to-peer networking layer is documented in
+[`enhanced_csp/network/README.md`](enhanced_csp/network/README.md).

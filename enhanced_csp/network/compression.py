@@ -6,6 +6,7 @@ Provides 50-80% bandwidth reduction through intelligent algorithm selection.
 
 import asyncio
 import time
+<<<<<<< HEAD
 import logging
 from typing import Dict, List, Any, Optional, Tuple, Callable
 from dataclasses import dataclass, field
@@ -39,7 +40,49 @@ from .core.config import P2PConfig
 from .utils import get_logger
 
 logger = get_logger(__name__)
+=======
+import zlib
+import lz4.frame
+import brotli
+import snappy
+import zstandard
+import msgpack
+import struct
+import threading
+from enum import Enum
+from typing import Union, Dict, Any, Optional, Set, List
+from dataclasses import dataclass, field
+from .utils.structured_logging import get_logger
+from contextvars import ContextVar
+from .utils import ThreadSafeStats
 
+logger = get_logger("compression")
+>>>>>>> 1871c497b6c6ccafca331c9065069c220ca63f43
+
+
+
+class CompressionAlgorithm(Enum):
+    """Supported compression algorithms"""
+
+    NONE = "none"
+    GZIP = "gzip"
+    LZ4 = "lz4"
+    BROTLI = "brotli"
+    SNAPPY = "snappy"
+    ZSTD = "zstd"
+
+
+@dataclass
+class CompressionConfig:
+    """Configuration for message compression."""
+
+    min_compress_bytes: int = 64
+    zstd_dict_size: int = 8192
+    incompressible_mimes: Set[str] = field(default_factory=lambda: {
+        "image/jpeg",
+        "image/png",
+    })
+    max_decompress_bytes: int = 50 * 1024 * 1024
 
 @dataclass
 class CompressionConfig:
@@ -97,12 +140,25 @@ class CompressionDictionary:
         self.dictionaries: Dict[str, Any] = {}
         self.last_trained = 0.0
         
+<<<<<<< HEAD
     def add_sample(self, data: bytes):
         """Add sample data for dictionary training."""
         if len(data) < 100:  # Skip very small samples
             return
             
         self.samples.append(data)
+=======
+        defaults = {
+            "total_bytes_original": 0,
+            "total_bytes_compressed": 0,
+            "compression_time_ms": 0,
+            "decompression_time_ms": 0,
+            "skipped_count": 0,
+            "compression_ratio_sum": 0.0,
+            "compression_count": 0,
+        }
+        self.compression_stats = ThreadSafeStats(defaults)
+>>>>>>> 1871c497b6c6ccafca331c9065069c220ca63f43
         
         # Limit sample count to prevent memory bloat
         if len(self.samples) > 1000:
@@ -128,6 +184,7 @@ class CompressionDictionary:
             
             self.last_trained = time.time()
             
+<<<<<<< HEAD
         except Exception as e:
             logger.error(f"Dictionary training failed: {e}")
 
@@ -137,6 +194,15 @@ class AdaptiveCompressionPipeline:
     Multi-stage compression with intelligent algorithm selection.
     Achieves 50-80% bandwidth reduction through adaptive optimization.
     """
+=======
+            with logger.context(operation="train_dict"):
+                logger.info(
+                    f"Trained zstd dictionary with {len(samples)} samples"
+                )
+        except Exception as e:
+            with logger.context(operation="train_dict"):
+                logger.warning(f"Failed to train zstd dictionary: {e}")
+>>>>>>> 1871c497b6c6ccafca331c9065069c220ca63f43
     
     def __init__(self, config: CompressionConfig):
         self.config = config
@@ -180,10 +246,21 @@ class AdaptiveCompressionPipeline:
             self.algorithms['brotli'] = self._compress_brotli
             self.decompression_algorithms['brotli'] = self._decompress_brotli
         
+<<<<<<< HEAD
         logger.info(f"Initialized compression with algorithms: {list(self.algorithms.keys())}")
     
     async def compress_batch(self, messages: List[Dict[str, Any]]) -> Tuple[bytes, str, Dict[str, Any]]:
         """Compress entire batch with optimal algorithm."""
+=======
+        # Skip compression for small or incompressible data
+        if (len(data) < self.config.min_compress_bytes or
+            (content_type and content_type in self.config.incompressible_mimes) or
+            self._looks_already_compressed(data)):
+            self.compression_stats.increment("skipped_count")
+            return data, CompressionAlgorithm.NONE.value
+        
+        start_time = time.perf_counter()
+>>>>>>> 1871c497b6c6ccafca331c9065069c220ca63f43
         try:
             # Serialize batch
             batch_data = msgpack.packb({
@@ -225,6 +302,7 @@ class AdaptiveCompressionPipeline:
             
             return compressed, algorithm, metadata
             
+<<<<<<< HEAD
         except Exception as e:
             logger.error(f"Batch compression failed: {e}")
             # Return uncompressed data on failure
@@ -254,3 +332,60 @@ class AdaptiveCompressionPipeline:
             if isinstance(batch_data, dict) and 'messages' in batch_data:
                 return batch_data['messages']
             return batch_data if isinstance(batch_data, list) else [batch_data]
+=======
+            # Secondary check: don't use compression if it made data larger
+            compression_ratio = len(compressed_data) / len(data)
+            if compression_ratio >= 0.97:
+                self.compression_stats.increment("skipped_count")
+                return data, CompressionAlgorithm.NONE.value
+                
+        except Exception as e:
+            logger.warning(f"Compression failed with {algorithm}: {e}")
+            return data, CompressionAlgorithm.NONE.value
+            
+        compression_time = (time.perf_counter() - start_time) * 1000
+        
+        # Update stats thread-safely
+        self.compression_stats.increment("total_bytes_original", len(data))
+        self.compression_stats.increment("total_bytes_compressed", len(compressed_data))
+        self.compression_stats.increment("compression_time_ms", compression_time)
+        self.compression_stats.increment("compression_ratio_sum", compression_ratio)
+        self.compression_stats.increment("compression_count")
+        
+        return compressed_data, algorithm.value
+    
+    def _compress_with_algorithm(self, data: bytes, algorithm: CompressionAlgorithm) -> bytes:
+        """Apply specific compression algorithm with thread safety"""
+        if algorithm == CompressionAlgorithm.NONE:
+            return data
+        elif algorithm == CompressionAlgorithm.GZIP:
+            return zlib.compress(data, level=6)
+        elif algorithm == CompressionAlgorithm.LZ4:
+            return lz4.frame.compress(data, compression_level=0)
+        elif algorithm == CompressionAlgorithm.BROTLI:
+            return brotli.compress(data, quality=4)
+        elif algorithm == CompressionAlgorithm.SNAPPY:
+            return snappy.compress(data)
+        elif algorithm == CompressionAlgorithm.ZSTD:
+            ctx = _zstd_context.get()
+            if ctx and ctx.compressor:
+                with ctx.lock:
+                    return ctx.compressor.compress(data)
+            else:
+                # Fallback to default compressor
+                cctx = zstandard.ZstdCompressor(level=3)
+                return cctx.compress(data)
+    
+    def export_stats(self) -> Dict[str, Any]:
+        """Export and reset statistics for metrics collection"""
+        stats = self.compression_stats.snapshot()
+        count = stats.get("compression_count", 0)
+        ratio = stats.get("compression_ratio_sum", 0.0)
+        avg_ratio = ratio / count if count > 0 else 1.0
+        stats["average_compression_ratio"] = avg_ratio
+        stats["space_saved_bytes"] = (
+            stats.get("total_bytes_original", 0) - stats.get("total_bytes_compressed", 0)
+        )
+        self.compression_stats.reset({k: 0 for k in stats.keys() if k != "average_compression_ratio" and k != "space_saved_bytes"})
+        return stats
+>>>>>>> 1871c497b6c6ccafca331c9065069c220ca63f43

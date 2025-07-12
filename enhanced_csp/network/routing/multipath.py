@@ -3,12 +3,13 @@
 Multipath routing manager for load balancing and redundancy
 """
 
-import logging
 from typing import List, Tuple, Any, Optional, TYPE_CHECKING
+
+from ..utils.structured_logging import get_logger
 from dataclasses import dataclass
 import random
 
-logger = logging.getLogger(__name__)
+logger = get_logger("routing")
 
 
 @dataclass
@@ -29,7 +30,7 @@ class MultipathManager:
     
     def __init__(self, max_paths: int = 3):
         self.max_paths = max_paths
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger("routing")
     
     def select_diverse_paths(self, routes_with_costs: List[Tuple[Any, float]], 
                            max_paths: int = None) -> List[Any]:

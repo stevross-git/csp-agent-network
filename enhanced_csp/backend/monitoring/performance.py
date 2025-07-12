@@ -25,7 +25,7 @@ import aioredis
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from backend.database.connection import get_cache_manager, get_redis_client
+from backend.database.connection import get_cache_manager, get_redis_client, get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -367,6 +367,9 @@ class PerformanceMonitor:
             # Store in Redis for persistence
             if self.redis_client:
                 await self._store_metrics_in_redis(snapshot)
+
+            # Persist metrics to the monitoring database
+            await self._store_metrics_in_db(snapshot)
             
             # Check for alerts
             await self._check_alerts(snapshot)
@@ -389,6 +392,32 @@ class PerformanceMonitor:
             
         except Exception as e:
             logger.error(f"Error storing metrics in Redis: {e}")
+
+    async def _store_metrics_in_db(self, snapshot: PerformanceSnapshot):
+        """Persist metrics to the monitoring database"""
+        try:
+            from sqlalchemy import insert
+            from backend.models.database_models import MonitoringMetric
+            async for session in get_db_session():
+                for name, value in [
+                    ("cpu_percent", snapshot.cpu_percent),
+                    ("memory_percent", snapshot.memory_percent),
+                    ("disk_usage_percent", snapshot.disk_usage_percent),
+                    ("request_rate", snapshot.request_rate),
+                    ("error_rate", snapshot.error_rate),
+                    ("avg_response_time", snapshot.avg_response_time),
+                ]:
+                    await session.execute(
+                        insert(MonitoringMetric).values(
+                            metric_name=name,
+                            metric_value=value,
+                            labels={},
+                            timestamp=snapshot.timestamp,
+                        )
+                    )
+                await session.commit()
+        except Exception as e:
+            logger.error(f"Error storing metrics in DB: {e}")
     
     async def _check_alerts(self, snapshot: PerformanceSnapshot):
         """Check metrics against alert thresholds"""

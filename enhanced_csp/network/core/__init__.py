@@ -1,13 +1,18 @@
 # network/core/__init__.py
 """Core network components."""
 from .config import (
-    NetworkConfig, SecurityConfig, P2PConfig, 
-    MeshConfig, DNSConfig, RoutingConfig
+    NetworkConfig,
+    SecurityConfig,
+    P2PConfig,
+    MeshConfig,
+    DNSConfig,
+    RoutingConfig,
+    PQCConfig,
 )
-from .node import NetworkNode, EnhancedCSPNetwork
+# Avoid heavy imports on module import; import classes lazily in convenience
+# functions when needed.
 from .types import (
-    NodeID, NodeCapabilities, MessageType, PeerInfo,
-    NetworkMessage
+    NodeID, NodeCapabilities, MessageType, PeerInfo, NetworkMessage
 )
 
 __all__ = [
@@ -18,10 +23,7 @@ __all__ = [
     'MeshConfig',
     'DNSConfig',
     'RoutingConfig',
-    
-    # Core classes
-    'NetworkNode',
-    'EnhancedCSPNetwork',
+    'PQCConfig',
     
     # Types
     'NodeID',

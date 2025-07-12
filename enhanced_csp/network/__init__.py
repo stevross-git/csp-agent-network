@@ -12,7 +12,7 @@ from .core.types import (
     NodeCapabilities,
     PeerInfo,
     NetworkMessage,
-    MessageType
+    MessageType,
 )
 
 from .core.config import (
@@ -21,48 +21,92 @@ from .core.config import (
     P2PConfig,
     MeshConfig,
     DNSConfig,
-    RoutingConfig
+    RoutingConfig,
+    PQCConfig,
 )
 
-from .core.node import (
-    NetworkNode,
-    EnhancedCSPNetwork
+from .errors import (
+    NetworkError,
+    ConnectionError,
+    TimeoutError,
+    ProtocolError,
+    SecurityError,
+    ValidationError,
+    ErrorMetrics,
+    CircuitBreakerOpen,
 )
+
+from .utils import (
+    setup_logging,
+    get_logger,
+    NetworkLogger,
+    SecurityLogger,
+    PerformanceLogger,
+    AuditLogger,
+)
+
+# Avoid importing heavy classes during module import to reduce optional
+# dependencies for consumers that only need basic types.
+
+def _lazy_network_node():
+    from .core.node import NetworkNode
+    return NetworkNode
+
+
+def _lazy_enhanced_network():
+    from .core.node import EnhancedCSPNetwork
+    return EnhancedCSPNetwork
 
 # Convenience functions
-def create_network(config: NetworkConfig = None) -> EnhancedCSPNetwork:
+def create_network(config: NetworkConfig | None = None):
     """Create a new Enhanced CSP Network instance."""
-    return EnhancedCSPNetwork(config)
+    return _lazy_enhanced_network()(config)
 
-def create_node(config: NetworkConfig = None) -> NetworkNode:
+
+def create_node(config: NetworkConfig | None = None):
     """Create a new network node."""
-    return NetworkNode(config)
+    return _lazy_network_node()(config)
 
 # Export main classes and functions
 __all__ = [
     # Version
-    '__version__',
-    
+    "__version__",
+
     # Core types
-    'NodeID',
-    'NodeCapabilities', 
-    'PeerInfo',
-    'NetworkMessage',
-    'MessageType',
-    
+    "NodeID",
+    "NodeCapabilities",
+    "PeerInfo",
+    "NetworkMessage",
+    "MessageType",
+
     # Configuration
-    'NetworkConfig',
-    'SecurityConfig',
-    'P2PConfig',
-    'MeshConfig',
-    'DNSConfig',
-    'RoutingConfig',
-    
-    # Core classes
-    'NetworkNode',
-    'EnhancedCSPNetwork',
-    
+    "NetworkConfig",
+    "SecurityConfig",
+    "P2PConfig",
+    "MeshConfig",
+    "DNSConfig",
+    "RoutingConfig",
+    "PQCConfig",
+
+    # Errors
+    "NetworkError",
+    "ConnectionError",
+    "TimeoutError",
+    "ProtocolError",
+    "SecurityError",
+    "ValidationError",
+    "ErrorMetrics",
+    "CircuitBreakerOpen",
+
+    # Logging utilities
+    "setup_logging",
+    "get_logger",
+    "NetworkLogger",
+    "SecurityLogger",
+    "PerformanceLogger",
+    "AuditLogger",
+
     # Convenience functions
-    'create_network',
-    'create_node',
+    "create_network",
+    "create_node",
 ]

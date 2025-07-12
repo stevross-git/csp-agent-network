@@ -1,4 +1,5 @@
 # enhanced_csp/network/batching.py
+<<<<<<< HEAD
 """
 Intelligent Message Batching for Enhanced CSP Network
 Provides 2-5x throughput increase through deadline-driven batching with adaptive sizing.
@@ -31,6 +32,19 @@ class BatchConfig:
     adaptive_sizing: bool = True
     deadline_factor: float = 2.0  # Deadline = avg_latency * factor
 
+=======
+import asyncio
+import time
+import msgpack
+from typing import List, Dict, Any, Optional, Callable
+from dataclasses import dataclass, field
+from datetime import datetime
+from .utils.structured_logging import get_logger
+from collections import deque
+import heapq
+
+logger = get_logger("batching")
+>>>>>>> 1871c497b6c6ccafca331c9065069c220ca63f43
 
 @dataclass
 class PendingMessage:
