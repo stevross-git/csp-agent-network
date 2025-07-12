@@ -1,0 +1,53 @@
+.
+├── adaptive_optimizer.py
+├── batching.py
+├── compression.py
+├── connection_pool.py
+├── core
+│   ├── config.py
+│   ├── constraints.txt
+│   ├── __init__.py
+│   ├── node.py
+│   └── types.py
+├── dashboard
+│   ├── index.html
+│   └── status_server_update.py
+├── database_models.py
+├── db_integration_example.py
+├── dns
+│   ├── __init__.py
+│   └── overlay.py
+├── examples
+│   └── chat_application.py
+├── __init__.py
+├── main.py
+├── mesh
+│   ├── __init__.py
+│   ├── routing.py
+│   └── topology.py
+├── metrics_endpoint.py
+├── monitoring_integration.py
+├── monitoring.py
+├── optimized_channel.py
+├── p2p
+│   ├── dht.py
+│   ├── discovery.py
+│   ├── __init__.py
+│   ├── nat.py
+│   ├── quantum_manager.py
+│   └── transport.py
+├── protocol_optimizer.py
+├── repo-structure.txt
+├── repo-tree.txt
+├── routing
+│   ├── adaptive.py
+│   ├── __init__.py
+│   ├── metrics.py
+│   └── multipath.py
+├── test_compression.py
+├── tests
+│   ├── test_network_complete.py
+│   └── test_network_stack.py
+└── zero_copy.py
+
+8 directories, 42 files
