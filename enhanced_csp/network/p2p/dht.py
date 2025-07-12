@@ -15,6 +15,7 @@ import json
 
 from ..core.types import NodeID, PeerInfo, MessageType
 from ..p2p.transport import P2PTransport
+from ..utils import TaskManager
 
 logger = logging.getLogger(__name__)
 
@@ -182,9 +183,7 @@ class KademliaDHT:
         # Pending RPCs
         self.pending_rpcs: Dict[str, asyncio.Future] = {}
         
-        # Background tasks
-        self._maintenance_task: Optional[asyncio.Task] = None
-        self._republish_task: Optional[asyncio.Task] = None
+        self.task_manager = TaskManager()
         
         self.is_running = False
         
@@ -200,9 +199,8 @@ class KademliaDHT:
         self.transport.register_handler(MessageType.DHT_QUERY, self._handle_dht_query)
         self.transport.register_handler(MessageType.DHT_RESPONSE, self._handle_dht_response)
         
-        # Start background tasks
-        self._maintenance_task = asyncio.create_task(self._maintenance_loop())
-        self._republish_task = asyncio.create_task(self._republish_loop())
+        self.task_manager.create_task(self._maintenance_loop())
+        self.task_manager.create_task(self._republish_loop())
         
     async def stop(self):
         """Stop the DHT."""
@@ -212,11 +210,7 @@ class KademliaDHT:
         logger.info("Stopping Kademlia DHT")
         self.is_running = False
         
-        # Cancel background tasks
-        for task in [self._maintenance_task, self._republish_task]:
-            if task:
-                task.cancel()
-                await asyncio.gather(task, return_exceptions=True)
+        await self.task_manager.cancel_all()
         
         # Clear pending RPCs
         for future in self.pending_rpcs.values():
@@ -638,8 +632,8 @@ class KademliaDHT:
             most_recent = max(e.last_seen for e in bucket.entries)
             if (datetime.utcnow() - most_recent).total_seconds() > 3600:
                 # Generate random ID in bucket range
-                import random
-                random_id = random.randint(bucket.range_min, bucket.range_max)
+                from ..utils.secure_random import secure_randint
+                random_id = secure_randint(bucket.range_min, bucket.range_max)
                 target = NodeID(f"Qm{random_id:064x}"[:48])
                 
                 # Perform lookup to refresh bucket

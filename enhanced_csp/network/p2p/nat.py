@@ -8,7 +8,6 @@ import logging
 import socket
 import struct
 import time
-import random
 import select
 from typing import Optional, Tuple, Dict, List
 from dataclasses import dataclass
@@ -364,7 +363,7 @@ class NATTraversal:
             ip = s.getsockname()[0]
             s.close()
             return ip
-        except:
+        except Exception:
             return "127.0.0.1"
     
     async def _check_nat_capabilities(self):
@@ -393,7 +392,7 @@ class NATTraversal:
             writer.close()
             await writer.wait_closed()
             return True
-        except:
+        except Exception:
             return False
     
     def _check_upnp_available(self) -> bool:
@@ -432,7 +431,7 @@ class NATTraversal:
                 return True
             
             return False
-        except:
+        except Exception:
             return False
     
     async def setup_port_mapping(self, internal_port: int, 
