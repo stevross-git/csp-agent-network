@@ -751,6 +751,7 @@
 │   ├── enhanced-setup.sh
 │   ├── .env.docker
 │   ├── fix-docker-setup.sh
+│   ├── fix_optimization_imports.py
 │   ├── implement-monitoring.sh
 │   ├── incident_response.py
 │   ├── logs
