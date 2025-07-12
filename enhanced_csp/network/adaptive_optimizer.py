@@ -5,7 +5,6 @@ Provides 20-40% route efficiency through real-time topology optimization.
 """
 
 import asyncio
-<<<<<<< HEAD
 import time
 import logging
 from typing import Dict, List, Optional, Tuple, Set, Any
@@ -13,22 +12,12 @@ from dataclasses import dataclass, field
 from collections import defaultdict, deque
 import heapq
 from enum import Enum
-=======
-from collections import deque
-from typing import Dict, Any, Deque, Callable, Optional
-
-from .utils.structured_logging import get_logger
->>>>>>> 1871c497b6c6ccafca331c9065069c220ca63f43
 
 from .core.types import NodeID, NetworkMessage
 from .core.config import P2PConfig
 from .utils import get_logger
 
-<<<<<<< HEAD
 logger = get_logger(__name__)
-=======
-logger = get_logger("optimizer")
->>>>>>> 1871c497b6c6ccafca331c9065069c220ca63f43
 
 
 class RouteQuality(Enum):
