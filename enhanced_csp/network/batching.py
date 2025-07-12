@@ -5,11 +5,11 @@ import msgpack
 from typing import List, Dict, Any, Optional, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-import logging
+from .utils.structured_logging import get_logger
 from collections import deque
 import heapq
 
-logger = logging.getLogger(__name__)
+logger = get_logger("batching")
 
 @dataclass
 class PendingMessage:

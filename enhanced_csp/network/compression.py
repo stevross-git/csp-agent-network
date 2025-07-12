@@ -11,13 +11,38 @@ import threading
 from enum import Enum
 from typing import Union, Dict, Any, Optional, Set, List
 from dataclasses import dataclass, field
-import logging
+from .utils.structured_logging import get_logger
 from contextvars import ContextVar
+from .utils import ThreadSafeStats
 
-logger = logging.getLogger(__name__)
+logger = get_logger("compression")
 
 # Context variables for thread-safe compression contexts
 _zstd_context: ContextVar[Optional['ZstdContext']] = ContextVar('zstd_context', default=None)
+
+
+class CompressionAlgorithm(Enum):
+    """Supported compression algorithms"""
+
+    NONE = "none"
+    GZIP = "gzip"
+    LZ4 = "lz4"
+    BROTLI = "brotli"
+    SNAPPY = "snappy"
+    ZSTD = "zstd"
+
+
+@dataclass
+class CompressionConfig:
+    """Configuration for message compression."""
+
+    min_compress_bytes: int = 64
+    zstd_dict_size: int = 8192
+    incompressible_mimes: Set[str] = field(default_factory=lambda: {
+        "image/jpeg",
+        "image/png",
+    })
+    max_decompress_bytes: int = 50 * 1024 * 1024
 
 @dataclass
 class ZstdContext:
@@ -36,17 +61,16 @@ class MessageCompressor:
         self.default_algorithm = default_algorithm
         self.config = config or CompressionConfig()
         
-        # Thread-safe stats with lock
-        self._stats_lock = threading.RLock()
-        self.compression_stats = {
+        defaults = {
             "total_bytes_original": 0,
             "total_bytes_compressed": 0,
             "compression_time_ms": 0,
             "decompression_time_ms": 0,
             "skipped_count": 0,
             "compression_ratio_sum": 0.0,
-            "compression_count": 0
+            "compression_count": 0,
         }
+        self.compression_stats = ThreadSafeStats(defaults)
         
     def train_dictionary(self, samples: List[bytes]) -> None:
         """Train Zstandard dictionary for better compression of similar messages"""
@@ -69,9 +93,13 @@ class MessageCompressor:
             # Set in context var (thread-safe)
             _zstd_context.set(ctx)
             
-            logger.info(f"Trained zstd dictionary with {len(samples)} samples")
+            with logger.context(operation="train_dict"):
+                logger.info(
+                    f"Trained zstd dictionary with {len(samples)} samples"
+                )
         except Exception as e:
-            logger.warning(f"Failed to train zstd dictionary: {e}")
+            with logger.context(operation="train_dict"):
+                logger.warning(f"Failed to train zstd dictionary: {e}")
     
     def _looks_already_compressed(self, data: bytes, sample_size: int = 512) -> bool:
         """Enhanced check if data appears to be already compressed"""
@@ -139,8 +167,7 @@ class MessageCompressor:
         if (len(data) < self.config.min_compress_bytes or
             (content_type and content_type in self.config.incompressible_mimes) or
             self._looks_already_compressed(data)):
-            with self._stats_lock:
-                self.compression_stats["skipped_count"] += 1
+            self.compression_stats.increment("skipped_count")
             return data, CompressionAlgorithm.NONE.value
         
         start_time = time.perf_counter()
@@ -150,8 +177,7 @@ class MessageCompressor:
             # Secondary check: don't use compression if it made data larger
             compression_ratio = len(compressed_data) / len(data)
             if compression_ratio >= 0.97:
-                with self._stats_lock:
-                    self.compression_stats["skipped_count"] += 1
+                self.compression_stats.increment("skipped_count")
                 return data, CompressionAlgorithm.NONE.value
                 
         except Exception as e:
@@ -161,12 +187,11 @@ class MessageCompressor:
         compression_time = (time.perf_counter() - start_time) * 1000
         
         # Update stats thread-safely
-        with self._stats_lock:
-            self.compression_stats["total_bytes_original"] += len(data)
-            self.compression_stats["total_bytes_compressed"] += len(compressed_data)
-            self.compression_stats["compression_time_ms"] += compression_time
-            self.compression_stats["compression_ratio_sum"] += compression_ratio
-            self.compression_stats["compression_count"] += 1
+        self.compression_stats.increment("total_bytes_original", len(data))
+        self.compression_stats.increment("total_bytes_compressed", len(compressed_data))
+        self.compression_stats.increment("compression_time_ms", compression_time)
+        self.compression_stats.increment("compression_ratio_sum", compression_ratio)
+        self.compression_stats.increment("compression_count")
         
         return compressed_data, algorithm.value
     
@@ -194,37 +219,13 @@ class MessageCompressor:
     
     def export_stats(self) -> Dict[str, Any]:
         """Export and reset statistics for metrics collection"""
-        with self._stats_lock:
-            # Calculate derived metrics
-            avg_compression_ratio = (
-                self.compression_stats["compression_ratio_sum"] / 
-                self.compression_stats["compression_count"]
-                if self.compression_stats["compression_count"] > 0 else 1.0
-            )
-            
-            stats = {
-                "total_bytes_original": self.compression_stats["total_bytes_original"],
-                "total_bytes_compressed": self.compression_stats["total_bytes_compressed"],
-                "compression_time_ms": self.compression_stats["compression_time_ms"],
-                "decompression_time_ms": self.compression_stats["decompression_time_ms"],
-                "skipped_count": self.compression_stats["skipped_count"],
-                "compression_count": self.compression_stats["compression_count"],
-                "average_compression_ratio": avg_compression_ratio,
-                "space_saved_bytes": (
-                    self.compression_stats["total_bytes_original"] - 
-                    self.compression_stats["total_bytes_compressed"]
-                )
-            }
-            
-            # Reset stats
-            self.compression_stats = {
-                "total_bytes_original": 0,
-                "total_bytes_compressed": 0,
-                "compression_time_ms": 0,
-                "decompression_time_ms": 0,
-                "skipped_count": 0,
-                "compression_ratio_sum": 0.0,
-                "compression_count": 0
-            }
-            
-            return stats
+        stats = self.compression_stats.snapshot()
+        count = stats.get("compression_count", 0)
+        ratio = stats.get("compression_ratio_sum", 0.0)
+        avg_ratio = ratio / count if count > 0 else 1.0
+        stats["average_compression_ratio"] = avg_ratio
+        stats["space_saved_bytes"] = (
+            stats.get("total_bytes_original", 0) - stats.get("total_bytes_compressed", 0)
+        )
+        self.compression_stats.reset({k: 0 for k in stats.keys() if k != "average_compression_ratio" and k != "space_saved_bytes"})
+        return stats

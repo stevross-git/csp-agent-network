@@ -4,7 +4,8 @@ import time
 import asyncio
 from collections import deque
 from typing import Dict, Any, Deque, Callable, Optional
-import logging
+
+from .utils.structured_logging import get_logger
 
 try:
     import psutil
@@ -12,7 +13,7 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
 
-logger = logging.getLogger(__name__)
+logger = get_logger("optimizer")
 
 class AdaptiveNetworkOptimizer:
     """Machine learning-based network optimization with robust error handling"""
