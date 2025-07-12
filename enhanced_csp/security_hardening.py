@@ -46,5 +46,5 @@ class SecurityOrchestrator:
 
 
 # Re-export for compatibility
-from network.core.config import SecurityConfig
+from enhanced_csp.network.core.config import SecurityConfig
 __all__ = ['SecurityConfig', 'SecurityOrchestrator']

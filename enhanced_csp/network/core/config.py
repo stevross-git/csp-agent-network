@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from pathlib import Path
 import json
 import time
+from ..security.security_hardening import safe_import_class
 
 try:  # optional dependency
     import yaml  # type: ignore
@@ -228,8 +229,11 @@ class NetworkConfig:
 
     node_name: str = "csp-node"
     node_type: str = "standard"
-    capabilities: 'NodeCapabilities' = field(default_factory=lambda: __import__(
-        'enhanced_csp.network.core.types', fromlist=['NodeCapabilities']).NodeCapabilities())
+    capabilities: 'NodeCapabilities' = field(
+        default_factory=lambda: safe_import_class(
+            'enhanced_csp.network.core.types', 'NodeCapabilities'
+        )()
+    )
     data_dir: Path = Path("./data")
 
     def __post_init__(self) -> None:
@@ -280,7 +284,9 @@ class NetworkConfig:
             routing=RoutingConfig(**data.get('routing', {})),
             node_name=data.get('node_name', 'csp-node'),
             node_type=data.get('node_type', 'standard'),
-            capabilities=__import__('enhanced_csp.network.core.types', fromlist=['NodeCapabilities']).NodeCapabilities(**data.get('capabilities', {})),
+            capabilities=safe_import_class(
+                'enhanced_csp.network.core.types', 'NodeCapabilities'
+            )(**data.get('capabilities', {})),
             data_dir=Path(data.get('data_dir', './data')),
         )
 

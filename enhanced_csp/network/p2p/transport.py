@@ -12,9 +12,10 @@ from abc import ABC, abstractmethod
 import json
 
 from ..core.types import NetworkMessage, MessageType
-from ..core.config import P2PConfig
+from ..core.config import P2PConfig, SecurityConfig
 from ..utils import validate_ip_address, validate_port_number, validate_message_size
 from ..protocol_optimizer import BinaryProtocol, MessageType as BinaryMessageType
+from ..security.security_hardening import MessageValidator, SecureTLSConfig
 
 logger = logging.getLogger(__name__)
 
@@ -78,10 +79,20 @@ class MultiProtocolTransport(P2PTransport):
     Primary implementation uses TCP with optional QUIC support.
     """
     
-    def __init__(self, config: P2PConfig):
+    def __init__(self, config: P2PConfig, security: Optional[SecurityConfig] = None):
         super().__init__(config)
+        self.security = security
         self.protocol = BinaryProtocol()
         self.message_handlers: Dict[str, List[Callable]] = {}
+        self.validator = MessageValidator()
+        self.ssl_context: Optional[asyncio.AbstractServer] = None
+        if self.security and getattr(self.security, "enable_tls", False):
+            tls = SecureTLSConfig(
+                self.security.tls_cert_path,
+                self.security.tls_key_path,
+                self.security.ca_cert_path,
+            )
+            self.ssl_context = tls.create_server_context()
         
     async def start(self) -> bool:
         """Start transport services."""
@@ -91,11 +102,12 @@ class MultiProtocolTransport(P2PTransport):
         logger.info(f"Starting P2P transport on {self.config.listen_address}:{self.config.listen_port}")
         
         try:
-            # Start TCP server
+            # Start TCP server with optional TLS
             self.server = await asyncio.start_server(
                 self._handle_connection,
                 self.config.listen_address,
-                self.config.listen_port
+                self.config.listen_port,
+                ssl=self.ssl_context,
             )
             
             self.is_running = True
@@ -148,8 +160,8 @@ class MultiProtocolTransport(P2PTransport):
             
             # Create connection
             reader, writer = await asyncio.wait_for(
-                asyncio.open_connection(host, port),
-                timeout=self.config.connection_timeout
+                asyncio.open_connection(host, port, ssl=self.ssl_context),
+                timeout=self.config.connection_timeout,
             )
             
             conn = Connection(address, reader, writer)
@@ -280,6 +292,10 @@ class MultiProtocolTransport(P2PTransport):
         """Dispatch message to registered handlers."""
         # Map binary message type to handler key
         handler_key = msg_type.name
+
+        if not self.validator.validate_network_message(message):
+            logger.warning("Invalid message from %s discarded", sender)
+            return
         
         if handler_key in self.message_handlers:
             for handler in self.message_handlers[handler_key]:
