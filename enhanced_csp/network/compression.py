@@ -34,9 +34,79 @@ except ImportError:
 
 import zlib  # Always available in Python standard library
 import gzip
-
+from enum import Enum
 from .core.config import P2PConfig
 from .utils import get_logger
+
+
+class CompressionAlgorithm(Enum):
+    """Supported compression algorithms."""
+
+    NONE = "none"
+    ZLIB = "zlib"
+    GZIP = "gzip"
+    LZ4 = "lz4"
+    ZSTD = "zstd"
+    BROTLI = "brotli"
+
+
+@dataclass
+class SimpleCompressorConfig:
+    """Configuration for :class:`MessageCompressor`."""
+
+    min_compress_bytes: int = 64
+    max_decompress_bytes: int = 100 * 1024 * 1024  # 100MB
+    default_algorithm: CompressionAlgorithm = CompressionAlgorithm.ZLIB
+
+
+class MessageCompressor:
+    """Lightweight message compressor used in tests."""
+
+    def __init__(self, config: Optional[SimpleCompressorConfig] = None) -> None:
+        self.config = config or SimpleCompressorConfig()
+        self.stats = {"compression_count": 0}
+
+    def _compress_data(self, data: bytes, algo: CompressionAlgorithm) -> bytes:
+        if algo is CompressionAlgorithm.GZIP:
+            return gzip.compress(data)
+        if algo is CompressionAlgorithm.LZ4 and LZ4_AVAILABLE:
+            return lz4.frame.compress(data)
+        if algo is CompressionAlgorithm.ZSTD and ZSTD_AVAILABLE:
+            return zstd.compress(data)
+        if algo is CompressionAlgorithm.BROTLI and BROTLI_AVAILABLE:
+            return brotli.compress(data)
+        return zlib.compress(data)
+
+    def _decompress_data(self, data: bytes, algo: CompressionAlgorithm) -> bytes:
+        if algo is CompressionAlgorithm.GZIP:
+            return gzip.decompress(data)
+        if algo is CompressionAlgorithm.LZ4 and LZ4_AVAILABLE:
+            return lz4.frame.decompress(data)
+        if algo is CompressionAlgorithm.ZSTD and ZSTD_AVAILABLE:
+            return zstd.decompress(data)
+        if algo is CompressionAlgorithm.BROTLI and BROTLI_AVAILABLE:
+            return brotli.decompress(data)
+        return zlib.decompress(data)
+
+    def compress(
+        self, data: bytes, algorithm: CompressionAlgorithm | None = None
+    ) -> Tuple[bytes, str]:
+        algo = algorithm or self.config.default_algorithm
+        if algo is CompressionAlgorithm.NONE or len(data) < self.config.min_compress_bytes:
+            return data, CompressionAlgorithm.NONE.value
+        compressed = self._compress_data(data, algo)
+        self.stats["compression_count"] += 1
+        return compressed, algo.value
+
+    def decompress(self, data: bytes, algorithm: str) -> bytes:
+        algo = CompressionAlgorithm(algorithm)
+        decompressed = self._decompress_data(data, algo)
+        if len(decompressed) > self.config.max_decompress_bytes:
+            raise ValueError("decompressed data too large")
+        return decompressed
+
+    def export_stats(self) -> Dict[str, int]:
+        return dict(self.stats)
 
 logger = get_logger(__name__)
 
