@@ -4,7 +4,7 @@ Enhanced CSP Network - Unified Implementation
 Production entry script with integrated core network node implementation.
 Supports genesis nodes, peer discovery, security, and extensible components.
 """
-
+import inspect
 import asyncio
 import signal
 import sys
@@ -34,7 +34,7 @@ except ImportError:
     RICH_AVAILABLE = False
 
 try:
-    from aiohttp import web
+    from aiohttp import web, ClientSession
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
@@ -167,13 +167,14 @@ class EnhancedCSPNetwork:
         self.node_id = NodeID.generate()
         self._event_handlers: Dict[str, List[Callable]] = {}
 
+        # Safely access config attributes with fallbacks
         self.capabilities = NodeCapabilities(
             relay=True,
-            storage=self.config.enable_storage,
-            compute=self.config.enable_compute,
-            quantum=self.config.enable_quantum,
-            blockchain=self.config.enable_blockchain,
-            dns=self.config.enable_dns,
+            storage=getattr(self.config, 'enable_storage', False),
+            compute=getattr(self.config, 'enable_compute', False),
+            quantum=getattr(self.config, 'enable_quantum', False),
+            blockchain=getattr(self.config, 'enable_blockchain', False),
+            dns=getattr(self.config, 'enable_dns', False),
             bootstrap=False,
         )
 
@@ -721,6 +722,7 @@ class NodeManager:
     
     def __init__(self, args: argparse.Namespace):
         self.args = args
+        self.logger = self._setup_logging()
         self.config = self._build_config()
         self.network: Optional[EnhancedCSPNetwork] = None
         self.security_orchestrator: Optional[SecurityOrchestrator] = None
@@ -728,7 +730,6 @@ class NodeManager:
         self.blockchain: Optional[BlockchainCSPNetwork] = None
         self.shutdown_event = asyncio.Event()
         self.tasks: List[asyncio.Task] = []
-        self.logger = self._setup_logging()
         self.is_genesis = args.genesis
         
     async def initialize(self):
@@ -848,9 +849,12 @@ class NodeManager:
     
     def _start_background_tasks(self):
         """Start background maintenance tasks."""
-        # TLS key rotation
-        if self.config.security.tls_rotation_interval:
+        # TLS key rotation - safely check if the attribute exists
+        if hasattr(self.config, 'security') and hasattr(self.config.security, 'tls_rotation_interval') and self.config.security.tls_rotation_interval:
             self.tasks.append(asyncio.create_task(self._tls_rotation_task()))
+            self.logger.info("TLS rotation task started")
+        else:
+            self.logger.info("TLS rotation disabled (no tls_rotation_interval)")
         
         # Metrics collection
         self.tasks.append(asyncio.create_task(self._metrics_collection_task()))
@@ -860,10 +864,12 @@ class NodeManager:
             self.tasks.append(asyncio.create_task(
                 self.security_orchestrator.monitor_threats()
             ))
+            self.logger.info("Security monitoring task started")
         
         # Genesis node maintenance
         if self.is_genesis:
             self.tasks.append(asyncio.create_task(self._genesis_maintenance_task()))
+            self.logger.info("Genesis maintenance task started")
     
     async def _genesis_maintenance_task(self):
         """Maintenance tasks specific to genesis node."""
@@ -965,78 +971,357 @@ class NodeManager:
     
     def _build_config(self) -> NetworkConfig:
         """Build network configuration from command line arguments."""
-        # Build security config
-        security = SecurityConfig(
-            enable_tls=not self.args.no_tls,
-            enable_mtls=self.args.mtls,
-            enable_pq_crypto=self.args.pq_crypto,
-            enable_zero_trust=self.args.zero_trust,
-            tls_cert_path=self.args.tls_cert,
-            tls_key_path=self.args.tls_key,
-            ca_cert_path=self.args.ca_cert,
-            audit_log_path=Path(self.args.audit_log) if self.args.audit_log else None,
-            enable_threat_detection=not self.args.no_threat_detection,
-            enable_intrusion_prevention=self.args.ips,
-            enable_compliance_mode=self.args.compliance,
-            compliance_standards=self.args.compliance_standards.split(',') if self.args.compliance_standards else [],
-            tls_rotation_interval=self.args.tls_rotation_days * 86400,
-        )
         
-        # Build P2P config
-        p2p = P2PConfig(
-            listen_address=self.args.listen_address,
-            listen_port=self.args.listen_port,
-            bootstrap_nodes=self.args.bootstrap if not self.args.genesis else [],
-            stun_servers=self.args.stun_servers or DEFAULT_STUN_SERVERS,
-            turn_servers=self.args.turn_servers or [],
-            max_peers=self.args.max_peers,
-            enable_mdns=not self.args.no_mdns,
-        )
+        # Build security config - only include parameters that SecurityConfig actually supports
+        try:
+            # Try to create SecurityConfig with all parameters first
+            security = SecurityConfig(
+                enable_tls=not self.args.no_tls,
+                enable_mtls=self.args.mtls,
+                enable_pq_crypto=self.args.pq_crypto,
+                enable_zero_trust=self.args.zero_trust,
+                tls_cert_path=self.args.tls_cert,
+                tls_key_path=self.args.tls_key,
+                ca_cert_path=self.args.ca_cert,
+                audit_log_path=Path(self.args.audit_log) if self.args.audit_log else None,
+                enable_threat_detection=not self.args.no_threat_detection,
+                enable_intrusion_prevention=self.args.ips,
+                enable_compliance_mode=self.args.compliance,
+                compliance_standards=self.args.compliance_standards.split(',') if self.args.compliance_standards else [],
+                tls_rotation_interval=self.args.tls_rotation_days * 86400,
+            )
+        except TypeError as e:
+            # If that fails, create with minimal parameters that are likely supported
+            self.logger.warning(f"SecurityConfig initialization failed with full parameters: {e}")
+            self.logger.info("Creating SecurityConfig with minimal parameters")
+            
+            # Create with just the basic parameters that are most likely to exist
+            security = SecurityConfig(
+                enable_tls=not self.args.no_tls,
+            )
+            
+            # Try to set additional attributes if they exist
+            if hasattr(security, 'enable_mtls'):
+                security.enable_mtls = self.args.mtls
+            if hasattr(security, 'enable_pq_crypto'):
+                security.enable_pq_crypto = self.args.pq_crypto
+            if hasattr(security, 'enable_zero_trust'):
+                security.enable_zero_trust = self.args.zero_trust
+            if hasattr(security, 'tls_cert_path'):
+                security.tls_cert_path = self.args.tls_cert
+            if hasattr(security, 'tls_key_path'):
+                security.tls_key_path = self.args.tls_key
+            if hasattr(security, 'ca_cert_path'):
+                security.ca_cert_path = self.args.ca_cert
+            if hasattr(security, 'audit_log_path'):
+                security.audit_log_path = Path(self.args.audit_log) if self.args.audit_log else None
+            if hasattr(security, 'enable_threat_detection'):
+                security.enable_threat_detection = not self.args.no_threat_detection
+            if hasattr(security, 'enable_intrusion_prevention'):
+                security.enable_intrusion_prevention = self.args.ips
+            if hasattr(security, 'enable_compliance_mode'):
+                security.enable_compliance_mode = self.args.compliance
+            if hasattr(security, 'compliance_standards'):
+                security.compliance_standards = self.args.compliance_standards.split(',') if self.args.compliance_standards else []
+            if hasattr(security, 'tls_rotation_interval'):
+                security.tls_rotation_interval = self.args.tls_rotation_days * 86400
         
-        # Build mesh config
-        mesh = MeshConfig(
-            max_peers=self.args.max_peers,
-        )
+        # Build P2P config with similar error handling
+        try:
+            p2p = P2PConfig(
+                listen_address=self.args.listen_address,
+                listen_port=self.args.listen_port,
+                bootstrap_nodes=self.args.bootstrap if not self.args.genesis else [],
+                stun_servers=self.args.stun_servers or DEFAULT_STUN_SERVERS,
+                turn_servers=self.args.turn_servers or [],
+                max_peers=self.args.max_peers,
+                enable_mdns=not self.args.no_mdns,
+            )
+        except TypeError as e:
+            self.logger.warning(f"P2PConfig initialization failed: {e}")
+            # Create minimal P2P config
+            p2p = P2PConfig()
+            if hasattr(p2p, 'listen_address'):
+                p2p.listen_address = self.args.listen_address
+            if hasattr(p2p, 'listen_port'):
+                p2p.listen_port = self.args.listen_port
+            if hasattr(p2p, 'bootstrap_nodes'):
+                p2p.bootstrap_nodes = self.args.bootstrap if not self.args.genesis else []
+            if hasattr(p2p, 'stun_servers'):
+                p2p.stun_servers = self.args.stun_servers or DEFAULT_STUN_SERVERS
+            if hasattr(p2p, 'turn_servers'):
+                p2p.turn_servers = self.args.turn_servers or []
+            if hasattr(p2p, 'max_peers'):
+                p2p.max_peers = self.args.max_peers
+            if hasattr(p2p, 'enable_mdns'):
+                p2p.enable_mdns = not self.args.no_mdns
         
-        # Build DNS config
-        dns = DNSConfig(
-            root_domain=".web4ai",
-        )
+        # Build mesh config with error handling
+        try:
+            mesh = MeshConfig(
+                max_peers=self.args.max_peers,
+            )
+        except TypeError as e:
+            self.logger.warning(f"MeshConfig initialization failed: {e}")
+            mesh = MeshConfig()
+            if hasattr(mesh, 'max_peers'):
+                mesh.max_peers = self.args.max_peers
         
-        # Build routing config
-        routing = RoutingConfig(
-            enable_qos=self.args.qos,
-        )
+        # Build DNS config with error handling
+        try:
+            dns = DNSConfig(
+                root_domain=".web4ai",
+            )
+        except TypeError as e:
+            self.logger.warning(f"DNSConfig initialization failed: {e}")
+            dns = DNSConfig()
+            if hasattr(dns, 'root_domain'):
+                dns.root_domain = ".web4ai"
+        
+        # Build routing config with error handling
+        try:
+            routing = RoutingConfig(
+                enable_qos=self.args.qos,
+            )
+        except TypeError as e:
+            self.logger.warning(f"RoutingConfig initialization failed: {e}")
+            routing = RoutingConfig()
+            if hasattr(routing, 'enable_qos'):
+                routing.enable_qos = self.args.qos
         
         # Build main network config
-        config = NetworkConfig(
-            # Core network settings
-            network_id=self.args.network_id,
-            listen_address=self.args.listen_address,
-            listen_port=self.args.listen_port,
-            node_capabilities=["relay", "storage"] if not self.args.genesis else ["relay", "storage", "compute", "dns", "bootstrap"],
+        try:
+            config = NetworkConfig(
+                # Core network settings
+                network_id=self.args.network_id,
+                listen_address=self.args.listen_address,
+                listen_port=self.args.listen_port,
+                node_capabilities=["relay", "storage"] if not self.args.genesis else ["relay", "storage", "compute", "dns", "bootstrap"],
+                
+                # Sub-configurations
+                security=security,
+                p2p=p2p,
+                mesh=mesh,
+                dns=dns,
+                routing=routing,
+                
+                # Feature flags
+                enable_discovery=True,
+                enable_dht=not self.args.no_dht,
+                enable_nat_traversal=not self.args.no_nat,
+                enable_mesh=True,
+                enable_dns=self.args.enable_dns or self.args.genesis,
+                enable_adaptive_routing=True,
+                enable_metrics=not self.args.no_metrics,
+                enable_compression=not self.args.no_compression,
+                enable_storage=self.args.enable_storage,
+                enable_quantum=self.args.enable_quantum,
+                enable_blockchain=self.args.enable_blockchain,
+                enable_compute=self.args.enable_compute,
+            )
+        except TypeError as e:
+            self.logger.warning(f"NetworkConfig initialization failed: {e}")
+            # Create minimal network config
+            config = NetworkConfig()
             
-            # Sub-configurations
-            security=security,
-            p2p=p2p,
-            mesh=mesh,
-            dns=dns,
-            routing=routing,
-            
-            # Feature flags
-            enable_discovery=True,
-            enable_dht=not self.args.no_dht,
-            enable_nat_traversal=not self.args.no_nat,
-            enable_mesh=True,
-            enable_dns=self.args.enable_dns or self.args.genesis,
-            enable_adaptive_routing=True,
-            enable_metrics=not self.args.no_metrics,
-            enable_compression=not self.args.no_compression,
-            enable_storage=self.args.enable_storage,
-            enable_quantum=self.args.enable_quantum,
-            enable_blockchain=self.args.enable_blockchain,
-            enable_compute=self.args.enable_compute,
-        )
+            # Set basic attributes that are most likely to exist
+            if hasattr(config, 'network_id'):
+                config.network_id = self.args.network_id
+            if hasattr(config, 'listen_address'):
+                config.listen_address = self.args.listen_address
+            if hasattr(config, 'listen_port'):
+                config.listen_port = self.args.listen_port
+            if hasattr(config, 'node_capabilities'):
+                config.node_capabilities = ["relay", "storage"] if not self.args.genesis else ["relay", "storage", "compute", "dns", "bootstrap"]
+            if hasattr(config, 'security'):
+                config.security = security
+            if hasattr(config, 'p2p'):
+                config.p2p = p2p
+            if hasattr(config, 'mesh'):
+                config.mesh = mesh
+            if hasattr(config, 'dns'):
+                config.dns = dns
+            if hasattr(config, 'routing'):
+                config.routing = routing
+            if hasattr(config, 'enable_discovery'):
+                config.enable_discovery = True
+            if hasattr(config, 'enable_dht'):
+                config.enable_dht = not self.args.no_dht
+            if hasattr(config, 'enable_nat_traversal'):
+                config.enable_nat_traversal = not self.args.no_nat
+            if hasattr(config, 'enable_mesh'):
+                config.enable_mesh = True
+            if hasattr(config, 'enable_dns'):
+                config.enable_dns = self.args.enable_dns or self.args.genesis
+            if hasattr(config, 'enable_adaptive_routing'):
+                config.enable_adaptive_routing = True
+            if hasattr(config, 'enable_metrics'):
+                config.enable_metrics = not self.args.no_metrics
+            if hasattr(config, 'enable_compression'):
+                config.enable_compression = not self.args.no_compression
+            if hasattr(config, 'enable_storage'):
+                config.enable_storage = self.args.enable_storage
+            if hasattr(config, 'enable_quantum'):
+                config.enable_quantum = self.args.enable_quantum
+            if hasattr(config, 'enable_blockchain'):
+                config.enable_blockchain = self.args.enable_blockchain
+            if hasattr(config, 'enable_compute'):
+                config.enable_compute = self.args.enable_compute
+        
+        return config
+
+
+    def _build_config_safe(self) -> NetworkConfig:
+        """Build network configuration with safe parameter checking using introspection."""
+        
+        # Import inspect module for parameter introspection
+        import inspect
+        
+        # Helper function to get supported parameters for any class
+        def get_supported_params(cls):
+            try:
+                sig = inspect.signature(cls.__init__)
+                return list(sig.parameters.keys())
+            except Exception as e:
+                self.logger.warning(f"Could not inspect {cls.__name__}: {e}")
+                return ['self']  # Minimal fallback
+        
+        # Get supported parameters for each config class
+        security_params = get_supported_params(SecurityConfig)
+        p2p_params = get_supported_params(P2PConfig)
+        mesh_params = get_supported_params(MeshConfig)
+        dns_params = get_supported_params(DNSConfig)
+        routing_params = get_supported_params(RoutingConfig)
+        network_params = get_supported_params(NetworkConfig)
+        
+        self.logger.debug(f"SecurityConfig accepts: {security_params}")
+        self.logger.debug(f"P2PConfig accepts: {p2p_params}")
+        self.logger.debug(f"NetworkConfig accepts: {network_params}")
+        
+        # Build security config with only supported parameters
+        security_kwargs = {}
+        
+        if 'enable_tls' in security_params:
+            security_kwargs['enable_tls'] = not self.args.no_tls
+        if 'enable_mtls' in security_params:
+            security_kwargs['enable_mtls'] = self.args.mtls
+        if 'enable_pq_crypto' in security_params:
+            security_kwargs['enable_pq_crypto'] = self.args.pq_crypto
+        if 'enable_zero_trust' in security_params:
+            security_kwargs['enable_zero_trust'] = self.args.zero_trust
+        if 'tls_cert_path' in security_params:
+            security_kwargs['tls_cert_path'] = self.args.tls_cert
+        if 'tls_key_path' in security_params:
+            security_kwargs['tls_key_path'] = self.args.tls_key
+        if 'ca_cert_path' in security_params:
+            security_kwargs['ca_cert_path'] = self.args.ca_cert
+        if 'audit_log_path' in security_params:
+            security_kwargs['audit_log_path'] = Path(self.args.audit_log) if self.args.audit_log else None
+        if 'enable_threat_detection' in security_params:
+            security_kwargs['enable_threat_detection'] = not self.args.no_threat_detection
+        if 'enable_intrusion_prevention' in security_params:
+            security_kwargs['enable_intrusion_prevention'] = self.args.ips
+        if 'enable_compliance_mode' in security_params:
+            security_kwargs['enable_compliance_mode'] = self.args.compliance
+        if 'compliance_standards' in security_params:
+            security_kwargs['compliance_standards'] = self.args.compliance_standards.split(',') if self.args.compliance_standards else []
+        if 'tls_rotation_interval' in security_params:
+            security_kwargs['tls_rotation_interval'] = self.args.tls_rotation_days * 86400
+        
+        # Create security config with only supported parameters
+        security = SecurityConfig(**security_kwargs)
+        
+        # Build P2P config with only supported parameters
+        p2p_kwargs = {}
+        
+        if 'listen_address' in p2p_params:
+            p2p_kwargs['listen_address'] = self.args.listen_address
+        if 'listen_port' in p2p_params:
+            p2p_kwargs['listen_port'] = self.args.listen_port
+        if 'bootstrap_nodes' in p2p_params:
+            p2p_kwargs['bootstrap_nodes'] = self.args.bootstrap if not self.args.genesis else []
+        if 'stun_servers' in p2p_params:
+            p2p_kwargs['stun_servers'] = self.args.stun_servers or DEFAULT_STUN_SERVERS
+        if 'turn_servers' in p2p_params:
+            p2p_kwargs['turn_servers'] = self.args.turn_servers or []
+        if 'max_peers' in p2p_params:
+            p2p_kwargs['max_peers'] = self.args.max_peers
+        if 'enable_mdns' in p2p_params:
+            p2p_kwargs['enable_mdns'] = not self.args.no_mdns
+        
+        p2p = P2PConfig(**p2p_kwargs)
+        
+        # Build mesh config with only supported parameters
+        mesh_kwargs = {}
+        
+        if 'max_peers' in mesh_params:
+            mesh_kwargs['max_peers'] = self.args.max_peers
+        
+        mesh = MeshConfig(**mesh_kwargs)
+        
+        # Build DNS config with only supported parameters
+        dns_kwargs = {}
+        
+        if 'root_domain' in dns_params:
+            dns_kwargs['root_domain'] = ".web4ai"
+        
+        dns = DNSConfig(**dns_kwargs)
+        
+        # Build routing config with only supported parameters
+        routing_kwargs = {}
+        
+        if 'enable_qos' in routing_params:
+            routing_kwargs['enable_qos'] = self.args.qos
+        
+        routing = RoutingConfig(**routing_kwargs)
+        
+        # Build main network config with only supported parameters
+        network_kwargs = {}
+        
+        if 'network_id' in network_params:
+            network_kwargs['network_id'] = self.args.network_id
+        if 'listen_address' in network_params:
+            network_kwargs['listen_address'] = self.args.listen_address
+        if 'listen_port' in network_params:
+            network_kwargs['listen_port'] = self.args.listen_port
+        if 'node_capabilities' in network_params:
+            network_kwargs['node_capabilities'] = ["relay", "storage"] if not self.args.genesis else ["relay", "storage", "compute", "dns", "bootstrap"]
+        if 'security' in network_params:
+            network_kwargs['security'] = security
+        if 'p2p' in network_params:
+            network_kwargs['p2p'] = p2p
+        if 'mesh' in network_params:
+            network_kwargs['mesh'] = mesh
+        if 'dns' in network_params:
+            network_kwargs['dns'] = dns
+        if 'routing' in network_params:
+            network_kwargs['routing'] = routing
+        if 'enable_discovery' in network_params:
+            network_kwargs['enable_discovery'] = True
+        if 'enable_dht' in network_params:
+            network_kwargs['enable_dht'] = not self.args.no_dht
+        if 'enable_nat_traversal' in network_params:
+            network_kwargs['enable_nat_traversal'] = not self.args.no_nat
+        if 'enable_mesh' in network_params:
+            network_kwargs['enable_mesh'] = True
+        if 'enable_dns' in network_params:
+            network_kwargs['enable_dns'] = self.args.enable_dns or self.args.genesis
+        if 'enable_adaptive_routing' in network_params:
+            network_kwargs['enable_adaptive_routing'] = True
+        if 'enable_metrics' in network_params:
+            network_kwargs['enable_metrics'] = not self.args.no_metrics
+        if 'enable_compression' in network_params:
+            network_kwargs['enable_compression'] = not self.args.no_compression
+        if 'enable_storage' in network_params:
+            network_kwargs['enable_storage'] = self.args.enable_storage
+        if 'enable_quantum' in network_params:
+            network_kwargs['enable_quantum'] = self.args.enable_quantum
+        if 'enable_blockchain' in network_params:
+            network_kwargs['enable_blockchain'] = self.args.enable_blockchain
+        if 'enable_compute' in network_params:
+            network_kwargs['enable_compute'] = self.args.enable_compute
+        
+        config = NetworkConfig(**network_kwargs)
         
         return config
     
@@ -1073,17 +1358,17 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Start as genesis node (first in network)
-  %(prog)s --genesis
-  
-  # Join existing network via bootstrap
-  %(prog)s --bootstrap /ip4/1.2.3.4/tcp/30300/p2p/Qm...
-  
-  # Join via DNS seed
-  %(prog)s --bootstrap genesis.web4ai
-  
-  # Enable all features
-  %(prog)s --enable-quantum --enable-blockchain --super-peer
+# Start as genesis node (first in network)
+%(prog)s --genesis
+
+# Join existing network via bootstrap
+%(prog)s --bootstrap /ip4/1.2.3.4/tcp/30300/p2p/Qm...
+
+# Join via DNS seed
+%(prog)s --bootstrap genesis.web4ai
+
+# Enable all features
+%(prog)s --enable-quantum --enable-blockchain --super-peer
 """
     )
     
@@ -1118,60 +1403,60 @@ Examples:
     # Security options
     security = parser.add_argument_group('security')
     security.add_argument('--no-tls', action='store_true',
-                         help='Disable TLS encryption')
+                        help='Disable TLS encryption')
     security.add_argument('--mtls', action='store_true',
-                         help='Enable mutual TLS')
+                        help='Enable mutual TLS')
     security.add_argument('--tls-cert', help='TLS certificate path')
     security.add_argument('--tls-key', help='TLS private key path')
     security.add_argument('--ca-cert', help='CA certificate path')
     security.add_argument('--pq-crypto', action='store_true',
-                         help='Enable post-quantum cryptography')
+                        help='Enable post-quantum cryptography')
     security.add_argument('--zero-trust', action='store_true',
-                         help='Enable zero-trust security model')
+                        help='Enable zero-trust security model')
     security.add_argument('--audit-log', help='Audit log file path')
     security.add_argument('--no-threat-detection', action='store_true',
-                         help='Disable threat detection')
+                        help='Disable threat detection')
     security.add_argument('--ips', action='store_true',
-                         help='Enable intrusion prevention')
+                        help='Enable intrusion prevention')
     security.add_argument('--compliance', action='store_true',
-                         help='Enable compliance mode')
+                        help='Enable compliance mode')
     security.add_argument('--compliance-standards',
-                         help='Comma-separated compliance standards')
+                        help='Comma-separated compliance standards')
     security.add_argument('--tls-rotation-days', type=int, default=TLS_ROTATION_DAYS,
-                         help='TLS certificate rotation interval (default: %(default)s)')
+                        help='TLS certificate rotation interval (default: %(default)s)')
     
     # Features
     features = parser.add_argument_group('features')
     features.add_argument('--enable-quantum', action='store_true',
-                         help='Enable quantum CSP engine')
+                        help='Enable quantum CSP engine')
     features.add_argument('--enable-blockchain', action='store_true',
-                         help='Enable blockchain integration')
+                        help='Enable blockchain integration')
     features.add_argument('--enable-storage', action='store_true',
-                         help='Enable distributed storage')
+                        help='Enable distributed storage')
     features.add_argument('--enable-compute', action='store_true',
-                         help='Enable distributed compute')
+                        help='Enable distributed compute')
     features.add_argument('--enable-dns', action='store_true',
-                         help='Enable DNS overlay service')
+                        help='Enable DNS overlay service')
     features.add_argument('--no-relay', action='store_true',
-                         help='Disable relay functionality')
+                        help='Disable relay functionality')
     features.add_argument('--no-dht', action='store_true',
-                         help='Disable DHT')
+                        help='Disable DHT')
     features.add_argument('--no-mdns', action='store_true',
-                         help='Disable mDNS discovery')
+                        help='Disable mDNS discovery')
     
     # Performance
     perf = parser.add_argument_group('performance')
     perf.add_argument('--no-compression', action='store_true',
-                     help='Disable message compression')
+                    help='Disable message compression')
     perf.add_argument('--no-encryption', action='store_true',
-                     help='Disable message encryption')
+                    help='Disable message encryption')
     perf.add_argument('--qos', action='store_true',
-                     help='Enable QoS traffic shaping')
+                    help='Enable QoS traffic shaping')
     perf.add_argument('--bandwidth-limit', type=int, default=0,
-                     help='Bandwidth limit in KB/s (0=unlimited)')
+                    help='Bandwidth limit in KB/s (0=unlimited)')
     perf.add_argument('--routing', default='batman-adv',
-                     choices=['batman-adv', 'babel', 'olsr'],
-                     help='Routing algorithm (default: %(default)s)')
+                    choices=['batman-adv', 'babel', 'olsr'],
+                    help='Routing algorithm (default: %(default)s)')
     
     # Monitoring
     monitor = parser.add_argument_group('monitoring')
@@ -1187,20 +1472,20 @@ Examples:
     # DNS/DHT
     discovery = parser.add_argument_group('discovery')
     discovery.add_argument('--dns-seeds', nargs='*',
-                          help='DNS seed domains for discovery')
+                        help='DNS seed domains for discovery')
     discovery.add_argument('--dht-bootstrap', nargs='*',
-                          help='DHT bootstrap nodes')
+                        help='DHT bootstrap nodes')
     discovery.add_argument('--no-ipv6', action='store_true',
-                          help='Disable IPv6 support')
+                        help='Disable IPv6 support')
     
     # Logging
     parser.add_argument('--log-level', default='INFO',
-                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-                       help='Log level (default: %(default)s)')
+                    choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                    help='Log level (default: %(default)s)')
     parser.add_argument('--debug', action='store_true',
-                       help='Enable debug mode')
+                    help='Enable debug mode')
     parser.add_argument('--no-shell', action='store_true',
-                       help='Disable interactive shell')
+                    help='Disable interactive shell')
     
     return parser.parse_args()
 
@@ -1264,13 +1549,13 @@ class InteractiveShell:
         """Show help message."""
         help_text = """
 Available commands:
-  help              - Show this help message
-  peers             - List connected peers
-  dns <name>        - Resolve .web4ai domain
-  send <peer> <msg> - Send message to peer
-  stats             - Show node statistics
-  loglevel <level>  - Set logging level
-  quit              - Exit the shell
+help              - Show this help message
+peers             - List connected peers
+dns <name>        - Resolve .web4ai domain
+send <peer> <msg> - Send message to peer
+stats             - Show node statistics
+loglevel <level>  - Set logging level
+quit              - Exit the shell
 """
         print(help_text)
     
@@ -1437,7 +1722,7 @@ class StatusServer:
     
     def setup_routes(self):
         """Setup HTTP routes."""
-        # Dashboard
+        # Dashboard 
         self.app.router.add_get('/', self.handle_root)
         
         # API endpoints

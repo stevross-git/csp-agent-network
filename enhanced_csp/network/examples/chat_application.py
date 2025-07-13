@@ -31,7 +31,7 @@ except ImportError:
     RICH_AVAILABLE = False
 
 try:
-    from aiohttp import web
+    from aiohttp import web, ClientSession
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
